@@ -282,7 +282,7 @@ when `findings` is empty, 1 otherwise; `observations` never affect it.
 
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
-| T1 | Fill the Execution Protocol's four declaration blocks | not started | **owner stop** | commit | |
+| T1 | Fill the Execution Protocol's four declaration blocks | awaiting owner | **owner stop** | commit | |
 | T2 | Package skeleton + `Plane`/`planeNormal` with tests | not started | continue | — | |
 | T3 | `Pattern` decoding with schema rejection tests | not started | checkpoint | commit | |
 | T4 | `triplePoint` + `intersectHalfSpaces` | not started | **owner stop** | commit | |

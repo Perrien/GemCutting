@@ -3,8 +3,8 @@
 `Version: 1.1 (2026-08-12)` · `Audience: the executing AI coding agent`
 
 > **§2 is this project's own; everything else is portable.** The `Paths` block was filled in when
-> the project was scaffolded. The other three blocks are still `⟦FILL IN⟧` — a project with no code
-> yet cannot answer them honestly. See the ticket `Chore-Complete-Execution-Protocol`.
+> the project was scaffolded; the other three blocks were filled by the plan `Facet-Kernel`, once
+> there was code for them to answer honestly.
 >
 > Keep the §2 blocks visibly marked as project declarations even after filling them, so the next
 > person editing this file knows which parts are local and which are the portable body.
@@ -39,9 +39,10 @@ to surface, not a gap to fill.
 
 ## 2. Project declarations
 
-### Paths
+### Paths — project declaration
 
-Filled at scaffold time — these are the folders the project was created with.
+Filled at scaffold time — these are the folders the project was created with. The deliverable row was
+filled once there was a deliverable.
 
 | | |
 |---|---|
@@ -54,64 +55,63 @@ Filled at scaffold time — these are the folders the project was created with.
 | Architectural decisions (ADRs) | `Design/Decisions/` — created on the first ADR |
 | Canonical vocabulary | `Design/Glossary.md` — created on the first resolved term |
 | Project context & conventions | `CLAUDE.md` |
-| Deliverable / source tree | **⟦FILL IN⟧** — did not exist at scaffold time |
+| Deliverable / source tree | `Kernel/` — SwiftPM package, library `FacetKernel`. `CuttingBench/` joins it in the second plan. |
 
 Nothing in the `Design/` root is ever archived. Everything in `Explorations/`, `Plans/` and
 `Tickets/` is. See §11.
 
-### ⟦FILL IN⟧ Gates
+### Gates — project declaration
 
 The checks that run before any task is marked done, **in this order**. The task may add more; it may
 never remove one. A gate that doesn't apply to a task simply doesn't run — you do not record that
 anywhere (§5).
 
-> *Replace with the project's real commands. Web example:*
->
-> 1. Unit tests: `npx vitest run` — green.
-> 2. Types: `npx tsc --noEmit` — clean.
-> 3. Build: `npm run build` — succeeds.
-> 4. The task's own *Done when* items, verbatim.
->
-> *Xcode example:*
->
-> 1. `xcodebuild -scheme <Scheme> test` — green.
-> 2. `swift format --lint` (or SwiftLint) — clean.
-> 3. A release-configuration build — succeeds.
-> 4. The task's own *Done when* items, verbatim.
+1. Tests: `swift test --package-path Kernel --disable-sandbox` — green. **Unconditional.**
+2. Format: `xcrun swift-format lint --recursive --strict Kernel/Sources Kernel/Tests` — clean.
+   **Unconditional.**
+3. Release build: `swift build -c release --package-path Kernel --disable-sandbox` — succeeds.
+   **Conditional** on `Kernel/` having been touched.
+4. The task's own *Done when* items, verbatim.
 
-State which gates are **conditional** and on what — e.g. a native-test gate that runs only when
-engine source was touched.
+**Gates 1–3 do not apply to a task that touches no Swift source.** Where `Kernel/` is untouched — or
+does not exist yet, as when this block was written — all three would fail for a reason that has
+nothing to do with the work, and the task's own *Done when* items are its only check.
 
-### ⟦FILL IN⟧ Guardrails
+### Guardrails — project declaration
 
 Hard constraints. Never violate one to make progress; needing to is a stop rule (§8).
 
-> *Replace with the project's own. Common shapes:*
->
-> - A reference implementation that is **immutable** — you work in a copy, and the two must agree.
-> - Golden vectors / fixtures that may **never** be edited or have their tolerances loosened to make
->   a failing check pass.
-> - **No new dependencies** beyond those the project already names, without owner approval. Never
->   load anything from a CDN at runtime.
-> - **No dependency upgrades** unless a task explicitly says so. Pins are pins.
-> - Schema changes bump a version and ship a migration plus a fixture.
-> - *Xcode:* never touch **signing, capabilities, entitlements, or the bundle identifier**. Treat
->   `project.pbxproj` as owner-run the way git is — hand-editing it is a corruption risk and produces
->   unreviewable diffs.
+- **`Design/Prototypes/render-proof/` is read-only.** It is the record of the render decision. Code is
+  copied out of it; nothing in it is changed.
+- **No third-party dependencies.** Swift and the standard library only.
+- **Never touch signing, capabilities, entitlements or the bundle identifier.** Treat
+  `project.pbxproj` as owner-run the way git is — hand-editing it is a corruption risk and produces
+  unreviewable diffs.
+- **`design-authoring-format.md` changes only via a task that names it.** It is the pattern format's
+  authority, and an incidental edit invalidates every authored pattern without saying so.
+- **The round-brilliant expected values and the three authored patterns' fixtures may never be edited,
+  nor their tolerances loosened, to make a check pass.** They are external ground truth. A fixture and
+  the code disagreeing means the code is wrong or a real discrepancy has been found; either way it is a
+  stop (§8), never an edit to the fixture.
+- **Nothing tracked may read a path inside `LocalOnly/`.** No source file, test, fixture, plan or task.
+  That folder exists on this machine only, so anything reaching into it works here and breaks
+  everywhere else — and breaks silently, because its absence looks like a missing file rather than a
+  design error.
 
-### ⟦FILL IN⟧ Environment & toolchain
+### Environment & toolchain — project declaration
 
 Anything about this machine or toolchain that changes how you work.
 
-> *Replace or delete. Example — a sandboxed machine with no network:*
->
-> Assume **no internet access**. Before any step that needs the network (package install, SDK
-> download, `git clone`, `git push`, fetching a URL), test cheaply first — attempt the smallest fetch.
-> **If it fails, do not retry workarounds:** no mirrors, no curl tricks, and never hand-write a
-> dependency in place of installing it. Mark the task `blocked`, and give the owner an exact,
-> copy-pasteable install request: what to install, the command, the expected resulting path/version,
-> and which task is waiting. Batch requests where predictable. After the owner reports done, verify
-> with a version check or one-line smoke command before resuming.
+- **Pass `--disable-sandbox` to `swift build` and `swift test`.** SwiftPM's manifest sandbox conflicts
+  with the agent sandbox; without the flag the command fails for a reason that has nothing to do with
+  the code.
+- **The network is restricted.** Before any step that needs it, attempt the smallest fetch first. If it
+  fails, **do not retry workarounds** — no mirrors, no curl tricks, and never hand-write a dependency in
+  place of installing it. Mark the task `blocked` and give the owner an exact, copy-pasteable install
+  request: what to install, the command, the expected resulting path and version, and which task is
+  waiting. After the owner reports done, verify with a version check before resuming.
+- **No PDF page renderer and no physical device.** A task that needs to *see* a diagram, or to judge
+  something on real hardware, is blocked on the owner — never inferred from surrounding text.
 
 ---
 
