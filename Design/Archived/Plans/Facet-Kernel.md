@@ -291,9 +291,9 @@ when `findings` is empty, 1 otherwise; `observations` never affect it.
 | T7 | `metrics` — counts, symmetry, proportions | completed | **owner stop** | commit | Material alteration: width and length are D10's extent along the fixed axes, not *Approach* §7's line "Width is D10's minimum-offset definition" — D10 rejects the minimum-offset rule by name. The two agree on all three patterns here; only T10's asserted `widthNormalised` 2.03918 for the round brilliant separates them, and the extent rule is what gives it. |
 | T8 | `facetsolve` CLI | completed | **owner stop** | commit + push | Material alteration: (1) adds `Kernel/Tests/FacetKernelTests/CLITests.swift`, which the *Files* list does not name — the *Done when* requires a test on `--girdle`, and running the CLI as a subprocess is what makes the test target depend on `facetsolve` in `Package.swift`. (2) The metrics block prints a `T/W` row — the table's extent along the width axis over the width — which `Metrics` (§7) does not carry; T10's verification handle expects `facetsolve` to print it, so it is derived in `main.swift`. It reproduces the round brilliant's published 0.516. |
 | T9 | Regression fixtures: the three authored patterns | completed | continue | — | Material alteration: the regenerating command lives in `RegressionTests.swift` beside each fixture, not as a comment at the top of the fixture — a `.json` file carrying a comment is not JSON and could not be the CLI's output verbatim, which the same *Done when* requires. `Package.swift` also gains `exclude: ["Fixtures"]`, since the golden files are read from the source tree and are not resources to copy. |
-| T10 | Round-brilliant absolute anchor | awaiting owner | **owner stop** | commit | |
-| T11 | 139-plane scale check and girdle invariance | not started | continue | — | |
-| T12 | Close out | not started | **owner stop** | commit + push | |
+| T10 | Round-brilliant absolute anchor | completed | **owner stop** | commit | |
+| T11 | 139-plane scale check and girdle invariance | completed | continue | — | Material alteration: the closure check is re-stated in `ScaleTests.swift` rather than reused from `Validation.swift`, where it is file-private. Calling `validate` instead would run its incremental vertex pass, which rebuilds the solid once per tier and would dominate the timing this task exists to measure. |
+| T12 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 ---
 
@@ -732,3 +732,14 @@ facet-kernel T12: close out
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each
 as a ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **Two kernel measures live outside the library.** `T/W` — the table's extent over the width — is
+  derived in `facetsolve`'s `main.swift` because `Metrics` (§7) does not carry it, and the closure rule
+  `Validation.swift` applies is re-stated in `ScaleTests.swift` because `closureFinding` is file-private.
+  Each is one definition in two places, and the GUI will want the table size as a metric.
+  Ticket: `Chore-Kernel-Measures-Split-Between-Library-And-Callers`.
+- **Validation rebuilds the solid once per tier.** The named-point check (D6) is deliberately
+  incremental, so it intersects every earlier tier's half-spaces once per tier that names a vertex —
+  1.65 s on a generated 139-plane pattern against 0.60 s for the whole solve. Correct, and the shape an
+  authoring UI validating on every edit will feel.
+  Ticket: `Chore-Validation-Rebuilds-The-Solid-Once-Per-Tier`.

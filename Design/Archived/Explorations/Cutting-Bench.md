@@ -1,5 +1,20 @@
 # Cutting Bench — Exploration
 
+> **Superseded in part by the plan `Facet-Kernel`, which shipped. Where this document and the code
+> disagree, trust the code.** Four claims here are no longer true of what was built:
+>
+> - **S3** — the success set was amended after this exploration closed. `Easy Does it Modified` was
+>   descoped, and `Kiev Triangle` has no authored pattern: the scale check runs on a generated
+>   139-plane design instead (`Facet-Kernel` D16).
+> - **S4** — its stated consequence that the format document's own half-finished tables can be loaded
+>   and finished in the tool is void under JSON.
+> - **S9** — guardrail 4 permits format edits only via the **I19** and **I20** tasks; the format has
+>   moved well past both. The guardrail's intent — that the format does not change without the owner's
+>   say — held throughout.
+> - **I6** — "never a sequential per-tier solve" is right for the depth solve and wrong for the
+>   validation, which resolves named vertices against the *intermediate* solid, tier by tier, on
+>   purpose (`Facet-Kernel` D6).
+
 Status: **CLOSED 2026-08-20**
 Started: 2026-08-20 · via /a-explore
 IDs: **S** = scope · **I** = implementation · **U** = UI/UX
