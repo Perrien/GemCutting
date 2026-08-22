@@ -1,0 +1,15 @@
+# Project files that never leave this machine — see CLAUDE.md
+LocalOnly/
+
+# macOS
+.DS_Store
+
+# SwiftPM build output
+.build/
+.swiftpm/
+
+# Xcode
+DerivedData/
+xcuserdata/
+*.xcuserstate
+/LocalOnly

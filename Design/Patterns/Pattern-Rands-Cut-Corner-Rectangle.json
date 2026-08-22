@@ -1,0 +1,80 @@
+{
+  "formatVersion": 1,
+  "name": "Rand's Cut Corner Rectangle",
+  "state": "finished",
+  "wheel": 96,
+  "ri": 1.54,
+  "designer": "Dan Clayton, 2004. USFG 2010 SSC PreMaster Stone.",
+  "notes": "Declared on the sheet, as cross-checks not source of truth: 53 facets, 2-fold mirror symmetry. Cut-corner rectangle: tier 2 carries the two ends and the four cut corners at one depth, tier 3 the two long sides at another, which is why the girdle is split across two tiers. Half-width solves to exactly sqrt(3)-1, so L/W is (sqrt(3)+1)/2 = 1.36603 and is forced by the 30/60-degree index geometry rather than chosen. Girdle measures 4.05% of width in the source diagram (2.96% of length). Tier order is the sheet's own. Sheet meet text maps as follows: 'Cut to centerpoint' on 1 is the free datum, superseded by tier 5's 'new PCP'; 'meet 1-1-2-3' on 3 names four facets including tier 3 itself, so the self-reference is dropped; 'level girdle' on 4 and B is a plain vertex, each meeting the girdle corner its predecessor established; 'girdle meetpoint' on 5, C and D names a girdle-plane vertex. Facet identity was resolved from the sheet's own meets, not from the diagram - C and E would be swapped if read by polygon position, since their top-view centroids sit 29 and 19 degrees off their facet azimuths. Source: 'GemCad Diagrams - 53 designs.pdf' p26, 'Faceting Diagrams/USFG Competitions/2010SSCPreMaster.gem'. Angles and indices transcribed from the sheet; meets derived from its crown, pavilion and profile diagrams.",
+  "tiers": [
+    {
+      "tier": "1", "part": "pav", "angle": 43.00,
+      "indices": [0, 8, 16, 24, 32, 40, 48, 56, 64, 72, 80, 88],
+      "meet": { "kind": "tcp" }
+    },
+    {
+      "tier": "2", "part": "gdl", "angle": 90.00,
+      "indices": [0, 8, 40, 48, 56, 88],
+      "meet": { "kind": "size" }
+    },
+    {
+      "tier": "3", "part": "gdl", "angle": 90.00,
+      "indices": [24, 72],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"1","index":8}, {"tier":"1","index":16}, {"tier":"2","index":8} ] }
+    },
+    {
+      "tier": "4", "part": "pav", "angle": 65.00,
+      "indices": [24, 72],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"1","index":8}, {"tier":"1","index":16}, {"tier":"2","index":8} ] }
+    },
+    {
+      "tier": "5", "part": "pav", "angle": 41.20,
+      "indices": [4, 12, 36, 44, 52, 60, 84, 92],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"2","index":0}, {"tier":"2","index":8}, {"tier":"1","index":0} ] }
+    },
+    {
+      "tier": "A", "part": "crown", "angle": 50.00,
+      "indices": [0, 8, 40, 48, 56, 88],
+      "meet": { "kind": "girdle" }
+    },
+    {
+      "tier": "B", "part": "crown", "angle": 50.00,
+      "indices": [24, 72],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"2","index":8}, {"tier":"3","index":24}, {"tier":"A","index":8} ] }
+    },
+    {
+      "tier": "C", "part": "crown", "angle": 32.00,
+      "indices": [21, 27, 69, 75],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"2","index":8}, {"tier":"3","index":24}, {"tier":"A","index":8} ] }
+    },
+    {
+      "tier": "D", "part": "crown", "angle": 35.00,
+      "indices": [4, 44, 52, 92],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"2","index":0}, {"tier":"2","index":8}, {"tier":"A","index":0} ] }
+    },
+    {
+      "tier": "E", "part": "crown", "angle": 22.00,
+      "indices": [12, 36, 60, 84],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"C","index":21}, {"tier":"A","index":8}, {"tier":"D","index":4} ] }
+    },
+    {
+      "tier": "F", "part": "table", "angle": 0.00,
+      "indices": [0],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"D","index":4}, {"tier":"D","index":92}, {"tier":"E","index":12} ] }
+    },
+    {
+      "tier": "G", "part": "crown", "angle": 25.84,
+      "indices": [24, 72],
+      "meet": { "kind": "vertex", "facets": [
+        {"tier":"C","index":21}, {"tier":"C","index":27}, {"tier":"B","index":24} ] }
+    }
+  ]
+}
