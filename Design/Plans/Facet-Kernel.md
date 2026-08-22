@@ -287,8 +287,8 @@ when `findings` is empty, 1 otherwise; `observations` never affect it.
 | T3 | `Pattern` decoding with schema rejection tests | completed | checkpoint | commit | Material alteration: `Meet`, `TierSpec` and `Pattern` conform to `Decodable`, not `Codable` — a hand-written `init(from:)` on an enum with associated values leaves a synthesised `encode(to:)` whose JSON shape is not the on-disk one, and *Explicitly not doing* forbids an encoder. `Part` and `FacetRef` remain `Codable`. |
 | T4 | `triplePoint` + `intersectHalfSpaces` | completed | **owner stop** | commit | |
 | T5 | `solve` — the five meet forms, dependency order, normalisation | completed | **owner stop** | commit + push | |
-| T6 | `validate` — nine findings, two observations, incremental vertex check | not started | continue | — | |
-| T7 | `metrics` — counts, symmetry, proportions | not started | **owner stop** | commit | |
+| T6 | `validate` — nine findings, two observations, incremental vertex check | completed | continue | — | |
+| T7 | `metrics` — counts, symmetry, proportions | awaiting owner | **owner stop** | commit | Material alteration: width and length are D10's extent along the fixed axes, not *Approach* §7's line "Width is D10's minimum-offset definition" — D10 rejects the minimum-offset rule by name. The two agree on all three patterns here; only T10's asserted `widthNormalised` 2.03918 for the round brilliant separates them, and the extent rule is what gives it. |
 | T8 | `facetsolve` CLI | not started | **owner stop** | commit + push | |
 | T9 | Regression fixtures: the three authored patterns | not started | continue | — | |
 | T10 | Round-brilliant absolute anchor | not started | **owner stop** | commit | |
