@@ -12,6 +12,12 @@ let package = Package(
     .executableTarget(name: "facetsolve", dependencies: ["FacetKernel"]),
     // The CLI is a dependency of the tests so `swift test` builds it: the checks that cover it run it as
     // a subprocess, the way the owner does.
-    .testTarget(name: "FacetKernelTests", dependencies: ["FacetKernel", "facetsolve"]),
+    .testTarget(
+      name: "FacetKernelTests",
+      dependencies: ["FacetKernel", "facetsolve"],
+      // The golden fixtures are read from the source tree, not from the test bundle, so they are not
+      // resources to copy. Saying so is what keeps the build quiet about them.
+      exclude: ["Fixtures"]
+    ),
   ]
 )

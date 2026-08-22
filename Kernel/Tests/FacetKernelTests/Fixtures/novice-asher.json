@@ -1,0 +1,41 @@
+{
+  "findings" : [
+
+  ],
+  "metrics" : {
+    "crownHeightFractionOfWidth" : 0.129629055,
+    "culetIsPoint" : true,
+    "facetCount" : 49,
+    "facetsPerTier" : {
+      "C1" : 8,
+      "C2" : 8,
+      "G" : 8,
+      "P1" : 8,
+      "P2" : 8,
+      "P3" : 8,
+      "T" : 1
+    },
+    "girdleFractionOfWidth" : 0.03226,
+    "girdleThicknessNormalised" : 0.06452,
+    "lengthNormalised" : 2,
+    "lengthOverWidth" : 1,
+    "mirrorAxes" : [
+      0,
+      6,
+      12,
+      18,
+      24,
+      30,
+      36,
+      42
+    ],
+    "pavilionDepthFractionOfWidth" : 0.503584545,
+    "rotationalOrder" : 8,
+    "tableFractionOfWidth" : 0.503152042,
+    "totalDepthFractionOfWidth" : 0.6654736,
+    "widthNormalised" : 2
+  },
+  "observations" : [
+
+  ]
+}
