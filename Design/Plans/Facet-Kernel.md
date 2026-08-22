@@ -285,7 +285,7 @@ when `findings` is empty, 1 otherwise; `observations` never affect it.
 | T1 | Fill the Execution Protocol's four declaration blocks | completed | **owner stop** | commit | |
 | T2 | Package skeleton + `Plane`/`planeNormal` with tests | completed | continue | — | |
 | T3 | `Pattern` decoding with schema rejection tests | completed | checkpoint | commit | Material alteration: `Meet`, `TierSpec` and `Pattern` conform to `Decodable`, not `Codable` — a hand-written `init(from:)` on an enum with associated values leaves a synthesised `encode(to:)` whose JSON shape is not the on-disk one, and *Explicitly not doing* forbids an encoder. `Part` and `FacetRef` remain `Codable`. |
-| T4 | `triplePoint` + `intersectHalfSpaces` | not started | **owner stop** | commit | |
+| T4 | `triplePoint` + `intersectHalfSpaces` | awaiting owner | **owner stop** | commit | |
 | T5 | `solve` — the five meet forms, dependency order, normalisation | not started | **owner stop** | commit + push | |
 | T6 | `validate` — nine findings, two observations, incremental vertex check | not started | continue | — | |
 | T7 | `metrics` — counts, symmetry, proportions | not started | **owner stop** | commit | |
