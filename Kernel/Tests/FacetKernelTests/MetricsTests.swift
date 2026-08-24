@@ -20,6 +20,7 @@ final class MetricsTests: XCTestCase {
     let lengthOverWidth: Double
     let girdleThickness: Double
     let girdlePercent: Double
+    let tableFraction: Double
   }
 
   private static let sheets: [Sheet] = [
@@ -32,7 +33,8 @@ final class MetricsTests: XCTestCase {
       length: 2.000000,
       lengthOverWidth: 1.00000,
       girdleThickness: 0.067400,
-      girdlePercent: 3.370
+      girdlePercent: 3.370,
+      tableFraction: 0.630939
     ),
     Sheet(
       file: AuthoredPatterns.noviceAsher,
@@ -43,7 +45,8 @@ final class MetricsTests: XCTestCase {
       length: 2.000000,
       lengthOverWidth: 1.00000,
       girdleThickness: 0.064520,
-      girdlePercent: 3.226
+      girdlePercent: 3.226,
+      tableFraction: 0.503152
     ),
     Sheet(
       file: AuthoredPatterns.rands,
@@ -54,7 +57,8 @@ final class MetricsTests: XCTestCase {
       length: 2.000000,
       lengthOverWidth: 1.36603,
       girdleThickness: 0.059286,
-      girdlePercent: 4.049
+      girdlePercent: 4.049,
+      tableFraction: 0.395415
     ),
   ]
 
@@ -136,8 +140,9 @@ final class MetricsTests: XCTestCase {
   // MARK: - Proportions
 
   /// The width and length are checked directly rather than through the girdle percentage, because the
-  /// percentage would come back whatever axis convention was used. These pin the convention: width along
-  /// the 90-270 axis, length along 0-180. Rand's long axis lies on 0-48, so its width is the short one.
+  /// percentage would come back whatever axis convention was used. These pin the convention: width is the
+  /// smaller of the two axis extents and length the larger, so `L/W` is never below 1. Rand's long axis
+  /// lies on 0-48, so its width was already the short one and this rule leaves all three unchanged.
   func testWidthAndLengthAlongTheFixedAxes() throws {
     for sheet in Self.sheets {
       let measured = try measure(sheet.file, girdle: sheet.girdle)
@@ -146,7 +151,25 @@ final class MetricsTests: XCTestCase {
       XCTAssertEqual(measured.lengthNormalised, sheet.length, accuracy: 1e-5, sheet.file)
       XCTAssertEqual(
         measured.lengthOverWidth, sheet.lengthOverWidth, accuracy: 1e-5, sheet.file)
+      XCTAssertGreaterThanOrEqual(measured.lengthOverWidth, 1, sheet.file)
     }
+  }
+
+  /// The case the fixed-axis rule got backwards, and it needs no pattern: four vertical planes half a unit
+  /// out along `x` and a whole unit out along `y`. The outline is 1 wide and 2 long, and the width is on
+  /// `x` — which the old rule, always reading width off `y`, reported as 2 wide by 1 long.
+  func testTheSmallerAxisExtentIsTheWidth() throws {
+    let planes = [
+      Plane(n: (x: 1, y: 0, z: 0), d: 0.5),
+      Plane(n: (x: -1, y: 0, z: 0), d: 0.5),
+      Plane(n: (x: 0, y: 1, z: 0), d: 1.0),
+      Plane(n: (x: 0, y: -1, z: 0), d: 1.0),
+    ]
+
+    let outline = try XCTUnwrap(girdleOutlineExtent(planes))
+    XCTAssertEqual(outline.width, 1.0, accuracy: 1e-12)
+    XCTAssertEqual(outline.length, 2.0, accuracy: 1e-12)
+    XCTAssertFalse(outline.widthIsAlongY)
   }
 
   /// Rand's half-width is `sqrt(3) - 1` exactly, forced by its 30 and 60 degree index geometry rather
@@ -167,6 +190,18 @@ final class MetricsTests: XCTestCase {
         measured.girdleThicknessNormalised, sheet.girdleThickness, accuracy: 1e-5, sheet.file)
       XCTAssertEqual(
         measured.girdleFractionOfWidth * 100, sheet.girdlePercent, accuracy: 0.001, sheet.file)
+    }
+  }
+
+  /// The table's share of the width, for each sheet. Nothing in a pattern says how big a table is — it
+  /// falls out of the crown angles through chained vertex meets — so these are the numbers the golden
+  /// `--json` fixtures carry, now read from the metric rather than from the CLI that used to derive it.
+  func testTheTableFractionOfWidth() throws {
+    for sheet in Self.sheets {
+      let measured = try measure(sheet.file, girdle: sheet.girdle)
+
+      XCTAssertEqual(
+        measured.tableFractionOfWidth, sheet.tableFraction, accuracy: 1e-6, sheet.file)
     }
   }
 
@@ -212,6 +247,10 @@ final class MetricsTests: XCTestCase {
       measured.crownHeightFractionOfWidth,
       accuracy: 1e-12,
       "a stone cut to the same angle both ways is as deep below the girdle as it is high above it"
+    )
+    XCTAssertEqual(
+      measured.tableFractionOfWidth, 0,
+      "a stone cut to a point both ways has no table facet, so it has no table"
     )
   }
 

@@ -4,6 +4,7 @@
   "state": "finished",
   "wheel": 96,
   "ri": 1.54,
+  "girdleTargetFraction": 0.033700,
   "designer": "USFG Competitions. No individual designer named on the source sheet.",
   "notes": "Declared on the sheet, as cross-checks not source of truth: 37 facets, 4-fold symmetry. Sheet states no material, size or girdle tolerance - material inferred as quartz from RI 1.540, and the girdle meet therefore falls back to the 3-5% rule; the source diagram measures 3.37% of width. Source: 'GemCad Diagrams - 53 designs.pdf' p44, 'Faceting Diagrams/USFG Competitions/Easy Octagon.gem'. Angles and indices transcribed from the sheet; meets derived from its crown, pavilion and profile diagrams.",
   "tiers": [

@@ -1,7 +1,8 @@
 # Validation rebuilds the solid once per tier
 
-Status: untriaged
+Status: open
 Filed: 2026-08-22
+Picked up by: 4-Cutting-Bench-Authoring
 
 `validate`'s named-point check intersects the half-spaces of every earlier tier once for each tier that
 names a vertex, which costs roughly tiers × planes³. On a generated 139-plane pattern that is 1.65 s

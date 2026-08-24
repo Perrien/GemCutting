@@ -40,7 +40,7 @@ presentation** — see the rule at the end.
 representation — the tool's save format, the game's load format and the thing verified on screen are
 all this file, so they cannot disagree.
 
-JSON rather than a table because the tool reads *and* writes it (`Cutting-Bench` **I16** puts format
+JSON rather than a table because the tool reads *and* writes it (**ADR-0003** puts format
 I/O in the kernel), and because most of the rules below stop being rules and become shapes: `part`
 and a meet's `kind` are enums, a vertex's three facets are a three-element array of typed pairs, and
 an optional per-tier wheel is an absent field rather than a mostly-blank column.
@@ -52,6 +52,7 @@ an optional per-tier wheel is an absent field rather than a mostly-blank column.
   "state": "finished",
   "wheel": 96,
   "ri": 1.54,
+  "girdleTargetFraction": 0.033700,
   "designer": "USFG Competitions. No individual designer named on the source sheet.",
   "notes": "…",
   "tiers": [
@@ -68,13 +69,24 @@ an optional per-tier wheel is an absent field rather than a mostly-blank column.
 | `formatVersion` | integer, currently `1` |
 | `name` | the design's published name |
 | `state` | `"in progress"` or `"finished"` — see below |
-| `wheel` | the design's **default** index wheel: 96, 120, 64 or 80. Any tier may override it |
+| `wheel` | the design's **default** index wheel: 32, 64, 72, 80, 84, 88, 96 or 120. Any tier may override it |
 | `ri` | the refractive index the design was drawn for |
+| `girdleTargetFraction` | **optional.** The girdle band's thickness as a fraction of the width, as the design's diagram measures it; absent means 0.04 |
 | `designer` | attribution — name, publication, competition, year |
 | `notes` | free text: material spec, size and girdle tolerances, anything the sheet says |
 
 `wheel` was called `index` while this was a table, which read confusingly against a tier's
-`indices`. Same field, clearer name.
+`indices`. Same field, clearer name. **96 and 120 are the common gears**; two of the other six exist
+for symmetries neither of those can reach, since **84 is what makes 7-fold possible and 72 is what
+makes 9-fold possible** and neither 7 nor 9 divides 96 or 120. And **every one of the eight divides by
+4**, so a quarter turn is always a whole number of stops, whatever gear a design is cut on.
+
+**`girdleTargetFraction` is a file field rather than a preference because the value changes the
+stone.** The `girdle` meet below sets a tier's depth from it, so a pattern reopened at a different
+target does not reproduce its own verified geometry — the crown moves, and every proportion measured
+from the girdle moves with it. Real patterns genuinely differ: `Rand's Cut Corner Rectangle #1`
+measures 4.05% of width, while `SUPERPEAR 96` asks for 1.6–3.2%. Absent means the design's sheet gives
+no figure and the 3–5% rule of thumb's midpoint stands in.
 
 **`state` exists because a design can always be saved.** A half-authored design is normally invalid —
 nothing closes until the last tier — so validity cannot gate ordinary work, but an invalid design
@@ -83,8 +95,10 @@ be fully valid; the rules at the end are enforced against it. An `in progress` d
 failures *reported*, not refused.
 
 **Do not author these — they are computed:** facet count, symmetry order and whether it's
-mirrored, L/W ratio, girdle thickness target, difficulty. If a printed sheet declares one, put it
-in `notes` and it becomes a cross-check rather than the source of truth. (Worth knowing why:
+mirrored, L/W ratio, the girdle's achieved thickness, difficulty. The girdle *target* is not on this
+list and must not be confused with what is: the target is what the design's diagram asks for and is
+authored, above; the thickness the solve then achieves is a measurement. If a printed sheet declares
+one, put it in `notes` and it becomes a cross-check rather than the source of truth. (Worth knowing why:
 `Apex Pinwheel` declares *8-fold mirror symmetry* but is a pinwheel, so rotational-only. Declared
 metadata is a claim, not a fact.)
 
@@ -100,7 +114,11 @@ setting into `indices`, but what lands in the file is the full index list.
 | `angle` | mast angle, a number. Write it to 2 decimal places; `90.00` and `90` are the same value |
 | `indices` | array of integer index positions. Whole numbers only — no cheaters |
 | `wheel` | **optional.** Overrides the design default for this tier only |
+| `instructions` | **optional.** Free text for whoever cuts this tier; never interpreted by the engine and never generated |
 | `meet` | the meet — see the five forms below |
+
+`instructions` is addressed to someone about to cut this tier, where the header's `notes` is addressed
+to someone checking a claim about the whole design.
 
 `part` matters and can't be guessed: crown and pavilion angle ranges genuinely overlap. `Easy
 Does It` has pavilion tiers at 43.60 and 41.00 and crown tiers at 42.00, 41.50 and 39.40. Since
@@ -193,13 +211,24 @@ Not a free choice: the target is 3–5% of width, so it follows once size is set
 override it in `notes` with an explicit spec and tolerance, and competition designs do — `SUPERPEAR
 96` asks for 0.3±0.1mm on a 12–13mm stone, i.e. 1.6–3.2%, thinner than the rule of thumb.
 
-Being a ratio, it needs no special handling on a non-round outline — but **"width" is twice the
-*minimum* girdle-plane offset computed from the solved outline, never assumed.** Minimum, not
-maximum: on an elongated stone the maximum offset is the half-*length*. `Rand's Cut Corner
-Rectangle #1` carries its girdle at 4.05% of width, comfortably inside the target, which the maximum
-offset reports as 2.96% and would wrongly flag as too thin. Nothing in the solver, the validation or
-the display may assume a flat girdle either: roughly 99% of designs have one, but non-flat girdles
-exist and are expressible in these same meet forms.
+Being a ratio, it needs no special handling on a non-round outline — but **"width" is measured from the
+solved outline, never assumed.** Width and length are the girdle outline's extents along the two fixed
+axes — the 0–180 and the 90–270 direction — labelled by size: **the smaller extent is the width and the
+larger is the length, so `L/W` is always ≥ 1.** On a square or a round outline the two are equal and the
+labelling makes no difference.
+
+Not the maximum breadth in any direction, because a faceter measures a rectangle along its length and
+the corner-to-corner distance is neither dimension: `Rand's Cut Corner Rectangle #1` reads 2.07308
+across its corners against extents of 1.464102 and 2.000000. Under the extents rule Rand's carries its
+girdle at 4.05% of width, comfortably inside the target; reading "width" as the maximum girdle-plane
+offset instead reports 2.96% and would wrongly flag it as too thin.
+
+**A known limitation:** a design whose own axes are not the 0–180 and 90–270 directions is measured
+against axes that are not its own. The two extents are still real distances across the stone, but they
+are not the length and width that design's author would read off it.
+
+Nothing in the solver, the validation or the display may assume a flat girdle either: roughly 99% of
+designs have one, but non-flat girdles exist and are expressible in these same meet forms.
 
 ### 4. A vertex — name the facets that meet there
 

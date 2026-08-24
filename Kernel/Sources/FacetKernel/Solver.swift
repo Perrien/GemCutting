@@ -99,13 +99,28 @@ public enum SolverError: Error, Equatable, CustomStringConvertible {
 /// `girdleTargetFraction` is the girdle band's thickness as a fraction of the outline's width. It is a
 /// parameter because a crown tier's offset depends on it and each authored pattern has its own
 /// diagram-measured value.
-public func solve(_ pattern: Pattern, girdleTargetFraction: Double = 0.04) throws -> Solution {
-  var run = Solve(pattern: pattern, girdleTargetFraction: girdleTargetFraction)
+///
+/// Precedence: an explicit argument wins, then the pattern's own declared target, then
+/// `Pattern.defaultGirdleTargetFraction`. The argument wins so a caller can measure the same pattern at
+/// a target its file does not ask for — which is what the girdle-invariance checks do — while a pattern
+/// opened with no argument reproduces its own diagram.
+public func solve(_ pattern: Pattern, girdleTargetFraction: Double? = nil) throws -> Solution {
+  let resolved = girdleTargetFraction ?? pattern.effectiveGirdleTargetFraction
+  var run = Solve(pattern: pattern, girdleTargetFraction: resolved)
   return try run.solve()
 }
 
-/// The girdle outline's extent along the two fixed axes: `width` along the 90-270 degree axis,
-/// `length` along 0-180. Returns `nil` when the vertical planes do not enclose a bounded outline.
+/// The girdle outline's extents along the two fixed axes — the 0-180 and 90-270 directions — labelled by
+/// size: **the smaller is the width and the larger is the length**, so `L/W` is never below 1. A tie
+/// leaves the width on the 90-270 (`y`) axis, so a square or round outline is unchanged by the labelling.
+/// Returns `nil` when the vertical planes do not enclose a bounded outline.
+///
+/// `widthIsAlongY` says which axis the width came off, because a caller measuring anything else against
+/// the width has to measure it on the same axis. `Metrics.tableFractionOfWidth` is the one that does.
+///
+/// Labelling by size rather than by axis is what makes the girdle band invariant under a quarter turn:
+/// the `girdle` meet sizes the band from the width, so a design and the same design rotated 90 degrees
+/// would otherwise be two different stones — the band sized off the length in one of them.
 ///
 /// Whether such an axis crosses a girdle flat or a girdle corner is a property of the design, not
 /// something to decide — the round brilliant's sixteen girdle facets are chords of an intended circle
@@ -116,7 +131,7 @@ public func solve(_ pattern: Pattern, girdleTargetFraction: Double = 0.04) throw
 func girdleOutlineExtent(
   _ planes: [Plane],
   tolerance: Double = 1e-7
-) -> (width: Double, length: Double)? {
+) -> (width: Double, length: Double, widthIsAlongY: Bool)? {
   let vertical = planes.filter { abs($0.n.z) < 1e-9 }
   guard vertical.count >= 3, enclosesTheAxis(vertical) else { return nil }
 
@@ -144,7 +159,18 @@ func girdleOutlineExtent(
   guard let minX = xs.min(), let maxX = xs.max(), let minY = ys.min(), let maxY = ys.max() else {
     return nil
   }
-  return (width: maxY - minY, length: maxX - minX)
+  return labelledBySize(alongX: maxX - minX, alongY: maxY - minY)
+}
+
+/// Two axis extents, labelled: smaller is the width. A tie keeps the width on `y`, which is where the
+/// fixed-axis rule this replaced always put it, so nothing moves on a square or round outline.
+func labelledBySize(
+  alongX: Double,
+  alongY: Double
+) -> (width: Double, length: Double, widthIsAlongY: Bool) {
+  alongY <= alongX
+    ? (width: alongY, length: alongX, widthIsAlongY: true)
+    : (width: alongX, length: alongY, widthIsAlongY: false)
 }
 
 /// Whether these vertical planes bound the outline in every direction: sorted by azimuth, no gap

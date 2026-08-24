@@ -88,6 +88,30 @@ final class SolverTests: XCTestCase {
     }
   }
 
+  /// The three ways a caller can arrive at a girdle target, all on Easy Octagon: no argument, so the
+  /// file's declared 3.37% stands; an explicit 4%, which overrides the file; and a copy with the field
+  /// stripped and no argument, which falls back to the kernel's default. The middle and last land on the
+  /// same offset because the default *is* 4% — what the test pins is that the file no longer decides once
+  /// an argument is given.
+  func testTheGirdleTargetResolvesArgumentThenFileThenDefault() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    XCTAssertEqual(pattern.girdleTargetFraction, 0.033700)
+
+    let asDeclared = try solve(pattern)
+    XCTAssertEqual(try crown(of: asDeclared), 0.719219, accuracy: tol)
+
+    let overridden = try solve(pattern, girdleTargetFraction: 0.04)
+    XCTAssertEqual(try crown(of: overridden), 0.728582, accuracy: tol)
+
+    var undeclared = pattern
+    undeclared.girdleTargetFraction = nil
+    XCTAssertEqual(try crown(of: try solve(undeclared)), 0.728582, accuracy: tol)
+  }
+
+  private func crown(of solution: Solution) throws -> Double {
+    try XCTUnwrap(solution.tiers.first { $0.tier == "C1" }).d
+  }
+
   func testEveryPlaneKnowsWhichFacetOwnsIt() throws {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
     let solution = try solve(pattern, girdleTargetFraction: 0.033700)

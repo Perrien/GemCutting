@@ -55,12 +55,14 @@ final class RoundBrilliantTests: XCTestCase {
   /// falls out of the star and crown-main angles through three chained vertex meets, so a solver that
   /// mis-chains them breaks this and leaves the pavilion alone.
   ///
-  /// It is read from `facetsolve --json`, because the table's extent is derived in the CLI rather than in
-  /// `Metrics`.
+  /// `Metrics` derives it and `facetsolve --json` reports it, so the second assertion is what makes "one
+  /// definition" a checked claim: the metric and the number the CLI prints are the same number, not two
+  /// implementations that happen to agree to three places.
   func testThePublishedTableRatio() throws {
     let reported = try tableFractionOfWidth()
 
     XCTAssertEqual(reported, published.table, accuracy: tolerance, "T/W")
+    XCTAssertEqual(try measure().tableFractionOfWidth, reported, accuracy: 1e-9, "one definition")
   }
 
   // MARK: - Counts, symmetry and the width axis

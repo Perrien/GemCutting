@@ -21,14 +21,14 @@ import Foundation
 struct Options {
   let path: String
   let json: Bool
-  /// The girdle band's thickness as a fraction of the width. Each source diagram measures its own, which
-  /// is why this is a flag: a crown tier's offset depends on it.
-  let girdle: Double
+  /// The girdle band's thickness as a fraction of the width, when the flag overrides the pattern's own
+  /// declared target. `nil` means the flag was not given and the file's value stands.
+  let girdle: Double?
 
   init(_ arguments: [String]) throws {
     var path: String?
     var json = false
-    var girdle = 0.04
+    var girdle: Double?
 
     var rest = arguments[...]
     while let argument = rest.popFirst() {
@@ -141,27 +141,6 @@ func fixed(_ value: Double, _ places: Int) -> String {
   String(format: "%.\(places)f", value)
 }
 
-// MARK: - The table's width
-
-/// The table's extent along the same 90-270 degree axis the width is measured on, over the width.
-///
-/// Every sheet that publishes proportions publishes this one, and it is the ratio that earns its place:
-/// a table's size is not authored anywhere, it emerges from the star and crown-main angles through
-/// chained vertex meets. It is derived here rather than in `Metrics` because the kernel's metrics are the
-/// ones the game needs, and a stone with no table facet simply has none.
-func tableOverWidth(_ solution: Solution, width: Double) -> Double {
-  var extent: Double?
-  for (plane, polygon) in solution.polytope.facets {
-    let normal = solution.planes[plane].n
-    guard abs(normal.x) < 1e-9, abs(normal.y) < 1e-9, normal.z > 0 else { continue }
-    let ys = polygon.map { solution.polytope.vertices[$0].y }
-    guard let low = ys.min(), let high = ys.max() else { continue }
-    extent = Swift.max(extent ?? 0, high - low)
-  }
-  guard let extent, width > 0 else { return 0 }
-  return extent / width
-}
-
 // MARK: - JSON
 
 /// The machine-readable form: metrics, findings and observations, and nothing else.
@@ -205,7 +184,7 @@ struct JSONMetrics: Encodable {
   let girdleFractionOfWidth: Double
   let culetIsPoint: Bool
 
-  init(_ measured: Metrics, tableOverWidth: Double) {
+  init(_ measured: Metrics) {
     facetCount = measured.facetCount
     facetsPerTier = measured.facetsPerTier
     rotationalOrder = measured.rotationalOrder
@@ -216,7 +195,7 @@ struct JSONMetrics: Encodable {
     totalDepthFractionOfWidth = place(measured.totalDepthFractionOfWidth)
     pavilionDepthFractionOfWidth = place(measured.pavilionDepthFractionOfWidth)
     crownHeightFractionOfWidth = place(measured.crownHeightFractionOfWidth)
-    tableFractionOfWidth = place(tableOverWidth)
+    tableFractionOfWidth = place(measured.tableFractionOfWidth)
     girdleThicknessNormalised = place(measured.girdleThicknessNormalised)
     girdleFractionOfWidth = place(measured.girdleFractionOfWidth)
     culetIsPoint = measured.culetIsPoint
@@ -275,7 +254,8 @@ do {
 
 let report = validate(pattern, solution, declaredFacetCount: nil)
 let measured = metrics(solution)
-let table = tableOverWidth(solution, width: measured.widthNormalised)
+/// What the solve actually used: the flag when it was given, otherwise the pattern's own target.
+let resolvedGirdleTarget = options.girdle ?? pattern.effectiveGirdleTargetFraction
 
 let findings = report.findings.map(printed)
 let observations = report.observations.map(printed)
@@ -283,7 +263,7 @@ let observations = report.observations.map(printed)
 if options.json {
   emit(
     JSONReport(
-      metrics: JSONMetrics(measured, tableOverWidth: table),
+      metrics: JSONMetrics(measured),
       findings: findings,
       observations: observations
     ))
@@ -291,7 +271,7 @@ if options.json {
   out(pattern.name)
   out(
     "  \(pattern.state.rawValue), wheel \(pattern.wheel), RI \(fixed(pattern.ri, 3)), "
-      + "girdle target \(fixed(options.girdle * 100, 3))% of width")
+      + "girdle target \(fixed(resolvedGirdleTarget * 100, 3))% of width")
   out("")
 
   out("tiers")
@@ -332,7 +312,7 @@ if options.json {
       "P/W \(fixed(measured.pavilionDepthFractionOfWidth, 3))  "
         + "C/W \(fixed(measured.crownHeightFractionOfWidth, 3))  "
         + "H/W \(fixed(measured.totalDepthFractionOfWidth, 3))  "
-        + "T/W \(fixed(table, 3))"))
+        + "T/W \(fixed(measured.tableFractionOfWidth, 3))"))
   out(row("culet", measured.culetIsPoint ? "point" : "facet"))
   out("")
 

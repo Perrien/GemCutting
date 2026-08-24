@@ -4,6 +4,7 @@
   "state": "finished",
   "wheel": 96,
   "ri": 1.54,
+  "girdleTargetFraction": 0.040493,
   "designer": "Dan Clayton, 2004. USFG 2010 SSC PreMaster Stone.",
   "notes": "Declared on the sheet, as cross-checks not source of truth: 53 facets, 2-fold mirror symmetry. Cut-corner rectangle: tier 2 carries the two ends and the four cut corners at one depth, tier 3 the two long sides at another, which is why the girdle is split across two tiers. Half-width solves to exactly sqrt(3)-1, so L/W is (sqrt(3)+1)/2 = 1.36603 and is forced by the 30/60-degree index geometry rather than chosen. Girdle measures 4.05% of width in the source diagram (2.96% of length). Tier order is the sheet's own. Sheet meet text maps as follows: 'Cut to centerpoint' on 1 is the free datum, superseded by tier 5's 'new PCP'; 'meet 1-1-2-3' on 3 names four facets including tier 3 itself, so the self-reference is dropped; 'level girdle' on 4 and B is a plain vertex, each meeting the girdle corner its predecessor established; 'girdle meetpoint' on 5, C and D names a girdle-plane vertex. Facet identity was resolved from the sheet's own meets, not from the diagram - C and E would be swapped if read by polygon position, since their top-view centroids sit 29 and 19 degrees off their facet azimuths. Source: 'GemCad Diagrams - 53 designs.pdf' p26, 'Faceting Diagrams/USFG Competitions/2010SSCPreMaster.gem'. Angles and indices transcribed from the sheet; meets derived from its crown, pavilion and profile diagrams.",
   "tiers": [

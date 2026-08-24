@@ -25,15 +25,23 @@ final class CLITests: XCTestCase {
   }
 
   /// The girdle band's thickness is a per-diagram measurement, and a crown tier is cut to the girdle, so
-  /// the flag moves the whole crown. Easy Octagon's source diagram measures 3.37%; the 4% default is the
-  /// 3-5% rule's midpoint and belongs to no diagram in particular.
+  /// the target moves the whole crown. Easy Octagon's file now declares the 3.37% its source diagram
+  /// measures, so the flag *overrides* the file rather than supplying a missing value: with no flag the
+  /// pattern reproduces its own diagram, and `--girdle 0.04` asks for the 3-5% rule's midpoint instead,
+  /// which belongs to no diagram in particular.
   func testGirdleFlagMovesTheCrown() throws {
+    let asDeclared = try facetsolve([pattern(AuthoredPatterns.easyOctagon)])
     let asDrawn = try facetsolve([pattern(AuthoredPatterns.easyOctagon), "--girdle", "0.0337"])
-    let asDefaulted = try facetsolve([pattern(AuthoredPatterns.easyOctagon)])
+    let overridden = try facetsolve([pattern(AuthoredPatterns.easyOctagon), "--girdle", "0.04"])
+
+    XCTAssertEqual(try XCTUnwrap(asDeclared.line(startingWith: "  C1 ")).contains("0.719219"), true)
+    XCTAssertTrue(asDeclared.out.contains("girdle target 3.370% of width"), asDeclared.out)
 
     XCTAssertEqual(try XCTUnwrap(asDrawn.line(startingWith: "  C1 ")).contains("0.719219"), true)
+
     XCTAssertEqual(
-      try XCTUnwrap(asDefaulted.line(startingWith: "  C1 ")).contains("0.728582"), true)
+      try XCTUnwrap(overridden.line(startingWith: "  C1 ")).contains("0.728582"), true)
+    XCTAssertTrue(overridden.out.contains("girdle target 4.000% of width"), overridden.out)
   }
 
   // MARK: - Exit codes

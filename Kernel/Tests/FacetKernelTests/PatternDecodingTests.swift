@@ -47,6 +47,8 @@ final class PatternDecodingTests: XCTestCase {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
     XCTAssertEqual(pattern.state, .finished)
     XCTAssertEqual(pattern.wheel, 96)
+    // The sheet's own diagram measures 3.37% of width, which the file now declares.
+    XCTAssertEqual(pattern.girdleTargetFraction, 0.0337)
 
     let p2 = try XCTUnwrap(pattern.tiers.first { $0.tier == "P2" })
     XCTAssertEqual(
@@ -81,6 +83,85 @@ final class PatternDecodingTests: XCTestCase {
         XCTAssertEqual(pattern.wheel(of: tier), pattern.wheel)
       }
     }
+  }
+
+  func testNoAuthoredPatternCarriesInstructionsYet() throws {
+    for name in [
+      AuthoredPatterns.easyOctagon, AuthoredPatterns.noviceAsher,
+      AuthoredPatterns.rands, AuthoredPatterns.roundBrilliant,
+    ] {
+      let pattern = try AuthoredPatterns.load(name)
+      for tier in pattern.tiers {
+        XCTAssertNil(tier.instructions, "\(name) tier \(tier.tier)")
+      }
+    }
+  }
+
+  // MARK: - Per-tier instructions
+
+  /// Absent and empty are different states — the author wrote nothing, against the author wrote
+  /// nothing *here* — so both are asserted together. A test that checked only one of them would pass
+  /// on a decoder that conflated them.
+  func testInstructionsTellsAbsentFromEmpty() throws {
+    let absent = try decode(pattern(tiers: [tier("P1", meet: #"{ "kind": "size" }"#)]))
+    XCTAssertNil(absent.tiers[0].instructions)
+
+    let empty = try decode(
+      pattern(tiers: [tier("P1", instructionsJSON: #""""#, meet: #"{ "kind": "size" }"#)])
+    )
+    XCTAssertEqual(empty.tiers[0].instructions, "")
+  }
+
+  func testInstructionsDecodesItsTextExactly() throws {
+    let prose = try decode(
+      pattern(tiers: [
+        tier(
+          "P1",
+          instructionsJSON: #""Cut to the girdle, then check the meets.""#,
+          meet: #"{ "kind": "size" }"#
+        )
+      ])
+    )
+    XCTAssertEqual(prose.tiers[0].instructions, "Cut to the girdle, then check the meets.")
+
+    // An embedded newline survives: authored prose runs to more than one line.
+    let twoLines = try decode(
+      pattern(tiers: [
+        tier(
+          "P1",
+          instructionsJSON: #""Cut to the girdle.\nThen check the meets.""#,
+          meet: #"{ "kind": "size" }"#
+        )
+      ])
+    )
+    XCTAssertEqual(twoLines.tiers[0].instructions, "Cut to the girdle.\nThen check the meets.")
+  }
+
+  // MARK: - The declared girdle target
+
+  func testTheGirdleTargetIsOptionalAndMustBePositive() throws {
+    let declared = try decode(
+      pattern(girdleTargetFraction: 0.04, tiers: [tier("P1", meet: #"{ "kind": "size" }"#)])
+    )
+    XCTAssertEqual(declared.girdleTargetFraction, 0.04)
+    XCTAssertEqual(declared.effectiveGirdleTargetFraction, 0.04)
+
+    let absent = try decode(pattern(tiers: [tier("P1", meet: #"{ "kind": "size" }"#)]))
+    XCTAssertNil(absent.girdleTargetFraction)
+    XCTAssertEqual(
+      absent.effectiveGirdleTargetFraction,
+      FacetKernel.Pattern.defaultGirdleTargetFraction
+    )
+
+    // A band of no thickness, or of negative thickness, is not a target a diagram can measure.
+    expect(
+      pattern(girdleTargetFraction: -0.01, tiers: [tier("P1", meet: #"{ "kind": "size" }"#)]),
+      toFailWith: .invalidGirdleTarget(fraction: -0.01)
+    )
+    expect(
+      pattern(girdleTargetFraction: 0, tiers: [tier("P1", meet: #"{ "kind": "size" }"#)]),
+      toFailWith: .invalidGirdleTarget(fraction: 0)
+    )
   }
 
   // MARK: - Rejections, each naming the offending tier
@@ -153,6 +234,10 @@ final class PatternDecodingTests: XCTestCase {
 
   // MARK: - Helpers
 
+  private func decode(_ json: String) throws -> FacetKernel.Pattern {
+    try JSONDecoder().decode(FacetKernel.Pattern.self, from: Data(json.utf8))
+  }
+
   private func expect(
     _ json: String,
     toFailWith expected: PatternError,
@@ -169,37 +254,47 @@ final class PatternDecodingTests: XCTestCase {
     }
   }
 
-  private func pattern(formatVersion: Int = 1, tiers: [String]) -> String {
-    """
-    {
-      "formatVersion": \(formatVersion),
-      "name": "Fixture",
-      "state": "in progress",
-      "wheel": 96,
-      "ri": 1.54,
-      "designer": "",
-      "notes": "",
-      "tiers": [\(tiers.joined(separator: ","))]
-    }
-    """
+  private func pattern(
+    formatVersion: Int = 1,
+    girdleTargetFraction: Double? = nil,
+    tiers: [String]
+  ) -> String {
+    let girdle = girdleTargetFraction.map { "\n  \"girdleTargetFraction\": \($0)," } ?? ""
+    return """
+      {
+        "formatVersion": \(formatVersion),
+        "name": "Fixture",
+        "state": "in progress",
+        "wheel": 96,
+        "ri": 1.54,\(girdle)
+        "designer": "",
+        "notes": "",
+        "tiers": [\(tiers.joined(separator: ","))]
+      }
+      """
   }
 
+  /// `instructionsJSON` is the JSON value verbatim — quotes and escapes included — so a test can
+  /// write an absent field, an empty string and an embedded newline without the helper interpreting
+  /// any of them.
   private func tier(
     _ label: String,
     part: String = "pav",
     angle: Double = 43,
     indices: String = "[0, 12]",
+    instructionsJSON: String? = nil,
     meet: String
   ) -> String {
-    """
-    {
-      "tier": "\(label)",
-      "part": "\(part)",
-      "angle": \(angle),
-      "indices": \(indices),
-      "meet": \(meet)
-    }
-    """
+    let instructions = instructionsJSON.map { "\n  \"instructions\": \($0)," } ?? ""
+    return """
+      {
+        "tier": "\(label)",
+        "part": "\(part)",
+        "angle": \(angle),
+        "indices": \(indices),\(instructions)
+        "meet": \(meet)
+      }
+      """
   }
 
   private func vertexMeet(facetCount: Int) -> String {

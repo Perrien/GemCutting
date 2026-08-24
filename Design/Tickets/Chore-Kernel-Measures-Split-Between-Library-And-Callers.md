@@ -1,7 +1,8 @@
 # Kernel measures split between the library and its callers
 
-Status: untriaged
+Status: open
 Filed: 2026-08-22
+Picked up by: 1-Cutting-Bench-Kernel-Changes
 
 Two measures the kernel computes live outside `FacetKernel`: the table's extent over the width (`T/W`)
 is derived in `facetsolve`'s `main.swift`, and the closure rule validation applies is re-stated in

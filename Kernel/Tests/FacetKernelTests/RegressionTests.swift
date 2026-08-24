@@ -7,45 +7,30 @@ import XCTest
 /// The fixtures are external ground truth. A fixture and the code disagreeing means the code changed or a
 /// real discrepancy has been found; either way it is a stop, never an edit to the fixture.
 ///
-/// The command that regenerates each one is `regenerate` below, and it carries the pattern's own
-/// `--girdle` fraction: regenerated at the 0.04 default every crown offset would move, and the difference
-/// would read as a solver regression. The plan asks for that command in a comment at the top of each
-/// fixture, but a `.json` file carrying a comment is not JSON and could not then be the CLI's output
-/// verbatim, which the same check requires — so it lives here, next to the comparison, and prints on
-/// failure.
+/// The command that regenerates each one is `regenerate` below. It passes no `--girdle`: each pattern
+/// declares its own diagram-measured target in its header, which is the value these fixtures were
+/// generated at, so the flag would only be a second place for that number to live. The plan asks for that
+/// command in a comment at the top of each fixture, but a `.json` file carrying a comment is not JSON and
+/// could not then be the CLI's output verbatim, which the same check requires — so it lives here, next to
+/// the comparison, and prints on failure.
 final class RegressionTests: XCTestCase {
   private struct Fixture {
     let pattern: String
-    let girdle: String
     let file: String
     var regenerate: String {
-      "facetsolve Design/Patterns/\(pattern).json --girdle \(girdle) --json"
+      "facetsolve Design/Patterns/\(pattern).json --json"
     }
   }
 
   private static let fixtures: [Fixture] = [
-    Fixture(
-      pattern: AuthoredPatterns.easyOctagon,
-      girdle: "0.033700",
-      file: "easy-octagon.json"
-    ),
-    Fixture(
-      pattern: AuthoredPatterns.noviceAsher,
-      girdle: "0.032260",
-      file: "novice-asher.json"
-    ),
-    Fixture(
-      pattern: AuthoredPatterns.rands,
-      girdle: "0.040493",
-      file: "rands-cut-corner-rectangle.json"
-    ),
+    Fixture(pattern: AuthoredPatterns.easyOctagon, file: "easy-octagon.json"),
+    Fixture(pattern: AuthoredPatterns.noviceAsher, file: "novice-asher.json"),
+    Fixture(pattern: AuthoredPatterns.rands, file: "rands-cut-corner-rectangle.json"),
   ]
 
   func testEachPatternStillSolvesToItsFixture() throws {
     for fixture in Self.fixtures {
-      let run = try facetsolve([
-        AuthoredPatterns.url(fixture.pattern).path, "--girdle", fixture.girdle, "--json",
-      ])
+      let run = try facetsolve([AuthoredPatterns.url(fixture.pattern).path, "--json"])
       XCTAssertEqual(run.code, 0, fixture.file)
 
       let golden = try String(
@@ -60,13 +45,13 @@ final class RegressionTests: XCTestCase {
     }
   }
 
-  /// The girdle fraction is part of the fixture, not a detail of how it was made. At the 0.04 default the
-  /// same pattern prints different crown offsets and different proportions, so a fixture regenerated
-  /// without the flag would look like a regression in the solver.
+  /// The girdle fraction is part of the fixture, not a detail of how it was made. Overriding the
+  /// pattern's own target with the flag prints different crown offsets and different proportions, so a
+  /// fixture regenerated at the 0.04 default would look like a regression in the solver.
   func testTheGirdleFractionIsPartOfTheFixture() throws {
     let fixture = Self.fixtures[0]
     let atTheDefault = try facetsolve([
-      AuthoredPatterns.url(fixture.pattern).path, "--json",
+      AuthoredPatterns.url(fixture.pattern).path, "--girdle", "0.04", "--json",
     ])
     let golden = try String(
       contentsOf: Self.directory.appendingPathComponent(fixture.file),

@@ -13,9 +13,9 @@ public struct Metrics: Sendable {
   public var rotationalOrder: Int
   /// The index positions the stone mirrors about, each below half a turn.
   public var mirrorAxes: [Int]
-  /// The girdle outline's extent along the 90-270 degree axis.
+  /// The smaller of the girdle outline's two axis extents.
   public var widthNormalised: Double
-  /// The girdle outline's extent along the 0-180 degree axis.
+  /// The larger of the girdle outline's two axis extents, so `lengthOverWidth` is never below 1.
   public var lengthNormalised: Double
   public var lengthOverWidth: Double
   public var totalDepthFractionOfWidth: Double
@@ -23,6 +23,9 @@ public struct Metrics: Sendable {
   public var pavilionDepthFractionOfWidth: Double
   /// Girdle top to table.
   public var crownHeightFractionOfWidth: Double
+  /// The table's extent along the same axis the width is measured on, over the width. `0` when the stone
+  /// has no table facet, because a stone with no table simply has none.
+  public var tableFractionOfWidth: Double
   public var girdleThicknessNormalised: Double
   public var girdleFractionOfWidth: Double
   /// Whether the pavilion ends in a single point rather than a culet facet or a keel line.
@@ -39,6 +42,7 @@ public struct Metrics: Sendable {
     totalDepthFractionOfWidth: Double,
     pavilionDepthFractionOfWidth: Double,
     crownHeightFractionOfWidth: Double,
+    tableFractionOfWidth: Double,
     girdleThicknessNormalised: Double,
     girdleFractionOfWidth: Double,
     culetIsPoint: Bool
@@ -53,6 +57,7 @@ public struct Metrics: Sendable {
     self.totalDepthFractionOfWidth = totalDepthFractionOfWidth
     self.pavilionDepthFractionOfWidth = pavilionDepthFractionOfWidth
     self.crownHeightFractionOfWidth = crownHeightFractionOfWidth
+    self.tableFractionOfWidth = tableFractionOfWidth
     self.girdleThicknessNormalised = girdleThicknessNormalised
     self.girdleFractionOfWidth = girdleFractionOfWidth
     self.culetIsPoint = culetIsPoint
@@ -88,6 +93,8 @@ public func metrics(_ solution: Solution) -> Metrics {
     totalDepthFractionOfWidth: (table - culet) / outline.width,
     pavilionDepthFractionOfWidth: (band.bottom - culet) / outline.width,
     crownHeightFractionOfWidth: (table - band.top) / outline.width,
+    tableFractionOfWidth: tableFractionOfWidth(
+      of: solution, width: outline.width, widthIsAlongY: outline.widthIsAlongY),
     girdleThicknessNormalised: band.top - band.bottom,
     girdleFractionOfWidth: (band.top - band.bottom) / outline.width,
     culetIsPoint: heights.filter { abs($0 - culet) <= sameHeight }.count == 1
@@ -186,22 +193,59 @@ private func greatestCommonDivisor(_ a: Int, _ b: Int) -> Int {
 
 // MARK: - Proportions
 
-/// The girdle outline's extent along the two fixed axes: width along the 90-270 degree axis, length
-/// along 0-180. Whether such an axis crosses a girdle flat or a girdle corner is a property of the
-/// design, not something to decide.
+/// The girdle outline's extents along the two fixed axes, labelled by size: the smaller is the width, so
+/// `L/W` is never below 1. Whether such an axis crosses a girdle flat or a girdle corner is a property of
+/// the design, not something to decide.
 ///
 /// Measured from the vertical planes, the same way the solver measures it to size the girdle band. A
 /// design with no vertical plane has a knife-edge girdle rather than a flat one, and its outline is the
-/// widest silhouette the solid has — which for a convex solid is reached at a vertex.
-private func outlineExtent(of solution: Solution) -> (width: Double, length: Double) {
+/// widest silhouette the solid has — which for a convex solid is reached at a vertex. The same
+/// smaller-is-width labelling applies to that fallback, so the two paths cannot disagree about which
+/// number is the width.
+private func outlineExtent(
+  of solution: Solution
+) -> (width: Double, length: Double, widthIsAlongY: Bool) {
   if let outline = girdleOutlineExtent(solution.planes) { return outline }
 
   let xs = solution.polytope.vertices.map(\.x)
   let ys = solution.polytope.vertices.map(\.y)
-  return (
-    width: (ys.max() ?? 0) - (ys.min() ?? 0),
-    length: (xs.max() ?? 0) - (xs.min() ?? 0)
+  return labelledBySize(
+    alongX: (xs.max() ?? 0) - (xs.min() ?? 0),
+    alongY: (ys.max() ?? 0) - (ys.min() ?? 0)
   )
+}
+
+/// The table's extent along the same axis the width is measured on, over the width.
+///
+/// Every sheet that publishes proportions publishes this one, and it is the ratio that earns its place: a
+/// table's size is not authored anywhere, it emerges from the star and crown-main angles through chained
+/// vertex meets. It lives here rather than in `facetsolve`, where it started, because the bench app needs
+/// it too — and a measure defined in the CLI would then have to be defined again in the app and a third
+/// time wherever the game shows proportions.
+///
+/// Measured on **whichever axis carried the width**, which is what keeps it invariant under a quarter
+/// turn along with the width itself. Measured always on `y`, a stone and the same stone rotated 90 degrees
+/// would report the same width and two different tables.
+///
+/// The table is the widest horizontal upward-facing facet. A stone with no such facet has no table, and
+/// reports `0` rather than a ratio of nothing.
+private func tableFractionOfWidth(
+  of solution: Solution,
+  width: Double,
+  widthIsAlongY: Bool
+) -> Double {
+  var extent: Double?
+  for (plane, polygon) in solution.polytope.facets {
+    let normal = solution.planes[plane].n
+    guard abs(normal.x) < 1e-9, abs(normal.y) < 1e-9, normal.z > 0 else { continue }
+    let across = polygon.map {
+      widthIsAlongY ? solution.polytope.vertices[$0].y : solution.polytope.vertices[$0].x
+    }
+    guard let low = across.min(), let high = across.max() else { continue }
+    extent = Swift.max(extent ?? 0, high - low)
+  }
+  guard let extent, width > 0 else { return 0 }
+  return extent / width
 }
 
 /// Where the girdle band starts and ends. Crown height is measured from its top and pavilion depth from

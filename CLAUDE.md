@@ -9,15 +9,15 @@ faceting patterns.
 
 Per topic, not a ranking. A document can be the authority on one thing and irrelevant to another.
 
-| Topic | Authority |
-|---|---|
+| Topic                       | Authority                                                                                               |
+| --------------------------- | ------------------------------------------------------------------------------------------------------- |
 | What the code actually does | **The code**, over every document. An archived document that contradicts it carries a banner saying so. |
-| Terminology | **`Design/Glossary.md`** is the arbiter. Nothing overrides it. |
-| What to build next | **`Design/Tickets/`** — sole authority; nothing else claims this. |
-| A feature's design | **The exploration** beats the ticket that fed it. |
-| Task order and content | **The active plan** beats its exploration. |
-| Architectural rationale | **An ADR** in `Design/Decisions/` beats any plan or exploration, which are transient by design. |
-| Anything archived | **Never wins.** Reference only. |
+| Terminology                 | **`Design/Glossary.md`** is the arbiter. Nothing overrides it.                                          |
+| What to build next          | **`Design/Tickets/`** — sole authority; nothing else claims this.                                       |
+| A feature's design          | **The exploration** beats the ticket that fed it.                                                       |
+| Task order and content      | **The active plan** beats its exploration.                                                              |
+| Architectural rationale     | **An ADR** in `Design/Decisions/` beats any plan or exploration, which are transient by design.         |
+| Anything archived           | **Never wins.** Reference only.                                                                         |
 
 **Two conflicts resolve to a stop, not a winner:**
 
