@@ -87,6 +87,42 @@ public enum SolverError: Error, Equatable, CustomStringConvertible {
       "tier \(tier): a tier with no index stops cuts no facets"
     }
   }
+
+  /// The tier the solve stopped on. Every case names one, so this is a switch the library owns once
+  /// rather than one each caller has to write to mark where a pattern gave out.
+  public var tier: String {
+    switch self {
+    case .forwardReference(let tier, _): tier
+    case .namesOwnFacet(let tier): tier
+    case .unknownFacet(let tier, _): tier
+    case .singularTriple(let tier): tier
+    case .secondTCPOnSide(let tier, _): tier
+    case .noAxialPointOnSide(let tier, _): tier
+    case .girdleOutlineUndetermined(let tier): tier
+    case .vertexNeedsThreeFacets(let tier, _): tier
+    case .fractionEndpointNotVertexOrTCP(let tier, _): tier
+    case .tierHasNoIndices(let tier): tier
+    }
+  }
+}
+
+/// What a solve that stopped early managed to place, and the failure that stopped it.
+///
+/// A half-solving pattern is the normal state of authoring rather than an edge case: every pattern is one
+/// while it is being written, and the tiers already placed are what there is to draw.
+public struct PartialSolution: Sendable {
+  /// The tiers placed before the solve stopped, their planes, their owners, and the polytope of exactly
+  /// those planes. An unfinished stone is open, so that polytope usually has fewer facets than it has
+  /// planes — a pattern's own planes render a floating pavilion cone with no girdle and no top until
+  /// something caps the solid.
+  public var solution: Solution
+  /// `nil` when every tier placed, in which case `solution` is what `solve` would have returned.
+  public var failure: SolverError?
+
+  public init(solution: Solution, failure: SolverError?) {
+    self.solution = solution
+    self.failure = failure
+  }
 }
 
 /// Solves every tier's depth, then intersects the resulting half-spaces into the finished solid.
@@ -105,9 +141,31 @@ public enum SolverError: Error, Equatable, CustomStringConvertible {
 /// a target its file does not ask for — which is what the girdle-invariance checks do — while a pattern
 /// opened with no argument reproduces its own diagram.
 public func solve(_ pattern: Pattern, girdleTargetFraction: Double? = nil) throws -> Solution {
+  let outcome = runSolve(pattern, girdleTargetFraction: girdleTargetFraction)
+  if let failure = outcome.failure { throw failure }
+  return outcome.solution
+}
+
+/// Solves as many tiers as it can and reports what stopped it, instead of throwing the whole solve away.
+///
+/// Same loop as `solve` — see `runSolve`. Two loops would drift, and the one that drifted would be this
+/// one, since the throwing path is the one every existing test exercises.
+///
+/// This does not validate. A partial solve is geometry, and whether the tiers placed so far make a stone
+/// anyone would want is a separate question with a separate answer.
+public func solveAsFarAsPossible(
+  _ pattern: Pattern,
+  girdleTargetFraction: Double? = nil
+) -> PartialSolution {
+  runSolve(pattern, girdleTargetFraction: girdleTargetFraction)
+}
+
+/// The one loop behind both entry points: places tiers in file order, stops at the first one it cannot
+/// place, and hands back what it has along with the failure if there was one.
+private func runSolve(_ pattern: Pattern, girdleTargetFraction: Double?) -> PartialSolution {
   let resolved = girdleTargetFraction ?? pattern.effectiveGirdleTargetFraction
   var run = Solve(pattern: pattern, girdleTargetFraction: resolved)
-  return try run.solve()
+  return run.run()
 }
 
 /// The girdle outline's extents along the two fixed axes — the 0-180 and 90-270 directions — labelled by
@@ -221,28 +279,49 @@ private struct Solve {
     self.girdleTargetFraction = girdleTargetFraction
   }
 
-  mutating func solve() throws -> Solution {
+  /// Places every tier it can, in file order, and stops at the first one it cannot.
+  ///
+  /// Non-throwing because both entry points need the same walk: `solve` throws whatever this reports and
+  /// `solveAsFarAsPossible` returns it. The state accumulated up to the stop is already the answer to
+  /// "what is on the stone" — nothing is unwound.
+  mutating func run() -> PartialSolution {
+    var failure: SolverError?
     for spec in pattern.tiers {
-      guard !spec.indices.isEmpty else { throw SolverError.tierHasNoIndices(tier: spec.tier) }
-      let wheel = pattern.wheel(of: spec)
-      let normals = spec.indices.map {
-        planeNormal(angleDegrees: spec.angle, index: $0, wheel: wheel, part: spec.part)
+      do {
+        try cut(spec)
+      } catch {
+        // Typed throws all the way down `cut`, so this binds a `SolverError` and there is no other kind
+        // of failure to fold in or guess at.
+        failure = error
+        break
       }
-      let d = try depth(of: spec, normals: normals)
-      place(spec, wheel: wheel, normals: normals, d: d)
     }
 
-    return Solution(
-      tiers: tiers,
-      planes: planes,
-      planeOwner: owner,
-      polytope: intersectHalfSpaces(planes)
+    return PartialSolution(
+      solution: Solution(
+        tiers: tiers,
+        planes: planes,
+        planeOwner: owner,
+        polytope: intersectHalfSpaces(planes)
+      ),
+      failure: failure
     )
+  }
+
+  /// One tier: its normals from its angle and stops, its depth from its meet, then placed.
+  private mutating func cut(_ spec: TierSpec) throws(SolverError) {
+    guard !spec.indices.isEmpty else { throw SolverError.tierHasNoIndices(tier: spec.tier) }
+    let wheel = pattern.wheel(of: spec)
+    let normals = spec.indices.map {
+      planeNormal(angleDegrees: spec.angle, index: $0, wheel: wheel, part: spec.part)
+    }
+    let d = try depth(of: spec, normals: normals)
+    place(spec, wheel: wheel, normals: normals, d: d)
   }
 
   // MARK: - The five meet forms
 
-  private func depth(of spec: TierSpec, normals: [Vector]) throws -> Double {
+  private func depth(of spec: TierSpec, normals: [Vector]) throws(SolverError) -> Double {
     switch spec.meet {
     case .size:
       // The normalisation rather than a constraint: this tier's offset *is* the unit, and every other
@@ -296,7 +375,7 @@ private struct Solve {
 
   // MARK: - Resolving a meet's named points
 
-  private func point(of meet: Meet, for spec: TierSpec) throws -> Vector {
+  private func point(of meet: Meet, for spec: TierSpec) throws(SolverError) -> Vector {
     switch meet {
     case .vertex(let facets):
       return try point(ofVertex: facets, for: spec)
@@ -312,18 +391,24 @@ private struct Solve {
     }
   }
 
-  private func point(ofVertex facets: [FacetRef], for spec: TierSpec) throws -> Vector {
+  private func point(ofVertex facets: [FacetRef], for spec: TierSpec) throws(SolverError) -> Vector
+  {
     guard facets.count == 3 else {
       throw SolverError.vertexNeedsThreeFacets(tier: spec.tier, count: facets.count)
     }
-    let named = try facets.map { try plane(named: $0, for: spec) }
+    // A loop rather than `map`: the standard library's `rethrows` does not carry the concrete error type
+    // through, and this function's typed throw is what lets the solve loop catch a `SolverError` exactly.
+    var named: [Plane] = []
+    for facet in facets {
+      named.append(try plane(named: facet, for: spec))
+    }
     guard let meetpoint = triplePoint(named[0], named[1], named[2]) else {
       throw SolverError.singularTriple(tier: spec.tier)
     }
     return meetpoint
   }
 
-  private func plane(named ref: FacetRef, for spec: TierSpec) throws -> Plane {
+  private func plane(named ref: FacetRef, for spec: TierSpec) throws(SolverError) -> Plane {
     guard ref.tier != spec.tier else { throw SolverError.namesOwnFacet(tier: spec.tier) }
     guard let stops = placed[ref.tier] else {
       guard pattern.tiers.contains(where: { $0.tier == ref.tier }) else {

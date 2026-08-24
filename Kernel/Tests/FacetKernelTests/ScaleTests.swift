@@ -5,6 +5,12 @@ import XCTest
 
 /// Does a solve of a large pattern still complete, still close, and not fall off a cliff.
 ///
+/// The closure check calls `solidFindings`, validation's own whole-solid half, rather than restating the
+/// rule here. It used to restate it because the only way in was `validate`, whose per-tier half rebuilds
+/// the solid once for every tier — cubic in planes *per tier*, which would have dominated the timing this
+/// file exists to measure. The whole-solid piece is now callable on its own, so there is one closure rule
+/// in the package instead of two.
+///
 /// `Kiev Triangle` — 139 facets, 3-fold mirror, RI 2.160 — is the real design this stands in for. No
 /// pattern file for it is authored, and none is authored here: its meets sit outside what this format
 /// expresses, so a transcription would be a guess dressed as ground truth. What is left of that check is
@@ -17,7 +23,7 @@ final class ScaleTests: XCTestCase {
 
     XCTAssertEqual(solution.planes.count, 139)
     XCTAssertEqual(solution.tiers.count, pattern.tiers.count)
-    XCTAssertNil(openEdge(of: solution.polytope), "the solid closes")
+    XCTAssertEqual(solidFindings(solution, declaredFacetCount: nil), [], "the solid closes")
     XCTAssertGreaterThan(solution.polytope.vertices.count, 100)
   }
 
@@ -88,24 +94,4 @@ final class ScaleTests: XCTestCase {
       ]
     )
   }()
-
-  // MARK: - Closure
-
-  /// The first facet edge no second facet shares, or `nil` when the surface is closed.
-  ///
-  /// This mirrors the rule validation applies, rather than calling `validate`: validation's other half
-  /// rebuilds the solid once per tier to check named points, which is cubic in planes *per tier* and would
-  /// dominate the timing this file exists to measure.
-  private func openEdge(of polytope: Polytope) -> [Int]? {
-    var shared: [[Int]: Int] = [:]
-    var distinct: Set<[Int]> = []
-    for polygon in polytope.facets.values where distinct.insert(polygon.sorted()).inserted {
-      for edge in edges(of: polygon) { shared[edge, default: 0] += 1 }
-    }
-    return shared.first { $0.value != 2 }?.key
-  }
-
-  private func edges(of polygon: [Int]) -> [[Int]] {
-    polygon.indices.map { [polygon[$0], polygon[($0 + 1) % polygon.count]].sorted() }
-  }
 }

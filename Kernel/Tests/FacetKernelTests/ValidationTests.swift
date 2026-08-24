@@ -248,6 +248,81 @@ final class ValidationTests: XCTestCase {
     XCTAssertEqual(validate(finished, solution, declaredFacetCount: nil).findings, expected)
   }
 
+  // MARK: - The three pieces on their own
+
+  /// `structuralFindings` needs no solid and no solve — this calls it with neither, which is the half an
+  /// authoring UI runs on every keystroke while the pattern is still half-written.
+  func testStructuralFindingsNeedsNoSolutionAtAll() throws {
+    var pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    pattern.tiers[1].meet = .size
+
+    XCTAssertEqual(structuralFindings(pattern), [.notExactlyOneSizeRow(count: 2)])
+    XCTAssertEqual(structuralFindings(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)), [])
+  }
+
+  /// The per-tier piece, asked about one tier at a time. `C2` is the tier whose meet was mutated to name a
+  /// point off the stone; `P2`'s meet is untouched and comes back clean, from the same solution.
+  func testNamedPointFindingsAnswersForOneTier() throws {
+    var pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let named = [
+      FacetRef(tier: "G1", index: 0),
+      FacetRef(tier: "G1", index: 24),
+      FacetRef(tier: "C1", index: 0),
+    ]
+    pattern.tiers[4].meet = .vertex(facets: named)
+    let solution = try solve(pattern, girdleTargetFraction: Self.easyOctagonGirdle)
+
+    XCTAssertEqual(
+      namedPointFindings(inTier: "C2", of: pattern, solution),
+      [.vertexNotOnIntermediateSolid(tier: "C2", named: named)]
+    )
+    XCTAssertEqual(namedPointFindings(inTier: "P2", of: pattern, solution), [])
+    XCTAssertEqual(
+      namedPointFindings(inTier: "nonesuch", of: pattern, solution), [],
+      "a tier the pattern does not carry"
+    )
+  }
+
+  /// **Tier *k*'s answer does not depend on the tiers after it.** Recorded for all six tiers, then again
+  /// for the five that remain once the last is removed: the five agree. This is the property
+  /// `4-Cutting-Bench-Authoring` caches against — editing tier *j* invalidates *j* onward and nothing
+  /// before it — and prose alone would not have caught an implementation that measured against the
+  /// finished solid.
+  func testATiersResultDoesNotDependOnTheTiersAfterIt() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let solution = try solve(pattern, girdleTargetFraction: Self.easyOctagonGirdle)
+    let sixTiers = pattern.tiers.map { namedPointFindings(inTier: $0.tier, of: pattern, solution) }
+    XCTAssertEqual(sixTiers.count, 6)
+
+    var shortened = pattern
+    shortened.tiers.removeLast()
+    shortened.state = .inProgress
+    let reSolved = try solve(shortened, girdleTargetFraction: Self.easyOctagonGirdle)
+    let fiveTiers = shortened.tiers.map {
+      namedPointFindings(inTier: $0.tier, of: shortened, reSolved)
+    }
+
+    XCTAssertEqual(fiveTiers, Array(sixTiers.prefix(5)))
+  }
+
+  /// The whole-solid piece on its own, both findings it can produce.
+  func testSolidFindingsOnItsOwn() throws {
+    var pavilionless = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    pavilionless.tiers.removeAll { $0.tier == "P1" || $0.tier == "P2" }
+    let open = try solve(pavilionless, girdleTargetFraction: Self.easyOctagonGirdle)
+    XCTAssertEqual(solidFindings(open, declaredFacetCount: nil), [.doesNotClose(tier: "C1")])
+
+    let clean = try solve(
+      try AuthoredPatterns.load(AuthoredPatterns.easyOctagon),
+      girdleTargetFraction: Self.easyOctagonGirdle
+    )
+    XCTAssertEqual(solidFindings(clean, declaredFacetCount: nil), [])
+    XCTAssertEqual(
+      solidFindings(clean, declaredFacetCount: 36),
+      [.facetCountMismatch(solved: 37, declared: 36)]
+    )
+  }
+
   // MARK: - Helpers
 
   private static let easyOctagonGirdle = 0.033700

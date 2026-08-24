@@ -62,10 +62,13 @@ public func validate(_ pattern: Pattern, _ solution: Solution, declaredFacetCoun
   let structural = structuralFindings(pattern)
   guard structural.isEmpty else { return Report(findings: structural, observations: []) }
 
-  return Report(
-    findings: geometricFindings(pattern, solution, declaredFacetCount: declaredFacetCount),
-    observations: observations(solution)
-  )
+  var findings: [Finding] = []
+  for solved in solution.tiers {
+    findings.append(contentsOf: namedPointFindings(inTier: solved.tier, of: pattern, solution))
+  }
+  findings.append(contentsOf: solidFindings(solution, declaredFacetCount: declaredFacetCount))
+
+  return Report(findings: findings, observations: observations(solution))
 }
 
 /// The solid as it stands when `tier` is about to be cut: every plane of every earlier tier, and none
@@ -75,7 +78,7 @@ public func validate(_ pattern: Pattern, _ solution: Solution, declaredFacetCoun
 /// at one tier and be gone by the next — Easy Octagon's P1 axial point forms at 1.0951 half-widths and
 /// P2 cuts it away — so checking against the finished polytope would pass patterns by luck and reject
 /// correct ones.
-func intermediateSolid(before tier: String, of solution: Solution) -> Polytope {
+public func intermediateSolid(before tier: String, of solution: Solution) -> Polytope {
   var placed: [Plane] = []
   for solved in solution.tiers {
     guard solved.tier != tier else { break }
@@ -85,7 +88,7 @@ func intermediateSolid(before tier: String, of solution: Solution) -> Polytope {
 }
 
 /// The half-spaces one solved tier expands to: one plane per index stop, all at the tier's depth.
-func planes(of tier: SolvedTier) -> [Plane] {
+public func planes(of tier: SolvedTier) -> [Plane] {
   tier.indices.map {
     Plane(
       n: planeNormal(angleDegrees: tier.angle, index: $0, wheel: tier.wheel, part: tier.part),
@@ -96,9 +99,11 @@ func planes(of tier: SolvedTier) -> [Plane] {
 
 // MARK: - The pattern's own structure
 
-/// Everything readable from the pattern alone, in file order. Needs no solid: whether three planes meet
-/// at a point depends on their normals, and a normal comes from an angle and an index stop.
-private func structuralFindings(_ pattern: Pattern) -> [Finding] {
+/// Everything readable from the pattern alone, in file order. Needs no solid and no solve: whether three
+/// planes meet at a point depends on their normals, and a normal comes from an angle and an index stop.
+///
+/// This is the half an authoring UI can run on every keystroke, before anything has been solved.
+public func structuralFindings(_ pattern: Pattern) -> [Finding] {
   var findings: [Finding] = []
 
   let sizeRows = pattern.tiers.filter { $0.meet.isSize }.count
@@ -168,33 +173,51 @@ private func reference(
 
 // MARK: - The solid
 
-/// Everything that needs the solid: the named points, closure, and the facet count.
-private func geometricFindings(
-  _ pattern: Pattern,
-  _ solution: Solution,
-  declaredFacetCount: Int?
+/// The named-point check for one tier: every triple its meet names has to be a corner of the solid as it
+/// stands when that tier is cut.
+///
+/// **Tier *k*'s result depends only on the tiers before *k*.** `intermediateSolid` walks the solved tiers
+/// and breaks at this one, and the planes a triple may name are the planes of the tiers before it, so
+/// nothing later in the pattern can change this answer. What follows from that: editing tier *j*
+/// invalidates *j* onward and leaves every tier before it untouched, and appending a tier validates
+/// exactly one tier. A caller keeping a per-tier cache can rely on that; the cache itself is app state and
+/// does not belong here.
+///
+/// Returns `[]` for a label the pattern does not carry, and for one the solution does not — an unsolved
+/// tier has no intermediate solid, and measuring it against the finished one would answer a different
+/// question.
+public func namedPointFindings(
+  inTier tier: String,
+  of pattern: Pattern,
+  _ solution: Solution
 ) -> [Finding] {
-  var findings: [Finding] = []
+  guard let spec = pattern.tiers.first(where: { $0.tier == tier }),
+    solution.tiers.contains(where: { $0.tier == tier })
+  else { return [] }
 
-  var placed: [String: [Int: Plane]] = [:]
-  for (spec, solved) in zip(pattern.tiers, solution.tiers) {
-    let triples = spec.meet.namedTriples
-    if !triples.isEmpty {
-      let solid = intermediateSolid(before: spec.tier, of: solution)
-      for triple in triples {
-        let named = triple.compactMap { placed[$0.tier]?[$0.index] }
-        guard named.count == 3 else { continue }
-        guard let point = triplePoint(named[0], named[1], named[2]) else { continue }
-        let isCorner = solid.vertices.contains { distance($0, point) <= onSolidTolerance }
-        if !isCorner {
-          findings.append(.vertexNotOnIntermediateSolid(tier: spec.tier, named: triple))
-        }
-      }
-    }
-    for (stop, plane) in zip(solved.indices, planes(of: solved)) {
-      placed[solved.tier, default: [:]][stop] = plane
+  let triples = spec.meet.namedTriples
+  guard !triples.isEmpty else { return [] }
+
+  let placed = placedPlanes(before: tier, of: solution)
+  let solid = intermediateSolid(before: tier, of: solution)
+
+  var findings: [Finding] = []
+  for triple in triples {
+    let named = triple.compactMap { placed[$0.tier]?[$0.index] }
+    guard named.count == 3 else { continue }
+    guard let point = triplePoint(named[0], named[1], named[2]) else { continue }
+    let isCorner = solid.vertices.contains { distance($0, point) <= onSolidTolerance }
+    if !isCorner {
+      findings.append(.vertexNotOnIntermediateSolid(tier: tier, named: triple))
     }
   }
+  return findings
+}
+
+/// Closure and the facet count: whole-solid, cheap, and never cacheable — every tier can move them, so
+/// there is nothing to reuse between edits.
+public func solidFindings(_ solution: Solution, declaredFacetCount: Int?) -> [Finding] {
+  var findings: [Finding] = []
 
   if let open = closureFinding(solution) { findings.append(open) }
 
@@ -204,6 +227,19 @@ private func geometricFindings(
   }
 
   return findings
+}
+
+/// Tier label to index stop to plane, for the tiers cut before `tier` — the only facets its meet may
+/// name.
+private func placedPlanes(before tier: String, of solution: Solution) -> [String: [Int: Plane]] {
+  var placed: [String: [Int: Plane]] = [:]
+  for solved in solution.tiers {
+    guard solved.tier != tier else { break }
+    for (stop, plane) in zip(solved.indices, planes(of: solved)) {
+      placed[solved.tier, default: [:]][stop] = plane
+    }
+  }
+  return placed
 }
 
 /// Whether the facet polygons form a closed surface: every edge belongs to exactly two of them.
@@ -281,7 +317,7 @@ private func isSamePlane(_ a: Plane, _ b: Plane) -> Bool {
 extension Meet {
   /// Every triple of facets this meet names — its own if it is a vertex, its endpoints' if it is a
   /// fraction.
-  var namedTriples: [[FacetRef]] {
+  public var namedTriples: [[FacetRef]] {
     switch self {
     case .size, .tcp, .girdle: []
     case .vertex(let facets): [facets]

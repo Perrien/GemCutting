@@ -284,9 +284,9 @@ public func traceRay(
 | T4 | The encoder: `Pattern` becomes `Codable` | awaiting owner | checkpoint | commit | material alteration |
 | T5 | `T/W` moves into `Metrics` | awaiting owner | continue | — | |
 | T6 | Width and length assigned by size | awaiting owner | **owner stop** | commit + push | |
-| T7 | The non-throwing partial solve | not started | checkpoint | commit | |
-| T8 | Validation splits three ways | not started | checkpoint | commit | |
-| T9 | The ray probe | not started | **owner stop** | commit | |
+| T7 | The non-throwing partial solve | awaiting owner | checkpoint | commit | material alteration |
+| T8 | Validation splits three ways | awaiting owner | checkpoint | commit | |
+| T9 | The ray probe | in progress | **owner stop** | commit | |
 | T10 | Close out | not started | **owner stop** | commit + push | |
 
 ---
@@ -681,6 +681,16 @@ A half-solving pattern is the normal state of authoring, not an edge case, and t
   (ADR-0003), and a capped solid always closes, which would defeat the closure check. Do not validate
   inside the partial solve; validation is a separate call.
 - **Checkpoint:** run the gates.
+
+**Note — material alteration (2026-08-24).** `Solve.run()` had to be non-throwing while `depth` and its
+three helpers still throw, and a plain `catch` in a non-throwing function binds `any Error`, which would
+have meant inventing a `SolverError` case for a failure that cannot happen. Instead the four private
+helpers — `depth`, `point(of:for:)`, `point(ofVertex:for:)`, `plane(named:for:)` — were given typed
+throws, `throws(SolverError)`, and the per-tier body moved into a private `cut(_:)` with the same. The
+catch then binds a `SolverError` exactly and nothing is guessed at. Two knock-ons: `point(ofVertex:)`
+builds its three planes with a loop rather than `map`, because the standard library's `rethrows` does not
+carry a concrete error type through; and the toolchain has to be Swift 6 or later, which it is (6.3.3,
+`swift-tools-version:6.0`).
 
 ```
 cutting-bench-kernel T7: a solve that stops reports what it placed
