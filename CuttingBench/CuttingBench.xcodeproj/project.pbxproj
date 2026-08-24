@@ -8,6 +8,7 @@
 
 /* Begin PBXBuildFile section */
 		45C89D2F303CA7A900B903E3 /* FacetKernel in Frameworks */ = {isa = PBXBuildFile; productRef = 45C89D2E303CA7A900B903E3 /* FacetKernel */; };
+		45C89D3C303CBD9300B903E3 /* BenchGeometry in Frameworks */ = {isa = PBXBuildFile; productRef = 45C89D3B303CBD9300B903E3 /* BenchGeometry */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -41,6 +42,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				45C89D2F303CA7A900B903E3 /* FacetKernel in Frameworks */,
+				45C89D3C303CBD9300B903E3 /* BenchGeometry in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -84,6 +86,7 @@
 			name = CuttingBench;
 			packageProductDependencies = (
 				45C89D2E303CA7A900B903E3 /* FacetKernel */,
+				45C89D3B303CBD9300B903E3 /* BenchGeometry */,
 			);
 			productName = CuttingBench;
 			productReference = 45C89D1F303CA73100B903E3 /* CuttingBench.app */;
@@ -115,6 +118,7 @@
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
 				45C89D2D303CA7A900B903E3 /* XCLocalSwiftPackageReference "../Kernel" */,
+				45C89D3A303CBD9300B903E3 /* XCLocalSwiftPackageReference "BenchGeometry" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 45C89D20303CA73100B903E3 /* Products */;
@@ -363,12 +367,20 @@
 			isa = XCLocalSwiftPackageReference;
 			relativePath = ../Kernel;
 		};
+		45C89D3A303CBD9300B903E3 /* XCLocalSwiftPackageReference "BenchGeometry" */ = {
+			isa = XCLocalSwiftPackageReference;
+			relativePath = BenchGeometry;
+		};
 /* End XCLocalSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
 		45C89D2E303CA7A900B903E3 /* FacetKernel */ = {
 			isa = XCSwiftPackageProductDependency;
 			productName = FacetKernel;
+		};
+		45C89D3B303CBD9300B903E3 /* BenchGeometry */ = {
+			isa = XCSwiftPackageProductDependency;
+			productName = BenchGeometry;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

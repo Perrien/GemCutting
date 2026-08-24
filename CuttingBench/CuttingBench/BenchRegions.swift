@@ -1,3 +1,4 @@
+import BenchGeometry
 import FacetKernel
 import Foundation
 import SwiftUI
@@ -88,12 +89,17 @@ private struct EmptyCard: View {
 /// decoded.
 struct StatusStripRegion: View {
   let pattern: FacetKernel.Pattern?
+  let solid: BenchSolid
+  #if DEBUG
+    @Binding var tierLimit: Int?
+  #endif
 
   var body: some View {
     HStack(spacing: 8) {
       Text("No findings")
       Spacer(minLength: 8)
       #if DEBUG
+        tierLimitStepper
         Text(documentSummary)
       #endif
     }
@@ -104,10 +110,34 @@ struct StatusStripRegion: View {
   }
 
   #if DEBUG
-    /// The handle that proves decoding worked.
+    private var tierTotal: Int { pattern?.tiers.count ?? 0 }
+    private var tiersShown: Int { tierLimit ?? tierTotal }
+
+    /// The only way to see a rough-and-pattern solid at all: every authored pattern is `finished`, and a
+    /// finished pattern cuts the whole prism away. A later slice's scrubber supersedes this.
+    private var tierLimitStepper: some View {
+      Stepper("tiers \(tiersShown)/\(tierTotal)") {
+        setTierLimit(min(tiersShown + 1, tierTotal))
+      } onDecrement: {
+        setTierLimit(max(tiersShown - 1, 0))
+      }
+      .disabled(pattern == nil)
+    }
+
+    /// At the total it stores `nil` rather than the number, so the unlimited case stays the default.
+    private func setTierLimit(_ value: Int) {
+      tierLimit = value >= tierTotal ? nil : value
+    }
+
+    /// What the document decoded, and what the solid it produced is made of.
     private var documentSummary: String {
-      guard let pattern else { return "no pattern" }
-      return "\(pattern.name) · \(pattern.state.rawValue) · \(pattern.tiers.count) tiers"
+      let document =
+        pattern.map { "\($0.name) · \($0.state.rawValue) · \($0.tiers.count) tiers" }
+        ?? "no pattern"
+      let counts =
+        "\(solid.polytope.facets.count) facets "
+        + "(\(solid.cutFacetIndices.count) cut, \(solid.roughFacetIndices.count) rough)"
+      return "\(document) · \(counts)"
     }
   #endif
 }

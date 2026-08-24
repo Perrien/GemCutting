@@ -8,6 +8,11 @@ import SwiftUI
 struct BenchWindow: View {
   @ObservedObject var document: PatternDocument
   @State private var inspectorShown = true
+  @State private var store = BenchSolidStore()
+  #if DEBUG
+    /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
+    @State private var tierLimit: Int?
+  #endif
 
   var body: some View {
     VStack(spacing: 0) {
@@ -22,7 +27,11 @@ struct BenchWindow: View {
           .frame(minHeight: 140)
       }
       Divider()
-      StatusStripRegion(pattern: document.pattern)
+      #if DEBUG
+        StatusStripRegion(pattern: document.pattern, solid: store.solid, tierLimit: $tierLimit)
+      #else
+        StatusStripRegion(pattern: document.pattern, solid: store.solid)
+      #endif
     }
     .frame(minWidth: 900, minHeight: 600)
     .inspector(isPresented: $inspectorShown) {
@@ -37,5 +46,19 @@ struct BenchWindow: View {
       }
     }
     .navigationTitle(document.pattern?.name ?? "Untitled")
+    // The store is driven from here rather than from `body`'s own evaluation, so nothing mutates
+    // observable state during a view update.
+    .onChange(of: document.pattern, initial: true) { rebuild() }
+    #if DEBUG
+      .onChange(of: tierLimit) { rebuild() }
+    #endif
+  }
+
+  private func rebuild() {
+    #if DEBUG
+      store.rebuildIfNeeded(pattern: document.pattern, tierLimit: tierLimit)
+    #else
+      store.rebuildIfNeeded(pattern: document.pattern, tierLimit: nil)
+    #endif
   }
 }
