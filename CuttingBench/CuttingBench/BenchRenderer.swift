@@ -12,6 +12,12 @@ struct Uniforms {
   var cutColor: SIMD4<Float>
   var roughColor: SIMD4<Float>
   var edgeColor: SIMD4<Float>
+  var highlightColor: SIMD4<Float>
+  /// `xyz`: the camera position in world space. `w` unused.
+  var eye: SIMD4<Float>
+  /// `x`: opacity. `y`: this pass's facing sign, `+1` near or `-1` far. `z`: the highlighted plane
+  /// index, or `-1`. `w`: this edge pass's alpha.
+  var params: SIMD4<Float>
 }
 
 /// Draws the bench solid: flat per-facet fill from each plane's own normal, on whatever camera the view
@@ -21,11 +27,17 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
 
   /// Where the camera is. The view sets it before asking for a redraw (D1).
   var camera: BenchCameraState = .threeQuarter
+  /// How opaque the solid is, `0...1`. The view sets it before asking for a redraw (D6).
+  var opacity: Double = 1
+  /// The picked facet's plane index, or `nil` for no selection (D12).
+  var highlightedPlaneIndex: Int?
 
   private let commandQueue: MTLCommandQueue
   private let fillPipeline: MTLRenderPipelineState
   private let edgePipeline: MTLRenderPipelineState
-  private let depthState: MTLDepthStencilState
+  private let depthTestNoWrite: MTLDepthStencilState
+  private let depthTestWrite: MTLDepthStencilState
+  private let depthAlways: MTLDepthStencilState
 
   private var triangleBuffer: MTLBuffer?
   private var triangleCount = 0
@@ -54,6 +66,17 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     descriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
     descriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat
 
+    // Both fill passes blend, which is what lets the far one show through the near one (D8). The edge
+    // pipeline inherits this harmlessly: `.labelColor` is opaque, and blending an opaque source is a
+    // no-op.
+    descriptor.colorAttachments[0].isBlendingEnabled = true
+    descriptor.colorAttachments[0].rgbBlendOperation = .add
+    descriptor.colorAttachments[0].alphaBlendOperation = .add
+    descriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+    descriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+    descriptor.colorAttachments[0].sourceAlphaBlendFactor = .sourceAlpha
+    descriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+
     descriptor.vertexFunction = library.makeFunction(name: "fill_vertex")
     descriptor.fragmentFunction = library.makeFunction(name: "fill_fragment")
     fillPipeline = try! device.makeRenderPipelineState(descriptor: descriptor)
@@ -62,13 +85,14 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     descriptor.fragmentFunction = library.makeFunction(name: "edge_fragment")
     edgePipeline = try! device.makeRenderPipelineState(descriptor: descriptor)
 
-    // One depth state, shared by both pipelines: an edge is depth-tested against the solid like
-    // anything else, and wins against the facet it lies on by the epsilon in its own vertex function
-    // (D19) rather than by a bias whose semantics vary by depth format.
-    let depth = MTLDepthStencilDescriptor()
-    depth.depthCompareFunction = .less
-    depth.isDepthWriteEnabled = true
-    depthState = device.makeDepthStencilState(descriptor: depth)!
+    // Three states, not one: the far fill pass tests without writing, the near one does both, and the
+    // edges take one of each — depth off for the pass that draws the whole wireframe, depth on for the
+    // pass that draws only what is visible (D8, D9). An edge still wins against the facet it lies on
+    // by the epsilon in its own vertex function (D19) rather than by a bias whose semantics vary by
+    // depth format.
+    depthTestNoWrite = BenchRenderer.depthState(device, compare: .less, write: false)
+    depthTestWrite = BenchRenderer.depthState(device, compare: .less, write: true)
+    depthAlways = BenchRenderer.depthState(device, compare: .always, write: false)
 
     super.init()
   }
@@ -92,6 +116,15 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
 
     descriptor.layouts[0].stride = MemoryLayout<MeshVertex>.stride
     return descriptor
+  }
+
+  private static func depthState(
+    _ device: MTLDevice, compare: MTLCompareFunction, write: Bool
+  ) -> MTLDepthStencilState {
+    let descriptor = MTLDepthStencilDescriptor()
+    descriptor.depthCompareFunction = compare
+    descriptor.isDepthWriteEnabled = write
+    return device.makeDepthStencilState(descriptor: descriptor)!
   }
 
   // MARK: - Geometry
@@ -128,12 +161,16 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
       alpha: Double(background.w))
 
     let viewMatrix = benchViewMatrix(camera)
+    let eye = benchCameraPosition(camera)
     var uniforms = Uniforms(
       viewProjection: benchProjectionMatrix(aspect: aspect(of: view)) * viewMatrix,
       view: viewMatrix,
       cutColor: rgba(.controlAccentColor, in: appearance),
       roughColor: rgba(.systemGray, in: appearance),
-      edgeColor: rgba(.labelColor, in: appearance))
+      edgeColor: rgba(.labelColor, in: appearance),
+      highlightColor: rgba(.selectedContentBackgroundColor, in: appearance),
+      eye: SIMD4(eye.x, eye.y, eye.z, 0),
+      params: SIMD4(Float(opacity), -1, Float(highlightedPlaneIndex ?? -1), 0))
 
     guard let passDescriptor = view.currentRenderPassDescriptor,
       let drawable = view.currentDrawable,
@@ -145,20 +182,37 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     // a pure optimisation worth nothing at 60 triangles — and skipping it removes the front-facing
     // winding question, which Metal's y-down window coordinates invert.
     encoder.setCullMode(.none)
-    encoder.setDepthStencilState(depthState)
-    encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
-    encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
 
     if let triangleBuffer, triangleCount > 0 {
       encoder.setRenderPipelineState(fillPipeline)
       encoder.setVertexBuffer(triangleBuffer, offset: 0, index: 0)
-      encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: triangleCount)
+      // Far facets first, writing no depth, then the near ones, which do. Exact back-to-front for a
+      // convex solid, and it leaves the depth buffer holding the visible surface for the edges (D8).
+      for (facingSign, depthState) in [(Float(-1), depthTestNoWrite), (Float(1), depthTestWrite)] {
+        uniforms.params.y = facingSign
+        encoder.setDepthStencilState(depthState)
+        encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+        encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: triangleCount)
+      }
     }
 
     if let edgeBuffer, edgeCount > 0 {
       encoder.setRenderPipelineState(edgePipeline)
       encoder.setVertexBuffer(edgeBuffer, offset: 0, index: 0)
-      encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: edgeCount)
+      // Two passes over the same lines: every edge at the alpha the fill has given up, then the
+      // visible ones at full strength on top. The hidden half of the wireframe fades in with the fill
+      // instead of appearing all at once, and neither pass reads the depth buffer back (D9). At full
+      // opacity the first pass is invisible, which leaves the image part 2 shipped.
+      for (edgeAlpha, depthState) in [
+        (Float(1 - opacity), depthAlways), (Float(1), depthTestNoWrite),
+      ] {
+        uniforms.params.w = edgeAlpha
+        encoder.setDepthStencilState(depthState)
+        encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+        encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+        encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: edgeCount)
+      }
     }
 
     encoder.endEncoding()

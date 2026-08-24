@@ -57,6 +57,7 @@ struct MetalViewport: NSViewRepresentable {
   /// Bumped by the store on every rebuild. Comparing this beats comparing two arrays of vertices.
   let generation: Int
   let camera: BenchCameraState
+  let opacity: Double
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -86,13 +87,14 @@ struct MetalViewport: NSViewRepresentable {
     view.onOrbit = onOrbit
     view.onPick = onPick
     guard let renderer = context.coordinator.renderer else { return }
-    // The mesh is still uploaded only when it actually changed; the camera is pushed every update, which
-    // SwiftUI runs only when one of these did change.
+    // The mesh is still uploaded only when it actually changed; the camera and the display state are
+    // pushed every update, which SwiftUI runs only when one of them did change.
     if context.coordinator.uploaded != generation {
       renderer.setMesh(mesh)
       context.coordinator.uploaded = generation
     }
     renderer.camera = camera
+    renderer.opacity = opacity
     view.needsDisplay = true
   }
 }

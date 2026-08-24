@@ -11,6 +11,8 @@ struct BenchWindow: View {
   @State private var inspectorShown = true
   @State private var store = BenchSolidStore()
   @State private var camera = BenchCameraState.threeQuarter
+  /// How opaque the solid is drawn, `0...1`. Not persisted: a document reopens fully opaque (D6).
+  @State private var solidOpacity = 1.0
   #if DEBUG
     /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
     @State private var tierLimit: Int?
@@ -24,6 +26,7 @@ struct BenchWindow: View {
             mesh: store.mesh,
             generation: store.generation,
             camera: camera,
+            opacity: solidOpacity,
             onOrbit: orbit(dx:dy:),
             onPick: { _, _ in }
           )
@@ -57,6 +60,8 @@ struct BenchWindow: View {
       } label: {
         Label("Face Down", systemImage: "arrow.up.to.line")
       }
+      Slider(value: $solidOpacity, in: 0...1) { Text("Opacity") }
+        .frame(width: 140)
       Button {
         inspectorShown.toggle()
       } label: {

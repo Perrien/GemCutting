@@ -8,6 +8,7 @@ struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
   let camera: BenchCameraState
+  let opacity: Double
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -16,6 +17,7 @@ struct ViewportRegion: View {
       mesh: mesh,
       generation: generation,
       camera: camera,
+      opacity: opacity,
       onOrbit: onOrbit,
       onPick: onPick)
   }
