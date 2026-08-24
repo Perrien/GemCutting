@@ -15,3 +15,9 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
 - 2026-08-24 · Chore-Kernel-Measures-Split-Between-Library-And-Callers · executed — closed by
   Cutting-Bench-Kernel-Changes
 - 2026-08-24 · Chore-Metal-Toolchain-Not-In-The-Environment-Declarations · executed
+- 2026-08-24 · 2-Cutting-Bench-App-Shell-1-Window-And-Document · executed
+- 2026-08-24 · 2-Cutting-Bench-App-Shell-2-Rough-In-The-Viewport · superseded by
+  2-Cutting-Bench-App-Shell-3-Camera-And-Facet-Naming — its seven-float stride-28 vertex layout and its
+  one fixed three-quarter camera are what part 3 replaced
+- 2026-08-24 · 2-Cutting-Bench-App-Shell-3-Camera-And-Facet-Naming · executed
+- 2026-08-24 · 2-Cutting-Bench-App-Shell · executed

@@ -1,5 +1,25 @@
 # 2 · Cutting Bench App Shell — 2 · Rough In The Viewport
 
+> **Superseded in part by the plan `2-Cutting-Bench-App-Shell-3-Camera-And-Facet-Naming`, which
+> shipped. Where this document and the code disagree, trust the code.** Four claims here are no longer
+> true of what was built:
+>
+> - **`MeshVertex` is seven `Float`s at stride 28, offsets 0, 12 and 24** — it is eight at stride 32,
+>   offsets 0, 12, 24 and 28. The eighth is `planeIndex`, which is how the shader tints one picked
+>   facet.
+> - **One fixed three-quarter camera** — the camera is a value the viewport orbits, with face-up and
+>   face-down snaps, and `benchViewMatrix` takes it. `BenchCamera`'s constants still frame the stone,
+>   but its azimuth and elevation are only the starting values.
+> - **D17** — `shade = 0.25 + 0.75 · max(0, n · L)` holds for a facet pointing at the camera. A facet
+>   pointing away is shaded by its **flipped** normal, so that a translucent stone shows its pavilion
+>   as facets rather than as one flat ambient mass.
+> - **D21's four colour roles** — there are six. The fill also resolves `NSColor.systemOrange` for the
+>   picked facet, and the index-ring labels use SwiftUI's `.secondary`. The rule itself is unchanged:
+>   named system colours resolved at runtime, no baked sRGB.
+>
+> Its *Explicitly not doing* list is **not** in that category. Orbit, the snaps, opacity and picking
+> were scoped out of this part and delivered by part 3, which is the handover working as intended.
+
 Status: **COMPLETED 2026-08-24**
 
 ## Parts
