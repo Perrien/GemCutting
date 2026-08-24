@@ -286,7 +286,7 @@ public func traceRay(
 | T6 | Width and length assigned by size | awaiting owner | **owner stop** | commit + push | |
 | T7 | The non-throwing partial solve | awaiting owner | checkpoint | commit | material alteration |
 | T8 | Validation splits three ways | awaiting owner | checkpoint | commit | |
-| T9 | The ray probe | in progress | **owner stop** | commit | |
+| T9 | The ray probe | awaiting owner | **owner stop** | commit | material alteration |
 | T10 | Close out | not started | **owner stop** | commit + push | |
 
 ---
@@ -829,6 +829,20 @@ performance" is a game concern before it is an authoring one.
     `left` — one number below the critical angle is all it takes, and a probe that reported total
     internal reflection there would be reporting a stone that leaks as a stone that does not.
   - **Reads:** `traceRay` in `Kernel/Sources/FacetKernel/Ray.swift`.
+
+**Note — material alteration (2026-08-24).** Owner rule, given at T9's stop: light enters by the crown or
+the table and should leave the same way, and leaving by the pavilion or the girdle is a leak. Two
+assertions were added beyond the *Done when* list to hold it — the round brilliant's near-axis ray leaves
+by the table or a star facet, and the 35-degree stone leaves by the pavilion. No kernel API was added: the
+side is the `part` of the tier owning the last segment's plane, which the app can read from `planeOwner`
+and the pattern, and putting it on `RayTrace` would duplicate what the pattern already says.
+
+**The rule is not universal, and this was measured rather than assumed.** On the round brilliant, entering
+the table: a ray within about 17 degrees of vertical leaves by the table or a star facet, and past that it
+leaves straight through a pavilion main on its first surface. Refraction at the table bends a steep ray
+toward the axis, which drops its incidence on the pavilion below the 40.49-degree critical angle. That is
+the stone's own behaviour — a real brilliant returns light from a cone and leaks the rest — so the test
+pins the contrast at two named tilts instead of claiming no ray ever leaves by the pavilion.
 
 ```
 cutting-bench-kernel T9: single-ray probe with critical-angle readout
