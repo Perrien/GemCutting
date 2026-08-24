@@ -172,7 +172,7 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
       cutColor: rgba(.controlAccentColor, in: appearance),
       roughColor: rgba(.systemGray, in: appearance),
       edgeColor: rgba(.labelColor, in: appearance),
-      highlightColor: rgba(.selectedContentBackgroundColor, in: appearance),
+      highlightColor: rgba(.systemOrange, in: appearance),
       eye: SIMD4(eye.x, eye.y, eye.z, 0),
       params: SIMD4(Float(opacity), -1, Float(highlightedPlaneIndex ?? -1), 0))
 

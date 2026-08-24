@@ -3,13 +3,15 @@ import FacetKernel
 import Foundation
 import SwiftUI
 
-/// The renderer's region. **One replaceable subview** (D2), and nothing else may draw here.
+/// The renderer's region. **One Metal subview plus the index-ring overlay** (D2, U4), and nothing
+/// else may draw here.
 struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
   let camera: BenchCameraState
   let opacity: Double
   let highlightedPlaneIndex: Int?
+  let ringLabels: [IndexRingLabel]
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -21,7 +23,9 @@ struct ViewportRegion: View {
       opacity: opacity,
       highlightedPlaneIndex: highlightedPlaneIndex,
       onOrbit: onOrbit,
-      onPick: onPick)
+      onPick: onPick
+    )
+    .overlay { IndexRingOverlay(labels: ringLabels, camera: camera) }
   }
 }
 

@@ -177,11 +177,12 @@ final class BenchCameraTests: XCTestCase {
 
   // MARK: - Helpers
 
-  /// The 32 points the framing check samples the index ring's circle at. **T6 replaces these two
-  /// literals with `IndexRing.radius` and `IndexRing.z`**, which do not exist until then.
+  /// The 32 points the framing check samples the index ring's circle at. Every ring anchor any
+  /// pattern can produce lies on this circle, so the circle is the framing constraint and no pattern
+  /// needs loading.
   private var ringCirclePoints: [SIMD3<Float>] {
-    let radius: Float = 1.6
-    let z: Float = 0.0
+    let radius = Float(IndexRing.radius)
+    let z = Float(IndexRing.z)
     return (0..<32).map { stop in
       let theta = 2 * Float.pi * Float(stop) / 32
       return SIMD3<Float>(cos(theta) * radius, sin(theta) * radius, z)

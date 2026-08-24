@@ -19,11 +19,19 @@ public struct BenchSolid: Sendable {
   /// An entry for every index in `planes`.
   public var origin: [Int: FacetOrigin]
   public var polytope: Polytope
+  /// The tiers that actually placed, as the index ring's source. Empty for no pattern (D17).
+  public var tiers: [SolvedTier]
 
-  public init(planes: [Plane], origin: [Int: FacetOrigin], polytope: Polytope) {
+  public init(
+    planes: [Plane],
+    origin: [Int: FacetOrigin],
+    polytope: Polytope,
+    tiers: [SolvedTier] = []
+  ) {
     self.planes = planes
     self.origin = origin
     self.polytope = polytope
+    self.tiers = tiers
   }
 
   /// The plane indices that survived as facets, split by origin. Both read `polytope.facets.keys`, so
@@ -63,6 +71,7 @@ public struct BenchSolid: Sendable {
 public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSolid {
   var planes = roughPlanes()
   var origin: [Int: FacetOrigin] = [:]
+  var tiers: [SolvedTier] = []
   for (index, facet) in roughFacets().enumerated() {
     origin[index] = .rough(facet)
   }
@@ -75,6 +84,9 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
     // and its `failure` is discarded because the tiers that placed are what there is to draw (D11). No
     // `girdleTargetFraction` argument, so the pattern reproduces its own diagram (D12).
     let partial = solveAsFarAsPossible(truncated)
+    // From the **solution**, never from `truncated.tiers`: a tier the solver could not place has no
+    // depth, no planes and therefore no index stops (D17).
+    tiers = partial.solution.tiers
     for (k, plane) in partial.solution.planes.enumerated() {
       planes.append(plane)
       // A plane with no owner is impossible today. If one appears, it is left out of `origin` rather
@@ -85,5 +97,6 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
     }
   }
 
-  return BenchSolid(planes: planes, origin: origin, polytope: intersectHalfSpaces(planes))
+  return BenchSolid(
+    planes: planes, origin: origin, polytope: intersectHalfSpaces(planes), tiers: tiers)
 }

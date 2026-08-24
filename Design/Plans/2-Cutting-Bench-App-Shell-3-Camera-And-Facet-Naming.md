@@ -113,7 +113,7 @@ built: **pure geometry in the `BenchGeometry` package, the app wires it to AppKi
 | D15 | **The ring's alpha is `min(abs(elevation) / 12, 1)`** — one build constant, `ringFadeDegrees`, so the ring is gone edge-on where the rim projects to a line and full from 12° up. Tuned by eye at T7's owner stop; **not a preference** (U4). |
 | D16 | **The ring is SwiftUI `Text` in an overlay over the Metal view**, positioned by projecting each anchor through the same `benchProjectionMatrix(aspect:) * benchViewMatrix(camera)` the renderer uses. Text in Metal means a glyph atlas for a dozen numerals; the overlay reuses the pure matrices, so it cannot disagree with the solid about where the rim is. |
 | D17 | **`BenchSolid` gains `tiers: [SolvedTier]`, empty for no pattern**, as the ring's source. It comes from the solve, never from the raw `Pattern`: a tier the solver could not place has no depth and no facets, so it contributes no index stops. With no pattern there are no tiers and therefore no ring, which is U4's last line, falling out rather than being special-cased. |
-| D18 | **No bespoke palette (U2).** The highlight resolves `NSColor.selectedContentBackgroundColor` and the ring labels use `.secondaryLabelColor`, both through the existing per-draw path (`BenchRenderer.swift:175`) or SwiftUI's own semantic styles. **No hardcoded sRGB anywhere**, so the solid and the ring track light and dark appearance with the rest of the window. |
+| D18 | **No bespoke palette (U2).** The highlight resolves `NSColor.systemOrange` *(corrected at T5's owner stop, 2026-08-24: `NSColor.selectedContentBackgroundColor` is the accent colour, which is the same hue the cut facets already carry, so a highlighted facet read as nothing more than a darker shade of its neighbours. A named system colour still, so nothing here is bespoke and the appearance tracking is unchanged.)* and the ring labels use `.secondaryLabelColor`, both through the existing per-draw path (`BenchRenderer.swift:175`) or SwiftUI's own semantic styles. **No hardcoded sRGB anywhere**, so the solid and the ring track light and dark appearance with the rest of the window. |
 | D19 | **Nothing in this plan edits `project.pbxproj`.** The target's synchronised group (`project.pbxproj:30`, `isa = PBXFileSystemSynchronizedRootGroup;`) makes a new `.swift` file in `CuttingBench/CuttingBench/` a member automatically. Hand-editing that file is a protocol guardrail violation and a stop, never a step. |
 | D20 | **Building and running the app is the owner's action at every owner stop.** No shared `.xcscheme` exists — `xcuserdata/` is gitignored — so the agent has no way to build the app target. The agent's own checks are the `BenchGeometry` tests and `swift-format`, named per task. |
 
@@ -787,9 +787,9 @@ continuation of that task, not a blocker.
 | T2 | Free orbit and the two snap views | completed | **owner stop** | commit | material alteration: D4's drag direction was reversed on both axes at the owner stop — see D4 |
 | T3 | The opacity control | completed | **owner stop** | commit | material alteration: D9's edge pop replaced by a two-pass edge fade, and a far facet is now shaded by its flipped normal — see D9 |
 | T4 | Pure: `pickFacet` and `facetLabel` | completed | continue | — | |
-| T5 | Click a facet, highlight it, name it | awaiting owner | **owner stop** | commit | |
-| T6 | Pure: the index ring's labels and its fade | not started | continue | — | |
-| T7 | The index ring over the viewport | not started | **owner stop** | commit | |
+| T5 | Click a facet, highlight it, name it | completed | **owner stop** | commit | material alteration: the highlight is `NSColor.systemOrange`, not the accent colour — see D18 |
+| T6 | Pure: the index ring's labels and its fade | completed | continue | — | |
+| T7 | The index ring over the viewport | awaiting owner | **owner stop** | commit | |
 | T8 | Close out | not started | **owner stop** | commit + push | |
 
 Five owner stops in eight tasks, because **T2, T3, T5 and T7 each change what the owner can see and

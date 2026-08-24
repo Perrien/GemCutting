@@ -32,6 +32,7 @@ struct BenchWindow: View {
             camera: camera,
             opacity: solidOpacity,
             highlightedPlaneIndex: selectedPlaneIndex,
+            ringLabels: indexRingLabels(store.solid),
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
           )
