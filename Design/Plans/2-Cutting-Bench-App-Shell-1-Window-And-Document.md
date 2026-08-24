@@ -366,7 +366,7 @@ All colours come from system semantic colours — `Color(nsColor: .textBackgroun
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
 | T1 | **Owner:** create the Xcode project and target, link `Kernel/`, declare the document type | completed | **owner stop** | commit | Owner-run — the agent must not edit `project.pbxproj` |
-| T2 | The document opens a pattern file and reports what it decoded | not started | **owner stop** | commit | |
+| T2 | The document opens a pattern file and reports what it decoded | completed | **owner stop** | commit | |
 | T3 | The window layout — five regions, present and empty | not started | **owner stop** | commit | |
 | T4 | Close out | not started | **owner stop** | commit + push | Archives nothing — part 3 does that |
 
