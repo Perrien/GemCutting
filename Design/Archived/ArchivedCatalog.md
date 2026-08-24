@@ -14,3 +14,4 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
   width being fixed to one axis
 - 2026-08-24 · Chore-Kernel-Measures-Split-Between-Library-And-Callers · executed — closed by
   Cutting-Bench-Kernel-Changes
+- 2026-08-24 · Chore-Metal-Toolchain-Not-In-The-Environment-Declarations · executed

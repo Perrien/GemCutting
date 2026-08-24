@@ -1,6 +1,6 @@
 # 2 · Cutting Bench App Shell — 2 · Rough In The Viewport
 
-Status: **APPROVED 2026-08-24**
+Status: **COMPLETED 2026-08-24**
 
 ## Parts
 
@@ -597,8 +597,8 @@ Nothing else in the file moves: the `VSplitView`, the `.inspector`, the toolbar 
 | T2 | The bench solid: rough intersected with the pattern's placed tiers, named plane by plane | completed | **owner stop** | commit | **Material alteration:** `BenchSolidStore.swift` imports `struct FacetKernel.Pattern` rather than the whole module — `FacetKernel` exports a public enum `Observation`, which shadows the module `@Observable` expands its references against. **Material alteration:** Swift cannot put a single call argument behind `#if DEBUG`, so `BenchWindow` conditionalises the whole `StatusStripRegion(…)` call and routes both `.onChange` bodies through one `rebuild()` whose tier-limit argument is the conditional part. |
 | T3 | The triangulated mesh, the edge list and the camera matrices | completed | checkpoint | — | |
 | T4 | Metal draws the solid — flat per-facet fill, rough against cut, fixed three-quarter camera | completed | **owner stop** | commit | **Material alteration:** none to the code. Xcode 26.6 ships the Metal compiler as a separately downloaded component; the owner installed it with `xcodebuild -downloadComponent MetalToolchain`. The plan's synchronized-folder question is settled: `.metal` in `CuttingBench/CuttingBench/` is compiled with no Xcode step. |
-| T5 | The edges, always drawn | awaiting owner | **owner stop** | commit | |
-| T6 | Close out | not started | **owner stop** | commit + push | Archives nothing — part 3 does that |
+| T5 | The edges, always drawn | completed | **owner stop** | commit | |
+| T6 | Close out | awaiting owner | **owner stop** | commit + push | Archives nothing — part 3 does that |
 
 **Gates, for every task in this plan.** The protocol's gates 1 and 2 are unconditional and will pass
 untouched, because no task here adds Swift under `Kernel/`; gate 3 does not apply for the same reason.
@@ -1002,3 +1002,10 @@ Commit point:
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each
 as a ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol's §4.
+
+- **`FacetKernel.Observation` shadows the `Observation` module**, so `@Observable` will not compile in an
+  app file that imports the whole kernel. Worked around locally with a scoped import at T2.
+  → `Chore-Observation-Type-Shadows-Its-Module`
+- **The Metal toolchain is a separately downloaded Xcode component** and is not named in the protocol's
+  *Environment & toolchain* block, which is what T4 was blocked on.
+  → `Chore-Metal-Toolchain-Not-In-The-Environment-Declarations`

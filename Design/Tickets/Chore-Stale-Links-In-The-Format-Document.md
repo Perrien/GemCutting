@@ -1,6 +1,6 @@
 # Stale Links In The Format Document
 
-Status: untriaged
+Status: open
 Filed: 2026-08-24
 
 `Design/design-authoring-format.md` points at three paths that do not exist: two

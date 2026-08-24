@@ -105,6 +105,13 @@ Anything about this machine or toolchain that changes how you work.
 - **Pass `--disable-sandbox` to `swift build` and `swift test`.** SwiftPM's manifest sandbox conflicts
   with the agent sandbox; without the flag the command fails for a reason that has nothing to do with
   the code.
+- **A `.metal` file needs the Metal Toolchain component installed:**
+  `xcodebuild -downloadComponent MetalToolchain`. From Xcode 26 on, the Metal compiler ships separately
+  from Xcode itself, and without it any build containing a `.metal` file fails with
+  `cannot execute tool 'metal' due to missing Metal Toolchain` — which reads like a code error and is
+  not one. **Check with `xcrun metal --version`, never `xcrun -f metal`:** the latter resolves to the
+  shim whether the component is present or not, so it makes an absent toolchain look installed. The
+  download is multi-GB and interactive, so it is an owner install request, not something to retry around.
 - **The network is restricted.** Before any step that needs it, attempt the smallest fetch first. If it
   fails, **do not retry workarounds** — no mirrors, no curl tricks, and never hand-write a dependency in
   place of installing it. Mark the task `blocked` and give the owner an exact, copy-pasteable install
