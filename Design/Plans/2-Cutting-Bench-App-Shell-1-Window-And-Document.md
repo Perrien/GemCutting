@@ -1,6 +1,6 @@
 # 2 · Cutting Bench App Shell — 1 · Window And Document
 
-Status: **APPROVED 2026-08-24**
+Status: **COMPLETED 2026-08-24**
 
 ## Parts
 
@@ -367,8 +367,8 @@ All colours come from system semantic colours — `Color(nsColor: .textBackgroun
 |---|---|---|---|---|---|
 | T1 | **Owner:** create the Xcode project and target, link `Kernel/`, declare the document type | completed | **owner stop** | commit | Owner-run — the agent must not edit `project.pbxproj` |
 | T2 | The document opens a pattern file and reports what it decoded | completed | **owner stop** | commit | |
-| T3 | The window layout — five regions, present and empty | not started | **owner stop** | commit | |
-| T4 | Close out | not started | **owner stop** | commit + push | Archives nothing — part 3 does that |
+| T3 | The window layout — five regions, present and empty | completed | **owner stop** | commit | |
+| T4 | Close out | awaiting owner | **owner stop** | commit + push | Archives nothing — part 3 does that |
 
 **Gates, for every task in this plan.** The protocol's gates 1 and 2 are unconditional and will pass
 untouched, because no task here adds Swift under `Kernel/`; gate 3 does not apply for the same reason.
