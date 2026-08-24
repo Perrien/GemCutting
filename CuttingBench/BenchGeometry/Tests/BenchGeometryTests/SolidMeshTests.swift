@@ -9,11 +9,30 @@ final class SolidMeshTests: XCTestCase {
 
   // MARK: - The layout the renderer hardcodes
 
-  func testTheVertexLayoutIsSevenFloatsWithNoPadding() {
-    XCTAssertEqual(MemoryLayout<MeshVertex>.stride, 28)
+  func testTheVertexLayoutIsEightFloatsWithNoPadding() {
+    XCTAssertEqual(MemoryLayout<MeshVertex>.stride, 32)
     XCTAssertEqual(MemoryLayout<MeshVertex>.offset(of: \.px), 0)
     XCTAssertEqual(MemoryLayout<MeshVertex>.offset(of: \.nx), 12)
     XCTAssertEqual(MemoryLayout<MeshVertex>.offset(of: \.role), 24)
+    XCTAssertEqual(MemoryLayout<MeshVertex>.offset(of: \.planeIndex), 28)
+  }
+
+  // MARK: - The plane each vertex belongs to (D12)
+
+  func testEveryTriangleVertexCarriesItsPlaneAndEveryEdgeVertexCarriesNone() {
+    let solid = benchSolid(for: nil)
+    let mesh = solidMesh(solid)
+
+    // Facet by facet in ascending plane order, a fan of `ring.count - 2` triangles apiece.
+    var expected: [Float] = []
+    for planeIndex in solid.polytope.facets.keys.sorted() {
+      guard let ring = solid.polytope.facets[planeIndex], ring.count >= 3 else { continue }
+      expected.append(
+        contentsOf: Array(repeating: Float(planeIndex), count: 3 * (ring.count - 2)))
+    }
+
+    XCTAssertEqual(mesh.triangleVertices.map(\.planeIndex), expected)
+    XCTAssertTrue(mesh.edgeVertices.allSatisfy { $0.planeIndex == -1 })
   }
 
   // MARK: - The bare prism, counted exactly

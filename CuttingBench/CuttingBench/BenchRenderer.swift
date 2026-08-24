@@ -98,7 +98,7 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
   }
 
   /// Attribute offsets come from `MemoryLayout`, never from hand-counted bytes. `SolidMeshTests` pins
-  /// the three numbers the shader's `VertexIn` depends on.
+  /// the four numbers the shader's `VertexIn` depends on.
   private static func vertexDescriptor() -> MTLVertexDescriptor {
     let descriptor = MTLVertexDescriptor()
 
@@ -113,6 +113,10 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     descriptor.attributes[2].format = .float
     descriptor.attributes[2].offset = MemoryLayout<MeshVertex>.offset(of: \.role)!
     descriptor.attributes[2].bufferIndex = 0
+
+    descriptor.attributes[3].format = .float
+    descriptor.attributes[3].offset = MemoryLayout<MeshVertex>.offset(of: \.planeIndex)!
+    descriptor.attributes[3].bufferIndex = 0
 
     descriptor.layouts[0].stride = MemoryLayout<MeshVertex>.stride
     return descriptor

@@ -786,8 +786,8 @@ continuation of that task, not a blocker.
 | T1 | Prefactor: the camera becomes a value | completed | checkpoint | commit | |
 | T2 | Free orbit and the two snap views | completed | **owner stop** | commit | material alteration: D4's drag direction was reversed on both axes at the owner stop — see D4 |
 | T3 | The opacity control | completed | **owner stop** | commit | material alteration: D9's edge pop replaced by a two-pass edge fade, and a far facet is now shaded by its flipped normal — see D9 |
-| T4 | Pure: `pickFacet` and `facetLabel` | in progress | continue | — | stopped mid-task: both files written, gates unrun — this session's environment carries no Swift toolchain, so the two `swift test` gates and the lint gate are outstanding |
-| T5 | Click a facet, highlight it, name it | not started | **owner stop** | commit | |
+| T4 | Pure: `pickFacet` and `facetLabel` | completed | continue | — | |
+| T5 | Click a facet, highlight it, name it | awaiting owner | **owner stop** | commit | |
 | T6 | Pure: the index ring's labels and its fade | not started | continue | — | |
 | T7 | The index ring over the viewport | not started | **owner stop** | commit | |
 | T8 | Close out | not started | **owner stop** | commit + push | |

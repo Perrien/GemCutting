@@ -13,6 +13,10 @@ struct BenchWindow: View {
   @State private var camera = BenchCameraState.threeQuarter
   /// How opaque the solid is drawn, `0...1`. Not persisted: a document reopens fully opaque (D6).
   @State private var solidOpacity = 1.0
+  /// The picked facet, as the plane the renderer highlights and the name the strip reads. Two
+  /// optionals rather than one tuple, because a tuple is not `Equatable` (D11, D12).
+  @State private var selectedPlaneIndex: Int?
+  @State private var selectedFacetLabel: String?
   #if DEBUG
     /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
     @State private var tierLimit: Int?
@@ -27,8 +31,9 @@ struct BenchWindow: View {
             generation: store.generation,
             camera: camera,
             opacity: solidOpacity,
+            highlightedPlaneIndex: selectedPlaneIndex,
             onOrbit: orbit(dx:dy:),
-            onPick: { _, _ in }
+            onPick: pick(at:in:)
           )
           .frame(minHeight: 240)
           Divider()
@@ -39,9 +44,16 @@ struct BenchWindow: View {
       }
       Divider()
       #if DEBUG
-        StatusStripRegion(pattern: document.pattern, solid: store.solid, tierLimit: $tierLimit)
+        StatusStripRegion(
+          pattern: document.pattern,
+          solid: store.solid,
+          selectedFacet: selectedFacetLabel,
+          tierLimit: $tierLimit)
       #else
-        StatusStripRegion(pattern: document.pattern, solid: store.solid)
+        StatusStripRegion(
+          pattern: document.pattern,
+          solid: store.solid,
+          selectedFacet: selectedFacetLabel)
       #endif
     }
     .frame(minWidth: 900, minHeight: 600)
@@ -78,6 +90,11 @@ struct BenchWindow: View {
   }
 
   private func rebuild() {
+    // A plane index means nothing across a rebuild: the tier limit decides how many solved planes are
+    // appended after the rough's eighteen, so keeping the selection would leave the highlight on an
+    // unrelated plane and the strip reading the old name. Opening a different pattern is the same case.
+    selectedPlaneIndex = nil
+    selectedFacetLabel = nil
     #if DEBUG
       store.rebuildIfNeeded(pattern: document.pattern, tierLimit: tierLimit)
     #else
@@ -90,5 +107,20 @@ struct BenchWindow: View {
   /// (D4).
   private func orbit(dx: CGFloat, dy: CGFloat) {
     camera.orbit(dxPoints: Float(-dx), dyPoints: Float(-dy))
+  }
+
+  /// A click, unprojected to a world ray and put to the slab test. **No y flip**: an `NSView` is y-up
+  /// unless `isFlipped` says otherwise and `MTKView` does not, so its coordinates and Metal's NDC
+  /// already agree (D13). A click that misses the solid clears the selection.
+  private func pick(at point: CGPoint, in size: CGSize) {
+    guard size.width > 0, size.height > 0 else { return }
+    let ray = benchRay(
+      ndcX: Float(2 * point.x / size.width - 1),
+      ndcY: Float(2 * point.y / size.height - 1),
+      aspect: Float(size.width / size.height),
+      camera: camera)
+    let hit = pickFacet(store.solid, origin: ray.origin, direction: ray.direction)
+    selectedPlaneIndex = hit?.planeIndex
+    selectedFacetLabel = hit.map { facetLabel($0.facet) }
   }
 }

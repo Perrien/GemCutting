@@ -58,6 +58,7 @@ struct MetalViewport: NSViewRepresentable {
   let generation: Int
   let camera: BenchCameraState
   let opacity: Double
+  let highlightedPlaneIndex: Int?
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -95,6 +96,7 @@ struct MetalViewport: NSViewRepresentable {
     }
     renderer.camera = camera
     renderer.opacity = opacity
+    renderer.highlightedPlaneIndex = highlightedPlaneIndex
     view.needsDisplay = true
   }
 }

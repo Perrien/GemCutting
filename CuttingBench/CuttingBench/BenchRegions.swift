@@ -9,6 +9,7 @@ struct ViewportRegion: View {
   let generation: Int
   let camera: BenchCameraState
   let opacity: Double
+  let highlightedPlaneIndex: Int?
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -18,6 +19,7 @@ struct ViewportRegion: View {
       generation: generation,
       camera: camera,
       opacity: opacity,
+      highlightedPlaneIndex: highlightedPlaneIndex,
       onOrbit: onOrbit,
       onPick: onPick)
   }
@@ -98,6 +100,8 @@ private struct EmptyCard: View {
 struct StatusStripRegion: View {
   let pattern: FacetKernel.Pattern?
   let solid: BenchSolid
+  /// The picked facet's label, or `nil` for no selection (D11).
+  let selectedFacet: String?
   #if DEBUG
     @Binding var tierLimit: Int?
   #endif
@@ -106,6 +110,7 @@ struct StatusStripRegion: View {
     HStack(spacing: 8) {
       Text("No findings")
       Spacer(minLength: 8)
+      Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG
         tierLimitStepper
         Text(documentSummary)

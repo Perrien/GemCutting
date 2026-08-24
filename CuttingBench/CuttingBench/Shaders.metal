@@ -18,9 +18,10 @@ struct Uniforms {
 };
 
 struct VertexIn {
-  float3 position [[attribute(0)]];
-  float3 normal   [[attribute(1)]];
-  float  role     [[attribute(2)]];
+  float3 position   [[attribute(0)]];
+  float3 normal     [[attribute(1)]];
+  float  role       [[attribute(2)]];
+  float  planeIndex [[attribute(3)]];
 };
 
 struct FillOut {
@@ -50,6 +51,9 @@ vertex FillOut fill_vertex(VertexIn in [[stage_in]], constant Uniforms &u [[buff
   float3 n = normalize((u.view * float4(in.normal, 0.0)).xyz);
   float shade = kAmbient + kDiffuse * saturate(dot(out.facing < 0.0 ? -n : n, kLight));
   float4 base = mix(u.cutColor, u.roughColor, in.role);
+  // The comparison is exact for the small integers a float holds without loss; the tolerance is belt
+  // and braces. `params.z` is -1 for no selection, which no plane index can equal (D12).
+  if (abs(in.planeIndex - u.params.z) < 0.5) { base = u.highlightColor; }
   out.color = float4(base.rgb * shade, base.a * u.params.x);
   return out;
 }

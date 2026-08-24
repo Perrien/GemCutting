@@ -2,8 +2,8 @@ import FacetKernel
 import Foundation
 import simd
 
-/// One mesh vertex. **Seven `Float`s, no padding: stride 28, offsets 0, 12 and 24.** The vertex
-/// descriptor in the renderer reads those three numbers, and `SolidMeshTests` pins them.
+/// One mesh vertex. **Eight `Float`s, no padding: stride 32, offsets 0, 12, 24 and 28.** The vertex
+/// descriptor in the renderer reads those four numbers, and `SolidMeshTests` pins them.
 public struct MeshVertex: Equatable, Sendable {
   public var px: Float
   public var py: Float
@@ -13,6 +13,9 @@ public struct MeshVertex: Equatable, Sendable {
   public var nz: Float
   /// 0 for a cut facet, 1 for uncut rough. The shader mixes the two colours by it (D21).
   public var role: Float
+  /// The plane this vertex's facet belongs to, so the shader can highlight one facet (D12). `-1` on an
+  /// edge vertex, which is shared by two facets and belongs to neither.
+  public var planeIndex: Float
 
   public init(
     px: Float,
@@ -21,7 +24,8 @@ public struct MeshVertex: Equatable, Sendable {
     nx: Float,
     ny: Float,
     nz: Float,
-    role: Float
+    role: Float,
+    planeIndex: Float
   ) {
     self.px = px
     self.py = py
@@ -30,14 +34,16 @@ public struct MeshVertex: Equatable, Sendable {
     self.ny = ny
     self.nz = nz
     self.role = role
+    self.planeIndex = planeIndex
   }
 }
 
 public struct SolidMesh: Sendable {
   /// Three per triangle, fan-triangulated from each facet's polygon.
   public var triangleVertices: [MeshVertex]
-  /// Two per segment. `nx`/`ny`/`nz` and `role` are zero and unread — the edge shader uses position
-  /// only, and one vertex layout serving both pipelines is worth four unused bytes.
+  /// Two per segment. `nx`/`ny`/`nz` and `role` are zero, `planeIndex` is `-1`, and none of them is
+  /// read — the edge shader uses position only, and one vertex layout serving both pipelines is worth
+  /// the unused bytes.
   public var edgeVertices: [MeshVertex]
 
   public init(triangleVertices: [MeshVertex], edgeVertices: [MeshVertex]) {
@@ -66,7 +72,11 @@ public func solidMesh(_ solid: BenchSolid) -> SolidMesh {
     for i in 1..<(ring.count - 1) {
       for vertexIndex in [ring[0], ring[i], ring[i + 1]] {
         triangleVertices.append(
-          meshVertex(solid.polytope.vertices[vertexIndex], normal: normal, role: role))
+          meshVertex(
+            solid.polytope.vertices[vertexIndex],
+            normal: normal,
+            role: role,
+            planeIndex: Float(planeIndex)))
       }
     }
 
@@ -77,8 +87,10 @@ public func solidMesh(_ solid: BenchSolid) -> SolidMesh {
       let b = ring[(i + 1) % ring.count]
       let key = SIMD2(min(a, b), max(a, b))
       guard seenEdges.insert(key).inserted else { continue }
-      edgeVertices.append(meshVertex(solid.polytope.vertices[a], normal: .zero, role: 0))
-      edgeVertices.append(meshVertex(solid.polytope.vertices[b], normal: .zero, role: 0))
+      edgeVertices.append(
+        meshVertex(solid.polytope.vertices[a], normal: .zero, role: 0, planeIndex: -1))
+      edgeVertices.append(
+        meshVertex(solid.polytope.vertices[b], normal: .zero, role: 0, planeIndex: -1))
     }
   }
 
@@ -88,7 +100,8 @@ public func solidMesh(_ solid: BenchSolid) -> SolidMesh {
 private func meshVertex(
   _ point: (x: Double, y: Double, z: Double),
   normal: SIMD3<Float>,
-  role: Float
+  role: Float,
+  planeIndex: Float
 ) -> MeshVertex {
   MeshVertex(
     px: Float(point.x),
@@ -97,7 +110,8 @@ private func meshVertex(
     nx: normal.x,
     ny: normal.y,
     nz: normal.z,
-    role: role)
+    role: role,
+    planeIndex: planeIndex)
 }
 
 private func unitNormal(_ n: (x: Double, y: Double, z: Double)) -> SIMD3<Float> {
