@@ -1,5 +1,29 @@
 # 1 · Cutting Bench Kernel Changes — Exploration
 
+> **Superseded by the plan `Cutting-Bench-Kernel-Changes`, which shipped. Where this document and the
+> code disagree, trust the code.** Everything in *Grounding* was true when this closed and was the
+> reason for the plan; eight of its claims are what the plan then changed:
+>
+> - **The kernel cannot write a pattern file** — it can. `Meet`, `TierSpec` and `Pattern` are `Codable`
+>   with hand-written encoders, and `encoded(_:)` is the one writer, checking the decoder's own rules
+>   first.
+> - **The solve is all-or-nothing** — `solveAsFarAsPossible` returns the tiers it placed and the failure
+>   that stopped it, and `SolverError.tier` names where that was. `solve` still throws.
+> - **`validate` is one entry point over three private halves** — the three are public and `validate`
+>   composes them: `structuralFindings`, `namedPointFindings(inTier:of:_:)`, `solidFindings`.
+> - **The intermediate solid is not public** — `intermediateSolid(before:of:)` and `planes(of:)` are.
+> - **`Meet.namedTriples` is internal** — it is public.
+> - **`Metrics` has no `T/W`** — it carries `tableFractionOfWidth`, and `facetsolve`'s own
+>   `tableOverWidth` is gone.
+> - **Width is fixed to one axis** — width is the smaller of the two axis extents and length the larger,
+>   so `L/W` is never below 1, and `girdleOutlineExtent` reports which axis carried the width.
+> - **The girdle target is a caller's parameter, not a file field** — `Pattern.girdleTargetFraction` is
+>   a header field, all four authored patterns declare their diagram-measured value, and `solve` takes
+>   `girdleTargetFraction: Double? = nil` where an explicit argument still wins.
+>
+> Every `file:line` anchor in *Grounding* has also moved. The plan's own *Context* re-verified them on
+> 2026-08-23, and the code is the authority now.
+
 Status: **CLOSED 2026-08-23**
 Started: 2026-08-22 · via /a-explore · split from `Cutting-Bench-App` on 2026-08-23
 IDs: **S** = scope · **I** = implementation · **U** = UI/UX

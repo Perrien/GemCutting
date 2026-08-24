@@ -287,7 +287,7 @@ public func traceRay(
 | T7 | The non-throwing partial solve | awaiting owner | checkpoint | commit | material alteration |
 | T8 | Validation splits three ways | awaiting owner | checkpoint | commit | |
 | T9 | The ray probe | awaiting owner | **owner stop** | commit | material alteration |
-| T10 | Close out | not started | **owner stop** | commit + push | |
+| T10 | Close out | awaiting owner | **owner stop** | commit + push | material alteration |
 
 ---
 
@@ -885,10 +885,25 @@ cutting-bench-kernel T9: single-ray probe with critical-angle readout
 cutting-bench-kernel T10: close out
 
 - Archive Cutting-Bench-Kernel-Changes, its exploration and the measures ticket
-- The exploration banners the four Grounding claims this plan inverted
+- The exploration banners the eight Grounding claims this plan inverted
 ```
+
+**Note — material alteration (2026-08-24).** This task says the exploration's *Grounding* section states
+**four** claims this plan makes false, and to banner those four. Checked against the shipped code, it
+states **eight**: the four named — the kernel cannot write a pattern file, `validate` is one entry point
+over three private halves, `Metrics` has no `T/W`, width is fixed to the 90–270 axis — and also that the
+solve is all-or-nothing (T7), that `intermediateSolid` and `planes(of:)` are not public (T8), that
+`Meet.namedTriples` is internal (T8), and that the girdle target is a caller's parameter rather than a
+file field (T3). All eight are bannered. A banner works by being read before the false claim is read
+(`Execution-Protocol.md` §11), so naming half of them would have left a reader misled by the rest.
 
 ## Deferred
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each
 as a ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **Three dead links in `design-authoring-format.md`** — two `../../.scratch/faceting-game/issues/…`
+  paths and a rationale link to `../adr/0002-meet-constraints-not-depths.md`, where the real ADR-0002 is
+  `Design/Decisions/0002-pattern-is-one-json-file.md`. T1 named them and said to leave them alone. Filed
+  as `Chore-Stale-Links-In-The-Format-Document`.
+
