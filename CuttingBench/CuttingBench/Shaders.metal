@@ -25,6 +25,8 @@ struct FillOut {
 constant float3 kLight = float3(0.268328, 0.357771, 0.894427);
 constant float kAmbient = 0.25;
 constant float kDiffuse = 0.75;
+// Pulls an edge toward the camera so it wins the depth test against the facet it lies on (D19).
+constant float kEdgeDepthEpsilon = 2e-4;
 
 vertex FillOut fill_vertex(VertexIn in [[stage_in]], constant Uniforms &u [[buffer(1)]]) {
   FillOut out;
@@ -37,3 +39,16 @@ vertex FillOut fill_vertex(VertexIn in [[stage_in]], constant Uniforms &u [[buff
 }
 
 fragment float4 fill_fragment(FillOut in [[stage_in]]) { return in.color; }
+
+struct EdgeOut {
+  float4 position [[position]];
+};
+
+vertex EdgeOut edge_vertex(VertexIn in [[stage_in]], constant Uniforms &u [[buffer(1)]]) {
+  EdgeOut out;
+  out.position = u.viewProjection * float4(in.position, 1.0);
+  out.position.z -= kEdgeDepthEpsilon * out.position.w;
+  return out;
+}
+
+fragment float4 edge_fragment(constant Uniforms &u [[buffer(1)]]) { return u.edgeColor; }

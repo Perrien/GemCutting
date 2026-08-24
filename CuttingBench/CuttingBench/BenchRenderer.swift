@@ -21,10 +21,13 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
 
   private let commandQueue: MTLCommandQueue
   private let fillPipeline: MTLRenderPipelineState
+  private let edgePipeline: MTLRenderPipelineState
   private let depthState: MTLDepthStencilState
 
   private var triangleBuffer: MTLBuffer?
   private var triangleCount = 0
+  private var edgeBuffer: MTLBuffer?
+  private var edgeCount = 0
 
   init(view: MTKView) {
     // A Mac that cannot run Metal cannot run this OS, so neither of these is reachable and neither gets
@@ -42,14 +45,23 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     self.device = device
     self.commandQueue = commandQueue
 
+    // Two pipelines off one descriptor, differing only in their functions.
     let descriptor = MTLRenderPipelineDescriptor()
     descriptor.vertexDescriptor = BenchRenderer.vertexDescriptor()
     descriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
     descriptor.depthAttachmentPixelFormat = view.depthStencilPixelFormat
+
     descriptor.vertexFunction = library.makeFunction(name: "fill_vertex")
     descriptor.fragmentFunction = library.makeFunction(name: "fill_fragment")
     fillPipeline = try! device.makeRenderPipelineState(descriptor: descriptor)
 
+    descriptor.vertexFunction = library.makeFunction(name: "edge_vertex")
+    descriptor.fragmentFunction = library.makeFunction(name: "edge_fragment")
+    edgePipeline = try! device.makeRenderPipelineState(descriptor: descriptor)
+
+    // One depth state, shared by both pipelines: an edge is depth-tested against the solid like
+    // anything else, and wins against the facet it lies on by the epsilon in its own vertex function
+    // (D19) rather than by a bias whose semantics vary by depth format.
     let depth = MTLDepthStencilDescriptor()
     depth.depthCompareFunction = .less
     depth.isDepthWriteEnabled = true
@@ -84,6 +96,8 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
   func setMesh(_ mesh: SolidMesh) {
     triangleBuffer = makeBuffer(mesh.triangleVertices)
     triangleCount = mesh.triangleVertices.count
+    edgeBuffer = makeBuffer(mesh.edgeVertices)
+    edgeCount = mesh.edgeVertices.count
   }
 
   /// An empty array makes no buffer; the draw skips it.
@@ -136,6 +150,12 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
       encoder.setRenderPipelineState(fillPipeline)
       encoder.setVertexBuffer(triangleBuffer, offset: 0, index: 0)
       encoder.drawPrimitives(type: .triangle, vertexStart: 0, vertexCount: triangleCount)
+    }
+
+    if let edgeBuffer, edgeCount > 0 {
+      encoder.setRenderPipelineState(edgePipeline)
+      encoder.setVertexBuffer(edgeBuffer, offset: 0, index: 0)
+      encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: edgeCount)
     }
 
     encoder.endEncoding()
