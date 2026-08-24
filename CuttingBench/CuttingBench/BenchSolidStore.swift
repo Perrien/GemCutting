@@ -11,7 +11,8 @@ import struct FacetKernel.Pattern
 /// solid (D14).
 @Observable final class BenchSolidStore {
   private(set) var solid: BenchSolid
-  /// Bumped on every rebuild. Comparing this beats comparing two solids.
+  private(set) var mesh: SolidMesh
+  /// Bumped on every rebuild. Comparing this beats comparing two arrays of vertices.
   private(set) var generation = 0
 
   /// Double optional on purpose: `nil` is *never built*, `.some(nil)` is *built for no pattern*.
@@ -20,12 +21,16 @@ import struct FacetKernel.Pattern
 
   /// A window has a solid before its first layout.
   init() {
-    solid = benchSolid(for: nil)
+    let solid = benchSolid(for: nil)
+    self.solid = solid
+    mesh = solidMesh(solid)
   }
 
   func rebuildIfNeeded(pattern: Pattern?, tierLimit: Int?) {
     guard builtPattern != .some(pattern) || builtTierLimit != tierLimit else { return }
-    solid = benchSolid(for: pattern, tierLimit: tierLimit)
+    let solid = benchSolid(for: pattern, tierLimit: tierLimit)
+    self.solid = solid
+    mesh = solidMesh(solid)
     generation += 1
     builtPattern = .some(pattern)
     builtTierLimit = tierLimit

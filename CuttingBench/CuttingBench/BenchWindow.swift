@@ -18,7 +18,7 @@ struct BenchWindow: View {
     VStack(spacing: 0) {
       VSplitView {
         VStack(spacing: 0) {
-          ViewportRegion()
+          ViewportRegion(mesh: store.mesh, generation: store.generation)
             .frame(minHeight: 240)
           Divider()
           ScrubberRegion()

@@ -3,15 +3,13 @@ import FacetKernel
 import Foundation
 import SwiftUI
 
-/// The renderer's region. **One replaceable subview** (D2): part 2 swaps this body for an
-/// `NSViewRepresentable`-wrapped `MTKView`, so nothing else may draw here.
+/// The renderer's region. **One replaceable subview** (D2), and nothing else may draw here.
 struct ViewportRegion: View {
+  let mesh: SolidMesh
+  let generation: Int
+
   var body: some View {
-    Color(nsColor: .textBackgroundColor)
-      .overlay {
-        Text("Viewport")
-          .foregroundStyle(.secondary)
-      }
+    MetalViewport(mesh: mesh, generation: generation)
   }
 }
 
