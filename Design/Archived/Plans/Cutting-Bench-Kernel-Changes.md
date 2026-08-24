@@ -1,6 +1,6 @@
 # Cutting Bench Kernel Changes
 
-Status: **APPROVED 2026-08-24** — in execution
+Status: **COMPLETED 2026-08-24** — every task owner-verified; archived per `Execution-Protocol.md` §11
 
 ## Context
 
@@ -281,13 +281,13 @@ public func traceRay(
 | T1 | Format document and glossary | completed | **owner stop** | commit | |
 | T2 | Per-tier `instructions` | completed | continue | — | |
 | T3 | The girdle target as a header field | completed | **owner stop** | commit | |
-| T4 | The encoder: `Pattern` becomes `Codable` | awaiting owner | checkpoint | commit | material alteration |
-| T5 | `T/W` moves into `Metrics` | awaiting owner | continue | — | |
-| T6 | Width and length assigned by size | awaiting owner | **owner stop** | commit + push | |
-| T7 | The non-throwing partial solve | awaiting owner | checkpoint | commit | material alteration |
-| T8 | Validation splits three ways | awaiting owner | checkpoint | commit | |
-| T9 | The ray probe | awaiting owner | **owner stop** | commit | material alteration |
-| T10 | Close out | awaiting owner | **owner stop** | commit + push | material alteration |
+| T4 | The encoder: `Pattern` becomes `Codable` | completed | checkpoint | commit | material alteration |
+| T5 | `T/W` moves into `Metrics` | completed | continue | — | |
+| T6 | Width and length assigned by size | completed | **owner stop** | commit + push | |
+| T7 | The non-throwing partial solve | completed | checkpoint | commit | material alteration |
+| T8 | Validation splits three ways | completed | checkpoint | commit | |
+| T9 | The ray probe | completed | **owner stop** | commit | material alteration |
+| T10 | Close out | completed | **owner stop** | commit + push | material alteration |
 
 ---
 
