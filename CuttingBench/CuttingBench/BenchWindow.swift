@@ -1,3 +1,4 @@
+import BenchGeometry
 import FacetKernel
 import SwiftUI
 
@@ -9,6 +10,7 @@ struct BenchWindow: View {
   @ObservedObject var document: PatternDocument
   @State private var inspectorShown = true
   @State private var store = BenchSolidStore()
+  @State private var camera = BenchCameraState.threeQuarter
   #if DEBUG
     /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
     @State private var tierLimit: Int?
@@ -18,8 +20,14 @@ struct BenchWindow: View {
     VStack(spacing: 0) {
       VSplitView {
         VStack(spacing: 0) {
-          ViewportRegion(mesh: store.mesh, generation: store.generation)
-            .frame(minHeight: 240)
+          ViewportRegion(
+            mesh: store.mesh,
+            generation: store.generation,
+            camera: camera,
+            onOrbit: orbit(dx:dy:),
+            onPick: { _, _ in }
+          )
+          .frame(minHeight: 240)
           Divider()
           ScrubberRegion()
         }
@@ -39,6 +47,16 @@ struct BenchWindow: View {
         .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }
     .toolbar {
+      Button {
+        camera = .faceUp
+      } label: {
+        Label("Face Up", systemImage: "arrow.down.to.line")
+      }
+      Button {
+        camera = .faceDown
+      } label: {
+        Label("Face Down", systemImage: "arrow.up.to.line")
+      }
       Button {
         inspectorShown.toggle()
       } label: {
@@ -60,5 +78,12 @@ struct BenchWindow: View {
     #else
       store.rebuildIfNeeded(pattern: document.pattern, tierLimit: nil)
     #endif
+  }
+
+  /// Direct manipulation: the stone follows the pointer, so the camera goes the other way — a drag to
+  /// the right turns the near side of the stone to the right, which moves the camera left around it
+  /// (D4).
+  private func orbit(dx: CGFloat, dy: CGFloat) {
+    camera.orbit(dxPoints: Float(-dx), dyPoints: Float(-dy))
   }
 }

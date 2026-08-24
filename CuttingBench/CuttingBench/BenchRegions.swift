@@ -7,9 +7,17 @@ import SwiftUI
 struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
+  let camera: BenchCameraState
+  let onOrbit: (CGFloat, CGFloat) -> Void
+  let onPick: (CGPoint, CGSize) -> Void
 
   var body: some View {
-    MetalViewport(mesh: mesh, generation: generation)
+    MetalViewport(
+      mesh: mesh,
+      generation: generation,
+      camera: camera,
+      onOrbit: onOrbit,
+      onPick: onPick)
   }
 }
 

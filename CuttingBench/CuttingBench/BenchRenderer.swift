@@ -14,10 +14,13 @@ struct Uniforms {
   var edgeColor: SIMD4<Float>
 }
 
-/// Draws the bench solid: flat per-facet fill from each plane's own normal, on one fixed three-quarter
-/// camera. Nothing here builds geometry — the mesh arrives through `setMesh` (D13).
+/// Draws the bench solid: flat per-facet fill from each plane's own normal, on whatever camera the view
+/// last set. Nothing here builds geometry — the mesh arrives through `setMesh` (D13).
 final class BenchRenderer: NSObject, MTKViewDelegate {
   let device: MTLDevice
+
+  /// Where the camera is. The view sets it before asking for a redraw (D1).
+  var camera: BenchCameraState = .threeQuarter
 
   private let commandQueue: MTLCommandQueue
   private let fillPipeline: MTLRenderPipelineState
@@ -124,7 +127,7 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
       blue: Double(background.z),
       alpha: Double(background.w))
 
-    let viewMatrix = benchViewMatrix()
+    let viewMatrix = benchViewMatrix(camera)
     var uniforms = Uniforms(
       viewProjection: benchProjectionMatrix(aspect: aspect(of: view)) * viewMatrix,
       view: viewMatrix,

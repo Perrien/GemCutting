@@ -99,7 +99,7 @@ built: **pure geometry in the `BenchGeometry` package, the app wires it to AppKi
 | D1 | **Camera state is a value — azimuth and elevation in degrees — and the three matrix functions take it.** `distance` and `fieldOfViewDegrees` stay build constants: **there is no zoom**, because U3 asked for orbit, snaps and opacity and nothing else, and a fixed distance is what keeps the framing test a real check. |
 | D2 | **Elevation clamps to −90…+90; azimuth wraps modulo 360.** A turntable never rolls, so there is no gimbal flip to reason about. Clamping at exactly ±90, not clamping short of it (D3). |
 | D3 | **The screen-right axis is computed from the azimuth alone and there is no up reference**: `xAxis = SIMD3(-sin(az), cos(az), 0)`. `normalize(cross(SIMD3<Float>(0, 0, 1), zAxis))` gives `(-cos(el)·sin(az), cos(el)·cos(az), 0)` before normalising, and the `cos(el)` divides out — so the closed form **equals today's value at every elevation**, not just near the poles, and it stays defined at ±90° where the cross product is the zero vector and `normalize` of it is NaN. No threshold, no branch, no fallback up vector, and therefore nothing that can lurch mid-drag: a fallback taken *near* the pole rather than *at* it would roll the image by about 135° at azimuth 45 partway through an upward drag. **Face-up must be exactly face-up** — the symmetry of the projected outline is the whole reason a faceter looks at a plan view — so stopping the orbit short of 90° is also wrong. The snaps therefore sit at **azimuth 270**, where looking down puts +x at screen right and +y at screen up, so index 0 sits right of centre and the indices advance counter-clockwise: the conventional plan view. |
-| D4 | **Orbit is 0.5° per point of drag on both axes**, one build constant; dragging up raises elevation and dragging right increases azimuth. |
+| D4 | **Orbit is 0.5° per point of drag on both axes**, one build constant, and the drag is **direct manipulation**: the stone follows the pointer, so the camera moves the opposite way on both axes — dragging right turns the near side of the stone right and lowers the azimuth, dragging down tips the crown toward the viewer and raises the elevation. *(Corrected at T2's owner stop, 2026-08-24: this decision originally read "dragging up raises elevation and dragging right increases azimuth", which is the camera's direction rather than the stone's, and read as reversed on both axes in the app. The negation lives at the call site in `BenchWindow.orbit(dx:dy:)`; `BenchCameraState.orbit` still takes camera degrees.)* |
 | D5 | **Snaps are instant, not animated.** Nothing in this render animates — the view is `isPaused = true` and redraws on demand (`MetalViewport.swift:34`) — and animating the camera means driving a run loop for the one thing that would use it. |
 | D6 | **The opacity slider and the two snap buttons live in the toolbar**, beside the existing inspector toggle (`BenchWindow.swift:41`, `.toolbar {`). That leaves all five of U1's regions exactly as U1 fixed them, and the scrubber strip belongs to a later slice. Opacity is a `Double` in `0…1`, default `1`. |
 | D7 | **Translucency is two fill passes selected by the facet's own plane facing, never by cull mode.** For a plane with outward normal `n` and offset `d`, every point `p` on that facet satisfies `n · p = d`, so `facing = dot(n, eye) − dot(n, p)` is **constant across the whole facet** and its sign says whether the facet points at the camera. Computing it in the vertex shader from data already in the vertex leaves part 2's `encoder.setCullMode(.none)` (`BenchRenderer.swift:144`) standing, so the winding question — which Metal's y-down window coordinates invert — never has to be answered. |
@@ -784,7 +784,7 @@ continuation of that task, not a blocker.
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
 | T1 | Prefactor: the camera becomes a value | completed | checkpoint | commit | |
-| T2 | Free orbit and the two snap views | not started | **owner stop** | commit | |
+| T2 | Free orbit and the two snap views | completed | **owner stop** | commit | material alteration: D4's drag direction was reversed on both axes at the owner stop — see D4 |
 | T3 | The opacity control | not started | **owner stop** | commit | |
 | T4 | Pure: `pickFacet` and `facetLabel` | not started | continue | — | |
 | T5 | Click a facet, highlight it, name it | not started | **owner stop** | commit | |
@@ -858,16 +858,16 @@ Behaviour-preserving. Nothing on screen changes, and that is the check.
   - **Where:** the viewport, and the two new toolbar buttons **Face Up** and **Face Down**. Open
     `Design/Patterns/Pattern-Standard-Round-Brilliant.json`, then set the `#if DEBUG` tier stepper in
     the status strip to **3** tiers, so rough walls and cut facets are both on screen.
-  - **Positive:** drag upward across about half the viewport's height → the view tips toward looking
-    down on the crown and the flat top facet grows. Click **Face Up** → the outline is a symmetric
-    polygon centred in the frame, seen straight down the axis, with none of the pavilion showing below
-    it.
+  - **Positive:** drag downward across about half the viewport's height → the view tips toward looking
+    down on the crown and the flat top facet grows: the stone follows the pointer (D4). Click **Face Up**
+    → the outline is a symmetric polygon centred in the frame, seen straight down the axis, with none of
+    the pavilion showing below it.
   - **Negative:** click **Face Down** → the culet is centred and the flat top facet is **not** visible.
     Then click **Face Up** twice in a row → the second click changes nothing at all, and **the stone is
     still drawn** — a NaN camera at the pole renders an empty background, so a stone still being there
-    after a snap is the pole check (D3). Drag slowly up through the last degree before Face Up: the
+    after a snap is the pole check (D3). Drag slowly down through the last degree before Face Up: the
     stone must **not** spin in place at any point on the way, which is the continuity half of D3.
-    Dragging further up once already at Face Up also leaves the image unchanged: elevation clamps at 90
+    Dragging further down once already at Face Up also leaves the image unchanged: elevation clamps at 90
     rather than tipping past it.
   - **Reads:** `benchViewMatrix(_:)` and `BenchCameraState.orbit(dxPoints:dyPoints:)` in
     `BenchGeometry/BenchCamera.swift`, through `BenchRenderer.camera`.
@@ -877,6 +877,8 @@ Behaviour-preserving. Nothing on screen changes, and that is the check.
 
 - drag in the viewport orbits the camera; azimuth wraps, elevation clamps at the
   poles
+- the stone follows the pointer, so the camera moves the opposite way on both
+  axes
 - Face Up and Face Down land exactly on the axis, where the basis stays defined
 - the drag delta comes from locationInWindow, not NSEvent.deltaY, whose sign
   convention would have to be guessed at
