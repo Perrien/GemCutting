@@ -64,8 +64,11 @@ final class FindingsTests: XCTestCase {
     XCTAssertEqual(readout.rows.count, 1)
     XCTAssertTrue(try XCTUnwrap(readout.rows.first).isFinding)
     XCTAssertTrue(try XCTUnwrap(readout.rows.first).text.hasPrefix("The solid does not close"))
-    XCTAssertEqual(readout.perTier.count, 1)
-    XCTAssertEqual(readout.perTier.values.first, 1)
+    // No tier is marked. The kernel names the tier it found the open edge on — P1, whose facets are
+    // complete — because the incomplete girdle walls have no height yet and so are not facets of this
+    // solid at all. Marking P1 would send the owner to the wrong row.
+    XCTAssertNil(try XCTUnwrap(readout.rows.first).tier)
+    XCTAssertTrue(readout.perTier.isEmpty)
   }
 
   /// A girdle meet needs the vertical planes that bound the outline, so a pattern that cuts the crown
@@ -207,7 +210,7 @@ final class FindingsTests: XCTestCase {
         + "cut.")
     XCTAssertEqual(
       findingText(.doesNotClose(tier: "P2")),
-      "The solid does not close: tier P2's facets have an edge no other facet shares.")
+      "The solid does not close: some facets are incomplete, with an edge no other facet shares.")
     XCTAssertEqual(
       findingText(.doesNotClose(tier: nil)),
       "The solid does not close: it is too small to have a surface at all.")
@@ -216,7 +219,9 @@ final class FindingsTests: XCTestCase {
       "The solve counts 57 facets; 58 declared.")
   }
 
-  func testFindingTierNamesATierForEveryCaseButTwo() {
+  /// `doesNotClose` names no tier either way: closure is a property of the whole solid, and the tier the
+  /// kernel reports is where the open edge was found rather than what left it open.
+  func testFindingTierNamesATierForEveryCaseButThree() {
     XCTAssertEqual(findingTier(.forwardReference(tier: "P2", named: "P3")), "P2")
     XCTAssertEqual(findingTier(.namesOwnFacet(tier: "P2")), "P2")
     XCTAssertEqual(
@@ -225,7 +230,7 @@ final class FindingsTests: XCTestCase {
     XCTAssertEqual(findingTier(.secondTCPOnSide(tier: "P2", part: .pav)), "P2")
     XCTAssertEqual(
       findingTier(.vertexNotOnIntermediateSolid(tier: "P2", named: [])), "P2")
-    XCTAssertEqual(findingTier(.doesNotClose(tier: "P2")), "P2")
+    XCTAssertNil(findingTier(.doesNotClose(tier: "P2")))
     XCTAssertNil(findingTier(.doesNotClose(tier: nil)))
     XCTAssertNil(findingTier(.notExactlyOneSizeRow(count: 2)))
     XCTAssertNil(findingTier(.facetCountMismatch(solved: 57, declared: 58)))

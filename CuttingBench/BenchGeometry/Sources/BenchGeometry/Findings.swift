@@ -155,8 +155,13 @@ public func findingText(_ finding: Finding) -> String {
     "Tier \(tier)'s named point \(meetText(.vertex(facets: named))) is not a corner of the stone as it "
       + "stands when \(tier) is cut."
   case .doesNotClose(let tier):
-    if let tier {
-      "The solid does not close: tier \(tier)'s facets have an edge no other facet shares."
+    // **The tier is deliberately not named.** The kernel names the tier owning the first facet it found
+    // an unshared edge on, which is where the surface is open and not what is wrong: on a part-cut stone
+    // the incomplete facets are the girdle's, and they are absent from the polytope precisely because
+    // they have no height yet, so the first facet found belongs to the tier below them. Naming it reads
+    // as blame on a tier that is complete.
+    if tier != nil {
+      "The solid does not close: some facets are incomplete, with an edge no other facet shares."
     } else {
       "The solid does not close: it is too small to have a surface at all."
     }
@@ -167,7 +172,11 @@ public func findingText(_ finding: Finding) -> String {
   }
 }
 
-/// The tier a finding names, or `nil` for the two that are about the pattern as a whole.
+/// The tier a finding names, or `nil` for the three that are about the pattern as a whole.
+///
+/// `doesNotClose` is one of the three. Closure is a property of the whole solid, and the tier the kernel
+/// reports is where the open edge was found rather than what left it open — marking that tier's row would
+/// send the reader to a facet that is complete.
 public func findingTier(_ finding: Finding) -> String? {
   switch finding {
   case .forwardReference(let tier, _): tier
@@ -176,7 +185,6 @@ public func findingTier(_ finding: Finding) -> String? {
   case .singularTriple(let tier): tier
   case .secondTCPOnSide(let tier, _): tier
   case .vertexNotOnIntermediateSolid(let tier, _): tier
-  case .doesNotClose(let tier): tier
-  case .notExactlyOneSizeRow, .facetCountMismatch: nil
+  case .doesNotClose, .notExactlyOneSizeRow, .facetCountMismatch: nil
   }
 }

@@ -42,7 +42,7 @@ struct BenchWindow: View {
             highlightedPlaneIndex: selectedPlaneIndex,
             ringLabels: indexRingLabels(store.solid),
             meetDots: meetDots,
-            meetWarning: false,
+            meetWarning: selectedTier.map { readout.warningTiers.contains($0) } ?? false,
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
           )
@@ -53,8 +53,7 @@ struct BenchWindow: View {
         TierTableRegion(
           rows: tierTableRows(pattern: document.pattern, solid: store.solid),
           selection: $selectedTier,
-          warningTiers: [],
-          findingCounts: [:]
+          findings: readout
         )
         .frame(minHeight: 140)
       }

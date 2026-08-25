@@ -54,17 +54,23 @@ struct TierTableRegion: View {
   /// The tier whose meet points are drawn. A view state and nothing more: nothing is edited through it
   /// and it is not persisted.
   @Binding var selection: String?
-  /// The tiers whose dots draw as a warning, because a finding says a named point of theirs is not a
-  /// corner of the stone as it stands when they are cut.
-  let warningTiers: Set<String>
-  /// Tier label to how many findings name it. A tier with none is absent.
-  let findingCounts: [String: Int]
+  /// The one findings value all three surfaces read, so none of them can disagree about the count.
+  let findings: FindingsReadout
 
   var body: some View {
     Table(rows, selection: $selection) {
       TableColumn("Tier") { row in
         HStack(spacing: 4) {
           if row.state == .stopped { Image(systemName: "exclamationmark.triangle") }
+          // Every tier with a finding is marked whether or not it is selected: the table is then the map
+          // of where the faults are, which is what tells the owner which row to click. A symbol and a
+          // number, so the marking is not colour alone, and a circle rather than the stopped tier's
+          // triangle, so the two states stay distinguishable on one row.
+          if let count = findings.perTier[row.tier], count > 0 {
+            Label("\(count)", systemImage: "exclamationmark.circle")
+              .labelStyle(.titleAndIcon)
+              .foregroundStyle(.red)
+          }
           cell(row.tier, row)
         }
       }
@@ -75,7 +81,7 @@ struct TierTableRegion: View {
         if row.meetPoints.isEmpty {
           cell(row.meet, row)
         } else {
-          let warning = warningTiers.contains(row.tier)
+          let warning = findings.warningTiers.contains(row.tier)
           HStack(spacing: 8) {
             ForEach(row.meetPoints) { dot in
               HStack(spacing: 3) {
@@ -232,10 +238,24 @@ struct StatusStripRegion: View {
   #if DEBUG
     @Binding var tierLimit: Int?
   #endif
+  /// Whether the detail is open. View state: a popover closes when you look away and nothing about it is
+  /// worth persisting.
+  @State private var detailShown = false
 
   var body: some View {
     HStack(spacing: 8) {
-      Text(findings.line)
+      Button {
+        detailShown.toggle()
+      } label: {
+        Text(findings.line)
+      }
+      .buttonStyle(.plain)
+      // Inert rather than opening an empty popover.
+      .disabled(findings.rows.isEmpty)
+      // Above the strip, which sits at the bottom of the window.
+      .popover(isPresented: $detailShown, arrowEdge: .top) {
+        FindingsDetail(rows: findings.rows)
+      }
       Spacer(minLength: 8)
       Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG
@@ -282,4 +302,32 @@ struct StatusStripRegion: View {
       return "\(document) · \(counts) · \(rough)\(stopped)"
     }
   #endif
+}
+
+/// The findings, one line each, over the strip. **Never a separate Xcode-style problems list**: it is a
+/// popover that closes when you look away, because a findings list is something you consult about the
+/// row you are on, not a panel you work from.
+///
+/// The rows that are not findings — the solver's stop sentence, the note saying the geometric checks did
+/// not run — read secondary, so the line's count and the list agree about what was counted.
+private struct FindingsDetail: View {
+  let rows: [FindingsRow]
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      ForEach(rows) { row in
+        HStack(alignment: .firstTextBaseline, spacing: 6) {
+          Text(row.tier ?? "—")
+            .font(.caption.weight(.semibold))
+            .monospaced()
+            .frame(minWidth: 28, alignment: .leading)
+          Text(row.text)
+            .foregroundStyle(row.isFinding ? .primary : .secondary)
+        }
+      }
+    }
+    .font(.callout)
+    .padding(12)
+    .frame(width: 380, alignment: .leading)
+  }
 }

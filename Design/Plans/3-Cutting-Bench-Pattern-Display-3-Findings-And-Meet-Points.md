@@ -1,6 +1,8 @@
 # 3 · Cutting Bench Pattern Display — Part 3: Findings And Meet Points
 
-Status: **DRAFT** — not yet approved.
+Status: **Part 3 completed 2026-08-25.** Nothing here is archived: this is one part of five, and the
+exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for parts 4 and 5, which
+archive this plan along with their own when the last of them closes out.
 
 ## Parts
 
@@ -860,9 +862,9 @@ continuation of that task, not a blocker.
 | T3 | Pure: the meet-point dots | completed | continue | — | |
 | T4 | The dots draw, in the table and in the viewport | completed | **owner stop** | commit + push | Material alteration: `.position` centres the view it is applied to, so the plan's `HStack` of circle-and-label put the dot half the label's width left of its point. The circle is now the positioned view and the label rides in a `.leading` overlay, outside the circle's layout. |
 | T5 | Pure: the findings readout | completed | continue | — | |
-| T6 | The findings line, computed off the main thread | awaiting owner | **owner stop** | commit + push | Material alteration: the plan's scoped import list for `BenchFindingsStore` omits `structuralFindings`, which is a `FacetKernel` symbol and not re-exported by `BenchGeometry`. Added `import func FacetKernel.structuralFindings` in the same scoped form. |
-| T7 | The detail popover, the row marker, the warning dots | not started | **owner stop** | commit + push | |
-| T8 | Close out | not started | **owner stop** | commit + push | |
+| T6 | The findings line, computed off the main thread | completed | **owner stop** | commit + push | Material alteration: the plan's scoped import list for `BenchFindingsStore` omits `structuralFindings`, which is a `FacetKernel` symbol and not re-exported by `BenchGeometry`. Added `import func FacetKernel.structuralFindings` in the same scoped form. |
+| T7 | The detail popover, the row marker, the warning dots | completed | **owner stop** | commit + push | Material alteration, owner-directed at the stop: `doesNotClose` now names no tier. Its pinned sentence blamed the tier the kernel found the open edge on, which on a part-cut stone is the complete tier below the incomplete girdle walls — the walls have no height yet and so are not facets of that solid at all. Both `findingText` and `findingTier` changed in `Findings.swift`, against this task's *Do not*, and T5's assertions with them. |
+| T8 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — Characterize the axial point's replacement branch**
 
