@@ -864,7 +864,7 @@ continuation of that task, not a blocker.
 | T5 | Pure: the findings readout | completed | continue | — | |
 | T6 | The findings line, computed off the main thread | completed | **owner stop** | commit + push | Material alteration: the plan's scoped import list for `BenchFindingsStore` omits `structuralFindings`, which is a `FacetKernel` symbol and not re-exported by `BenchGeometry`. Added `import func FacetKernel.structuralFindings` in the same scoped form. |
 | T7 | The detail popover, the row marker, the warning dots | completed | **owner stop** | commit + push | Material alteration, owner-directed at the stop: `doesNotClose` now names no tier. Its pinned sentence blamed the tier the kernel found the open edge on, which on a part-cut stone is the complete tier below the incomplete girdle walls — the walls have no height yet and so are not facets of that solid at all. Both `findingText` and `findingTier` changed in `Findings.swift`, against this task's *Do not*, and T5's assertions with them. |
-| T8 | Close out | awaiting owner | **owner stop** | commit + push | |
+| T8 | Close out | completed | **owner stop** | commit + push | |
 
 **T1 — Characterize the axial point's replacement branch**
 

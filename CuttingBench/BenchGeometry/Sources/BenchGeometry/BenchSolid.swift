@@ -101,6 +101,10 @@ public struct BenchSolid: Sendable {
 /// Truncating is safe because a meet may only name an earlier tier — a forward reference is
 /// `SolverError.forwardReference`, never something the solver resolves — so the first `n` tiers solve to
 /// exactly the depths they have in the whole pattern.
+///
+/// It drives no UI: the scrubber's playback steps are what a part-cut stone is displayed from. The
+/// parameter stays because it truncates the *pattern* and re-solves, which makes it the independent
+/// oracle proving playback's no-re-solve prefix path produces the same geometry (D16).
 public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSolid {
   guard var truncated = pattern else { return roughOnly() }
   if let tierLimit {
@@ -111,21 +115,38 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
   // the tiers that placed are what there is to draw. No `girdleTargetFraction` argument, so the pattern
   // reproduces its own diagram.
   let partial = solveAsFarAsPossible(truncated)
+  return benchSolid(
+    over: partial.solution,
+    stoppedAtTier: partial.failure?.tier,
+    stoppedReason: partial.failure?.description)
+}
 
+/// The drawn solid over a rough-free solution: the scaffolding decision, the rough merge, the origin
+/// map and the polytope. **Nothing here solves** — the solution is already the answer for the cut
+/// planes, whether it came from `solveAsFarAsPossible` or from re-expanding a prefix of solved tiers
+/// (D2).
+///
+/// `solution` must be rough-free (ADR-0004): a rough-capped solid always closes, so the closure test
+/// below would pass for every pattern including the ones it exists to catch.
+func benchSolid(
+  over solution: Solution,
+  stoppedAtTier: String? = nil,
+  stoppedReason: String? = nil
+) -> BenchSolid {
   // The kernel's own closure check decides whether the scaffolding is still needed. Nothing here
   // computes closure a second time, because a second implementation could agree with a broken one.
-  let isOpen = solidFindings(partial.solution, declaredFacetCount: nil).contains { finding in
+  let isOpen = solidFindings(solution, declaredFacetCount: nil).contains { finding in
     guard case .doesNotClose = finding else { return false }
     return true
   }
 
   var (planes, origin) = roughScaffolding(included: isOpen)
   let base = isOpen ? roughPlaneCount : 0
-  for (k, plane) in partial.solution.planes.enumerated() {
+  for (k, plane) in solution.planes.enumerated() {
     planes.append(plane)
     // A plane with no owner is impossible today. If one appears, it is left out of `origin` rather
     // than given an invented name — a missing entry is something a test can see.
-    if let owner = partial.solution.planeOwner[k] {
+    if let owner = solution.planeOwner[k] {
       origin[base + k] = .cut(FacetRef(tier: owner.tier, index: owner.index))
     }
   }
@@ -133,18 +154,18 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
   return BenchSolid(
     planes: planes,
     origin: origin,
-    // With the scaffolding gone, `planes` *is* `partial.solution.planes` in its own order, so the
-    // kernel's polytope is already the answer and intersecting it again would be the same work twice.
-    polytope: isOpen ? intersectHalfSpaces(planes) : partial.solution.polytope,
-    // From the **solution**, never from `truncated.tiers`: a tier the solver could not place has no
-    // depth, no planes and therefore no index stops.
-    tiers: partial.solution.tiers,
+    // With the scaffolding gone, `planes` *is* `solution.planes` in its own order, so the kernel's
+    // polytope is already the answer and intersecting it again would be the same work twice.
+    polytope: isOpen ? intersectHalfSpaces(planes) : solution.polytope,
+    // From the **solution**, never from the pattern's own tiers: a tier the solver could not place has
+    // no depth, no planes and therefore no index stops.
+    tiers: solution.tiers,
     includesRough: isOpen,
     // Kept rather than discarded. The tiers that placed are what there is to draw, and the tier that
     // stopped the solve is what there is to say.
-    stoppedAtTier: partial.failure?.tier,
-    stoppedReason: partial.failure?.description,
-    solution: partial.solution)
+    stoppedAtTier: stoppedAtTier,
+    stoppedReason: stoppedReason,
+    solution: solution)
 }
 
 /// The bare prism: a window has a solid before any pattern is open, and that solid is the rough alone.
