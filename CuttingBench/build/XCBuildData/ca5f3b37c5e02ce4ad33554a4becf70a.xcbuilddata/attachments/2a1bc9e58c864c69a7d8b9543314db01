@@ -1,0 +1,79 @@
+{
+  "" : {
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/FacetKernel-primary.dia",
+    "emit-module-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/FacetKernel-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/FacetKernel-primary-emit-module.dia",
+    "pch" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/FacetKernel-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/FacetKernel-primary.swiftdeps"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Geometry/Plane.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Plane~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Geometry/Polytope.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Polytope~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Metrics.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Metrics~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Pattern.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Pattern~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Ray.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Ray~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Solver.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Solver~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/Kernel/Sources/FacetKernel/Validation.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.dia",
+    "index-unit-output-path" : "/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/Kernel/build/FacetKernel.build/Debug/FacetKernel.build/Objects-normal/x86_64/Validation~partial.swiftmodule"
+  }
+}

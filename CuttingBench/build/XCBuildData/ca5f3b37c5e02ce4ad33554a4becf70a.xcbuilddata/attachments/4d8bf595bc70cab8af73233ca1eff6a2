@@ -1,0 +1,109 @@
+{
+  "" : {
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBench-primary.dia",
+    "emit-module-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBench-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBench-primary-emit-module.dia",
+    "pch" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBench-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBench-primary.swiftdeps"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/BenchRegions.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRegions~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/BenchRenderer.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchRenderer~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/BenchSolidStore.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchSolidStore~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/BenchWindow.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/BenchWindow~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/CuttingBenchApp.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/CuttingBenchApp~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/IndexRingOverlay.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/IndexRingOverlay~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/MetalViewport.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/MetalViewport~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/PatternDocument.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternDocument~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/CuttingBench/PatternsFolder.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/PatternsFolder~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/DerivedSources/GeneratedAssetSymbols.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.dia",
+    "index-unit-output-path" : "/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/build/CuttingBench.build/Debug/CuttingBench.build/Objects-normal/x86_64/GeneratedAssetSymbols~partial.swiftmodule"
+  }
+}

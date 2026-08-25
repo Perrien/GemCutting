@@ -73,20 +73,68 @@ struct TierTableRegion: View {
   }
 }
 
-/// The trailing column's stacked cards. `Pattern` first and `Notes` directly below it is D9's
-/// ordering and is not the executor's to change.
+/// The trailing column's stacked cards. `Pattern` first and `Notes` directly below it is the app
+/// shell's ordering and is not the executor's to change.
 struct InspectorRegion: View {
+  let pattern: FacetKernel.Pattern?
+  let solid: BenchSolid
+  /// The declared facet count as typed. Session state only: it is never read from the document and never
+  /// written to it, because a declared count is a one-time claim made while transcribing a printed sheet.
+  @Binding var declaredFacets: String
+
   var body: some View {
     ScrollView {
       VStack(spacing: 12) {
         GroupBox("Pattern") { EmptyCard() }
         GroupBox("Notes") { EmptyCard() }
-        GroupBox("Metrics") { EmptyCard() }
+        GroupBox("Metrics") {
+          // Called here rather than cached in the store: measuring is arithmetic over facets the hull has
+          // already produced, so a cache would add a second source of truth to save nothing measurable.
+          MetricsCard(readout: metricsReadout(pattern: pattern, solid: solid))
+        }
         GroupBox("Light") { EmptyCard() }
-        GroupBox("Facet Count") { EmptyCard() }
+        GroupBox("Facet Count") {
+          FacetCountCard(
+            check: facetCountCheck(pattern: pattern, solid: solid, declared: declaredFacets),
+            declaredFacets: $declaredFacets)
+        }
       }
       .padding(12)
     }
+  }
+}
+
+/// The stone's measurements: the trio that moves while authoring over the table that is read once a tier
+/// lands.
+///
+/// **A part-cut stone shows the reason and no figures at all** — no dimmed table and no stale numbers.
+/// Until something caps the solid, the pattern's own planes render a floating pavilion cone, so a crown
+/// height or a table ratio taken from them describes that cone rather than the stone.
+private struct MetricsCard: View {
+  let readout: MetricsReadout
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      switch readout {
+      case .unavailable(let reason):
+        Text(reason)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+      case .measured(let summary):
+        // Every row is a `LabeledContent`, so the label-and-value alignment is the platform's rather than
+        // hand-built, and monospaced digits stop a changing figure shifting the column.
+        LabeledContent("Facets", value: summary.facets)
+        LabeledContent("Symmetry", value: summary.symmetry)
+        LabeledContent("L/W", value: summary.lengthOverWidth)
+        Divider()
+        ForEach(summary.proportions) { row in
+          LabeledContent(row.label, value: row.value)
+        }
+      }
+    }
+    .monospacedDigit()
+    // Held at full width so stepping into and out of the part-cut state does not resize the card.
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
@@ -97,6 +145,32 @@ private struct EmptyCard: View {
       .font(.callout)
       .foregroundStyle(.secondary)
       .frame(maxWidth: .infinity)
+  }
+}
+
+/// The one check that catches a whole tier dropped in transcription: what the solve counted, what the
+/// printed sheet claims, and the kernel's verdict on the two.
+///
+/// The field is free text and `facetCountCheck` parses it, which is what lets a half-typed `5` say it is
+/// not a facet count rather than silently becoming a number the owner did not mean. **The solved line
+/// never moves when the claim does** — that is the whole point of showing both.
+private struct FacetCountCard: View {
+  let check: FacetCountCheck
+  @Binding var declaredFacets: String
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      if let solved = check.solved {
+        LabeledContent("Solved", value: solved)
+          .monospacedDigit()
+      }
+      TextField("Declared", text: $declaredFacets)
+        .textFieldStyle(.roundedBorder)
+      Text(check.verdict)
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 

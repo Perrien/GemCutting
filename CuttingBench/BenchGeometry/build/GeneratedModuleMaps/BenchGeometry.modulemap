@@ -1,0 +1,4 @@
+module BenchGeometry {
+header "BenchGeometry-Swift.h"
+export *
+}

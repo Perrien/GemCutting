@@ -220,6 +220,32 @@ final class BenchSolidTests: XCTestCase {
     XCTAssertNil(solid.stoppedReason)
   }
 
+  // MARK: - The solve's own result, kept rather than dropped
+
+  /// What `metrics` and `validate` are handed: the kernel's rough-free solid, not the drawn one.
+  func testTheSolidCarriesTheSolvesOwnSolution() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.roundBrilliant)
+    let solid = benchSolid(for: pattern)
+
+    let solution = try XCTUnwrap(solid.solution)
+    XCTAssertEqual(solution.polytope.facets.count, 73)
+    XCTAssertEqual(solution.tiers.count, 7)
+  }
+
+  func testWithNoPatternThereIsNoSolution() {
+    XCTAssertNil(benchSolid(for: nil).solution)
+  }
+
+  /// A truncated solve places every tier it was handed, so nothing stopped and the solid still carries a
+  /// solution — one measuring a preform. Only the tier count against the pattern's own can tell.
+  func testATruncatedSolveCarriesFewerTiersThanThePatternDeclares() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.roundBrilliant)
+    let solid = benchSolid(for: pattern, tierLimit: 3)
+
+    XCTAssertEqual(solid.solution?.tiers.count, 3)
+    XCTAssertEqual(pattern.tiers.count, 7)
+  }
+
   // MARK: - Helpers
 
   /// `Novice Ash-er` with `P2`'s meet naming a facet of a tier that does not exist, which is the one

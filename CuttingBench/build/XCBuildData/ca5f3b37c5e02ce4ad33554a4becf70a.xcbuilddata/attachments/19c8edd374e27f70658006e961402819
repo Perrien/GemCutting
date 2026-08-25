@@ -1,0 +1,89 @@
+{
+  "" : {
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchGeometry-primary.dia",
+    "emit-module-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchGeometry-primary-emit-module.d",
+    "emit-module-diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchGeometry-primary-emit-module.dia",
+    "pch" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchGeometry-primary-Bridging-header.pch",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchGeometry-primary.swiftdeps"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/BenchCamera.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchCamera~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/BenchPick.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchPick~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/BenchSolid.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/BenchSolid~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/IndexRing.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/IndexRing~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/MetricsReadout.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/MetricsReadout~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/RoughPrism.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/RoughPrism~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/SolidMesh.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/SolidMesh~partial.swiftmodule"
+  },
+  "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/Sources/BenchGeometry/TierTable.swift" : {
+    "const-values" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.swiftconstvalues",
+    "dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.d",
+    "diagnostics" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.dia",
+    "index-unit-output-path" : "/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.o",
+    "llvm-bc" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.bc",
+    "object" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.o",
+    "swift-dependencies" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable.swiftdeps",
+    "swiftmodule" : "/Users/analyst/CCode/GemCutting/CuttingBench/BenchGeometry/build/BenchGeometry.build/Debug/BenchGeometry.build/Objects-normal/arm64/TierTable~partial.swiftmodule"
+  }
+}

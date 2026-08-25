@@ -1,0 +1,12 @@
+Target dependency graph (5 targets)
+Target 'CuttingBench' in project 'CuttingBench'
+➜ Explicit dependency on target 'FacetKernel' in project 'FacetKernel'
+➜ Explicit dependency on target 'BenchGeometry' in project 'BenchGeometry'
+Target 'BenchGeometry' in project 'BenchGeometry'
+➜ Explicit dependency on target 'BenchGeometry' in project 'BenchGeometry'
+➜ Explicit dependency on target 'FacetKernel' in project 'FacetKernel'
+Target 'BenchGeometry' in project 'BenchGeometry'
+➜ Explicit dependency on target 'FacetKernel' in project 'FacetKernel'
+Target 'FacetKernel' in project 'FacetKernel'
+➜ Explicit dependency on target 'FacetKernel' in project 'FacetKernel'
+Target 'FacetKernel' in project 'FacetKernel' (no dependencies)

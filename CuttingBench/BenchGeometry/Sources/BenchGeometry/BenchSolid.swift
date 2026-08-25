@@ -28,6 +28,11 @@ public struct BenchSolid: Sendable {
   /// Whether the rough's half-spaces are in `planes` — and so whether the pattern's own planes start at
   /// `roughPlaneCount` or at `0`. Nothing should have to infer which base it is looking at.
   public var includesRough: Bool
+  /// The solve's own result, as `metrics` and `validate` see it: **the pattern's own planes, rough-free,
+  /// whatever `includesRough` says about what is drawn** (ADR-0004). `nil` only when there is no pattern,
+  /// because then there was no solve. Kept rather than recomputed — a second solve per rebuild would pay
+  /// for the one expensive step twice.
+  public var solution: Solution?
   /// The tier the partial solve stopped on, and the kernel's own sentence saying why — its wording
   /// verbatim, so no display code has to invent one. Both `nil` when every tier placed.
   ///
@@ -43,7 +48,8 @@ public struct BenchSolid: Sendable {
     tiers: [SolvedTier] = [],
     includesRough: Bool = true,
     stoppedAtTier: String? = nil,
-    stoppedReason: String? = nil
+    stoppedReason: String? = nil,
+    solution: Solution? = nil
   ) {
     self.planes = planes
     self.origin = origin
@@ -52,6 +58,7 @@ public struct BenchSolid: Sendable {
     self.includesRough = includesRough
     self.stoppedAtTier = stoppedAtTier
     self.stoppedReason = stoppedReason
+    self.solution = solution
   }
 
   /// The plane indices that survived as facets, split by origin. Both read `polytope.facets.keys`, so
@@ -136,7 +143,8 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
     // Kept rather than discarded. The tiers that placed are what there is to draw, and the tier that
     // stopped the solve is what there is to say.
     stoppedAtTier: partial.failure?.tier,
-    stoppedReason: partial.failure?.description)
+    stoppedReason: partial.failure?.description,
+    solution: partial.solution)
 }
 
 /// The bare prism: a window has a solid before any pattern is open, and that solid is the rough alone.

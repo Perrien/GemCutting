@@ -1,0 +1,4 @@
+module FacetKernel {
+header "FacetKernel-Swift.h"
+export *
+}

@@ -17,6 +17,10 @@ struct BenchWindow: View {
   /// optionals rather than one tuple, because a tuple is not `Equatable` (D11, D12).
   @State private var selectedPlaneIndex: Int?
   @State private var selectedFacetLabel: String?
+  /// The count a printed sheet declares, typed at transcription time. Session state, never persisted: a
+  /// pattern invented from scratch has no declared count, and a permanent header field would carry a
+  /// one-time claim forever.
+  @State private var declaredFacets = ""
   #if DEBUG
     /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
     @State private var tierLimit: Int?
@@ -59,8 +63,12 @@ struct BenchWindow: View {
     }
     .frame(minWidth: 900, minHeight: 600)
     .inspector(isPresented: $inspectorShown) {
-      InspectorRegion()
-        .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
+      InspectorRegion(
+        pattern: document.pattern,
+        solid: store.solid,
+        declaredFacets: $declaredFacets
+      )
+      .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }
     .toolbar {
       Button {
