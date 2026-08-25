@@ -40,34 +40,36 @@ struct ScrubberRegion: View {
   }
 }
 
-/// A tier table row. Every column is a string in this part — the table is empty (D11), and what
-/// fills it is a later slice's.
-struct TierRow: Identifiable {
-  let id = UUID()
-  var tier = ""
-  var part = ""
-  var angle = ""
-  var indices = ""
-  var meet = ""
-  var wheel = ""
-  var instructions = ""
-}
-
-/// The table across the bottom of the main area: seven headers over zero rows, which lands the column
-/// order now (D9, D11).
+/// The table across the bottom of the main area. **No column carries a sort key**: tier order is data,
+/// and a sortable header invites reordering the one thing that must never be normalised.
 struct TierTableRegion: View {
-  private let rows: [TierRow] = []
+  let rows: [TierTableRow]
 
   var body: some View {
     Table(rows) {
-      TableColumn("Tier", value: \.tier)
-      TableColumn("Part", value: \.part)
-      TableColumn("Angle", value: \.angle)
-      TableColumn("Indices", value: \.indices)
-      TableColumn("Meet", value: \.meet)
-      TableColumn("Wheel", value: \.wheel)
-      TableColumn("Instructions", value: \.instructions)
+      TableColumn("Tier") { row in
+        HStack(spacing: 4) {
+          if row.state == .stopped { Image(systemName: "exclamationmark.triangle") }
+          cell(row.tier, row)
+        }
+      }
+      TableColumn("Part") { row in cell(row.part, row) }
+      TableColumn("Angle") { row in cell(row.angle, row) }
+      TableColumn("Indices") { row in cell(row.indices, row) }
+      TableColumn("Meet") { row in cell(row.meet, row) }
+      TableColumn("Wheel") { row in cell(row.wheel, row, dimmed: row.wheelIsInherited) }
+      TableColumn("Instructions") { row in cell(row.instructions, row) }
     }
+  }
+
+  /// Every cell of a tier the solve never reached reads secondary, and a Wheel cell does too when the
+  /// gear is the header's rather than the tier's own. A `Table` has no row-level modifier, so the two
+  /// rules live in one helper rather than in seven columns.
+  ///
+  /// The stopped tier is marked by a symbol and not by colour alone, so the marking survives both a
+  /// screenshot and a colour-blind reader.
+  private func cell(_ text: String, _ row: TierTableRow, dimmed: Bool = false) -> some View {
+    Text(text).foregroundStyle(dimmed || row.state == .notReached ? .secondary : .primary)
   }
 }
 

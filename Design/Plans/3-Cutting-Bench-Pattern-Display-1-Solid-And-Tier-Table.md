@@ -452,8 +452,8 @@ continuation of that task, not a blocker.
 |---|---|---|---|---|---|
 | T1 | The rough is scaffolding, and drops at closure | completed | **owner stop** | commit | |
 | T2 | The tier the solve stopped on | awaiting owner | **owner stop** | commit | |
-| T3 | Pure: the tier table's rows | not started | continue | — | |
-| T4 | The tier table draws | not started | **owner stop** | commit | |
+| T3 | Pure: the tier table's rows | completed | continue | — | |
+| T4 | The tier table draws | awaiting owner | **owner stop** | commit | |
 | T5 | Close out | not started | **owner stop** | commit + push | |
 
 **T1 — The rough is scaffolding, and drops at closure**

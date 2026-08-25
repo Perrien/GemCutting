@@ -40,7 +40,7 @@ struct BenchWindow: View {
           Divider()
           ScrubberRegion()
         }
-        TierTableRegion()
+        TierTableRegion(rows: tierTableRows(pattern: document.pattern, solid: store.solid))
           .frame(minHeight: 140)
       }
       Divider()
