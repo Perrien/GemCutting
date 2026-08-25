@@ -4,6 +4,20 @@ Status: **Part 4 completed 2026-08-25.** Nothing here is archived: this is one p
 exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for part 5, which archives
 this plan along with parts 1 to 3 and its own when it closes out.
 
+**Amended after completion, owner-directed on 2026-08-25 — trust the code, not the two claims below.**
+Changing granularity no longer returns the stone to its finished self. It **carries the position into the
+new list, rounded forward to the nearest whole state**: a tier boundary is a state both lists hold, so
+switching there does not change the picture at all, and a part-cut tier finishes being cut. Off still
+resets, and entering playback from Off still selects the last step. Two things this contradicts:
+
+- **D7** says entering playback selects the last step, full stop. It does so only from Off.
+- **T4's positive verification** has the owner at `P1 · tier 2/6` choose Facet and click back twice for
+  `C2 · facet 3/4 · 35/37`. That reading came from the switch resetting to the end; the walk now lands on
+  `P1 · facet 8/8 · 16/37` and two backs read `P1 · facet 6/8 · 14/37`.
+
+One store change came with it: the precompute counts the frames it has delivered rather than the frames
+in the cache, because carrying a position puts one frame there before the run starts.
+
 ## Parts
 
 **For the owner and the next authoring session — not for the executor.** Nothing in this part's tasks

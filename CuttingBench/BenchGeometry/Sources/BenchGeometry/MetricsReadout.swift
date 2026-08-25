@@ -57,7 +57,7 @@ public struct FacetCountCheck: Equatable, Sendable {
 
 /// There is no stone at all, as against a stone only part cut. One constant, because two functions say
 /// it and a card's sentence must not depend on which one answered.
-private let noPatternOpen = "No pattern open."
+let noPatternOpen = "No pattern open."
 
 /// Why neither measured card has figures to show, or `nil` when the solve placed every tier the pattern
 /// declares.

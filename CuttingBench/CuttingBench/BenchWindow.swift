@@ -25,6 +25,15 @@ struct BenchWindow: View {
   /// The tier whose meet points are drawn, as the table's own selection. A view state and nothing more:
   /// it is not persisted and nothing is edited through it.
   @State private var selectedTier: String?
+  /// The debug refractive-index override as typed. Session state, never persisted and never written to the
+  /// document: a pattern's `ri` is authored, and editing the header is another slice's work.
+  @State private var riOverride = ""
+  /// Whether a viewport click also traces a ray. A mode rather than a side effect of picking, so the path
+  /// has a way to be off.
+  @State private var probeOn = false
+  /// The last traced path. Cleared with the solid, because a path is a claim about one solid and drawing it
+  /// over the next one would be a picture of a stone that is not there.
+  @State private var probe: ProbeReadout?
 
   var body: some View {
     VStack(spacing: 0) {
@@ -82,7 +91,10 @@ struct BenchWindow: View {
       InspectorRegion(
         pattern: document.pattern,
         solid: store.solid,
-        declaredFacets: $declaredFacets
+        declaredFacets: $declaredFacets,
+        riOverride: $riOverride,
+        probeOn: $probeOn,
+        probe: probe
       )
       .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }
@@ -126,6 +138,12 @@ struct BenchWindow: View {
   private var meetDots: [MeetPointDot] {
     guard let selectedTier else { return [] }
     return meetPointDots(ofTier: selectedTier, pattern: document.pattern, solid: store.solid)
+  }
+
+  /// Recomputed per body pass like `readout`, and for the same reason: it is string formatting over a
+  /// handful of tiers, and a cache would be a second place the critical angle could be wrong.
+  private var light: LightReadout {
+    lightReadout(pattern: document.pattern, solid: store.solid, riOverride: riOverride)
   }
 
   /// A new document: one solve, and playback back to off.

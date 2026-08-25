@@ -217,6 +217,14 @@ struct InspectorRegion: View {
   /// The declared facet count as typed. Session state only: it is never read from the document and never
   /// written to it, because a declared count is a one-time claim made while transcribing a printed sheet.
   @Binding var declaredFacets: String
+  /// The debug refractive-index override as typed. Session state only, `#if DEBUG` in the card, and never
+  /// read from or written to the document — a pattern's `ri` is authored, and editing it is another slice.
+  @Binding var riOverride: String
+  /// Whether a viewport click also traces a ray. Off by default: the path is a mode, not a side effect of
+  /// picking a facet.
+  @Binding var probeOn: Bool
+  /// The last traced path, or `nil` for none. Cleared whenever the solid changes.
+  let probe: ProbeReadout?
 
   var body: some View {
     ScrollView {
@@ -228,7 +236,13 @@ struct InspectorRegion: View {
           // already produced, so a cache would add a second source of truth to save nothing measurable.
           MetricsCard(readout: metricsReadout(pattern: pattern, solid: solid))
         }
-        GroupBox("Light") { EmptyCard() }
+        GroupBox("Light") {
+          LightCard(
+            readout: lightReadout(pattern: pattern, solid: solid, riOverride: riOverride),
+            riOverride: $riOverride,
+            probeOn: $probeOn,
+            probe: probe)
+        }
         GroupBox("Facet Count") {
           FacetCountCard(
             check: facetCountCheck(pattern: pattern, solid: solid, declared: declaredFacets),
@@ -271,6 +285,89 @@ private struct MetricsCard: View {
     .monospacedDigit()
     // Held at full width so stepping into and out of the part-cut state does not resize the card.
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+/// What the pattern's refractive index means for the stone: the critical angle, every pavilion tier's
+/// margin against it, and one traced ray on demand.
+///
+/// **Honest about its limit.** The check says when light definitely leaks and never that a stone performs
+/// well, and the sentence saying so is a constant in the pure module rather than a string here, so no
+/// later edit to this view can soften it.
+private struct LightCard: View {
+  let readout: LightReadout
+  @Binding var riOverride: String
+  @Binding var probeOn: Bool
+  let probe: ProbeReadout?
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      switch readout {
+      case .unavailable(let reason):
+        Text(reason)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+      case .measured(let summary):
+        LabeledContent("Critical angle", value: summary.criticalAngle)
+        LabeledContent("Refractive index", value: summary.refractiveIndex)
+        #if DEBUG
+          // Temporary, and the only way a leaking state can be reached: no authored pattern leaks at its
+          // own index, and the four fixtures are external ground truth that may not be edited. Free text
+          // parsed by the readout, as the declared count is, so emptying the field *is* the clear.
+          TextField("RI override", text: $riOverride)
+            .textFieldStyle(.roundedBorder)
+        #endif
+        Divider()
+        ForEach(summary.pavilionTiers) { row in
+          LabeledContent(row.tier) { margin(row) }
+        }
+        Text(lightCaveat)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+        Divider()
+        probeSection(summary.probe)
+      }
+    }
+    .monospacedDigit()
+    // Held at full width, as `MetricsCard` is, so a changing figure does not resize the card.
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// The angle and its margin. **The orange is on the margin, not on the tier label**, so the row still
+  /// reads normally, and the symbol and the number each carry the marking so it is never colour alone.
+  private func margin(_ row: PavilionAngleRow) -> some View {
+    HStack(spacing: 6) {
+      Text(row.angle)
+      if row.leaks {
+        Label(row.margin, systemImage: "sun.max")
+          .labelStyle(.titleAndIcon)
+          .foregroundStyle(.orange)
+      } else {
+        Text(row.margin)
+          .foregroundStyle(.secondary)
+      }
+    }
+  }
+
+  /// The toggle when a ray can be traced, and the reason when it cannot — never an inert control.
+  @ViewBuilder
+  private func probeSection(_ availability: ProbeAvailability) -> some View {
+    switch availability {
+    case .unavailable(let reason):
+      Text(reason)
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    case .available:
+      Toggle("Probe", isOn: $probeOn)
+      if let probe {
+        ForEach(probe.legs) { leg in
+          LabeledContent(leg.label, value: "\(leg.facet) · \(leg.incidence)")
+        }
+        Text(probe.ending)
+          .font(.callout)
+          .foregroundStyle(.secondary)
+      }
+    }
   }
 }
 
