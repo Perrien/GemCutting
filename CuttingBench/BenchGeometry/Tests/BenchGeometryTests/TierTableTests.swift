@@ -11,7 +11,13 @@ final class TierTableTests: XCTestCase {
   // MARK: - No pattern
 
   func testNoPatternIsNoRows() {
-    XCTAssertTrue(tierTableRows(pattern: nil, solid: benchSolid(for: nil)).isEmpty)
+    let solid = benchSolid(for: nil)
+
+    XCTAssertTrue(
+      tierTableRows(
+        pattern: nil, solid: solid,
+        light: lightReadout(pattern: nil, solid: solid, riOverride: "")
+      ).isEmpty)
   }
 
   // MARK: - The corpus, solved whole
@@ -73,7 +79,10 @@ final class TierTableTests: XCTestCase {
   func testEveryAuthoredPatternGivesOneRowPerAuthoredTier() throws {
     for name in AuthoredPatterns.all {
       let pattern = try AuthoredPatterns.load(name)
-      let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+      let solid = benchSolid(for: pattern)
+      let rows = tierTableRows(
+        pattern: pattern, solid: solid,
+        light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
       XCTAssertEqual(rows.count, pattern.tiers.count, name)
       XCTAssertEqual(rows.map(\.id), rows.map(\.tier), name)
@@ -91,7 +100,10 @@ final class TierTableTests: XCTestCase {
     let girdle = try XCTUnwrap(pattern.tiers.firstIndex { $0.tier == "G" })
     pattern.tiers[girdle].indices = [12, 24, 36, 48, 60, 72, 84, 0]
 
-    let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+    let solid = benchSolid(for: pattern)
+    let rows = tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
     let row = try XCTUnwrap(rows.first { $0.tier == "G" })
 
     XCTAssertEqual(row.indices, "12 24 36 48 60 72 84 0")
@@ -106,7 +118,10 @@ final class TierTableTests: XCTestCase {
     let c1 = try XCTUnwrap(pattern.tiers.firstIndex { $0.tier == "C1" })
     pattern.tiers[c1].wheel = 64
 
-    let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+    let solid = benchSolid(for: pattern)
+    let rows = tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     for row in rows where row.tier == "C1" {
       XCTAssertEqual(row.wheel, "64")
@@ -123,7 +138,10 @@ final class TierTableTests: XCTestCase {
     let p1 = try XCTUnwrap(pattern.tiers.firstIndex { $0.tier == "P1" })
     pattern.tiers[p1].instructions = "cut to the culet, then check the point"
 
-    let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+    let solid = benchSolid(for: pattern)
+    let rows = tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
     let row = try XCTUnwrap(rows.first { $0.tier == "P1" })
 
     XCTAssertEqual(row.instructions, "cut to the culet, then check the point")
@@ -133,7 +151,10 @@ final class TierTableTests: XCTestCase {
 
   func testATierLimitLeavesTheTiersPastItNotReachedAndNoneStopped() throws {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
-    let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern, tierLimit: 2))
+    let solid = benchSolid(for: pattern, tierLimit: 2)
+    let rows = tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     XCTAssertEqual(
       states(of: rows),
@@ -156,7 +177,10 @@ final class TierTableTests: XCTestCase {
       percent: 24.862,
       to: .tcp)
 
-    let rows = tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+    let solid = benchSolid(for: pattern)
+    let rows = tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     XCTAssertEqual(
       states(of: rows),
@@ -183,11 +207,62 @@ final class TierTableTests: XCTestCase {
     XCTAssertEqual(girdle.meet, "size")
   }
 
+  // MARK: - The leak mark
+
+  /// No authored pattern leaks at its own refractive index, so the whole table is bare — which is the
+  /// state the owner sees every day, and the one a false positive would show up against.
+  func testNoRowOfTheRoundBrilliantMarksAtItsOwnRefractiveIndex() throws {
+    let rows = try rows(of: AuthoredPatterns.roundBrilliant)
+
+    XCTAssertEqual(rows.filter(\.leaksLight).map(\.tier), [])
+    XCTAssertEqual(rows.filter { !$0.leakShortfall.isEmpty }.map(\.tier), [])
+  }
+
+  /// The override drops the critical angle to `50.28°`, which is below both pavilion tiers. The cell
+  /// carries the bare figure; the word `shallow` is the card's, and the orange symbol says which way it
+  /// falls.
+  func testAtOneThirtyExactlyThePavilionRowsMarkWithTheirShortfall() throws {
+    let rows = try rows(of: AuthoredPatterns.roundBrilliant, riOverride: "1.30")
+
+    XCTAssertEqual(rows.filter(\.leaksLight).map(\.tier), ["pb", "pm"])
+
+    let pb = try XCTUnwrap(rows.first { $0.tier == "pb" })
+    XCTAssertEqual(pb.angle, "45.00°")
+    XCTAssertEqual(pb.leakShortfall, "5.28°")
+
+    let pm = try XCTUnwrap(rows.first { $0.tier == "pm" })
+    XCTAssertEqual(pm.angle, "43.00°")
+    XCTAssertEqual(pm.leakShortfall, "7.28°")
+  }
+
+  /// The check asks whether a vertical ray reflects off the pavilion, and that ray lands nowhere else —
+  /// so a crown tier shallower than the same critical angle stays bare, and so do the girdle and the
+  /// table.
+  func testACrownTierBelowTheCriticalAngleStaysUnmarked() throws {
+    let rows = try rows(of: AuthoredPatterns.roundBrilliant, riOverride: "1.30")
+
+    let cm = try XCTUnwrap(rows.first { $0.tier == "cm" })
+    XCTAssertEqual(cm.angle, "42.00°")
+    XCTAssertFalse(cm.leaksLight)
+    XCTAssertEqual(cm.leakShortfall, "")
+
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "g" })
+    XCTAssertEqual(girdle.angle, "90.00°")
+    XCTAssertFalse(girdle.leaksLight)
+
+    let table = try XCTUnwrap(rows.first { $0.tier == "t" })
+    XCTAssertEqual(table.angle, "0.00°")
+    XCTAssertFalse(table.leaksLight)
+  }
+
   // MARK: - Helpers
 
-  private func rows(of name: String) throws -> [TierTableRow] {
+  private func rows(of name: String, riOverride: String = "") throws -> [TierTableRow] {
     let pattern = try AuthoredPatterns.load(name)
-    return tierTableRows(pattern: pattern, solid: benchSolid(for: pattern))
+    let solid = benchSolid(for: pattern)
+    return tierTableRows(
+      pattern: pattern, solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: riOverride))
   }
 
   private func states(of rows: [TierTableRow]) -> [String: TierRowState] {

@@ -63,7 +63,7 @@ struct BenchWindow: View {
             onStep: setStep(_:))
         }
         TierTableRegion(
-          rows: tierTableRows(pattern: document.pattern, solid: store.solid),
+          rows: tierTableRows(pattern: document.pattern, solid: store.solid, light: light),
           selection: $selectedTier,
           findings: readout
         )

@@ -664,8 +664,8 @@ the `swift build` line above creates it.
 | T1 | Prefactor: the pick hands back its point, snapped to its plane | completed | continue | commit | |
 | T2 | Pure: the critical-angle readout | completed | continue | — | Material alteration: the *Done when* item requiring `"1."` to fall back could not hold — Swift's `Double("1.")` is `1.0`, and no value-based rule satisfies both it and the item requiring `"0.9"` to pass through. Owner chose to pass it through and correct the check; the item now asserts `1.0` and the reason is in the plan beside it. |
 | T5 | Pure: one traced ray, as labelled legs | completed | checkpoint | commit | **Runs here, before T3** — owner-directed on 2026-08-25. As tabled, T3 could not typecheck: Approach §4a gives `InspectorRegion` a `let probe: ProbeReadout?` and that type is created by this task. The Approach's own dependency order already puts the probe trace (§3) before the card (§4). Nothing else moved. Material alteration: `leaked` is the ray leaving through a downward-facing facet, not `trace.ending == .left` — every authored pattern at `1.54` returns through the table, so the first reading would have called all four a leak. Owner-directed; D17, Approach §3 and two of this task's *Done when* items are corrected in place. |
-| T3 | The Light card, and the debug refractive-index override | awaiting owner | **owner stop** | commit + push | |
-| T4 | The leak mark on the Angle column | not started | **owner stop** | commit | |
+| T3 | The Light card, and the debug refractive-index override | completed | **owner stop** | commit + push | |
+| T4 | The leak mark on the Angle column | awaiting owner | **owner stop** | commit | Material alteration: the *Done when* item requiring a grep for `critical` to find nothing could not hold — the two doc comments Approach §5 dictates carry the phrase verbatim. Owner chose to keep the comments and correct the check; the item now asserts no comparison and no `asin`, and the reason is in the plan beside it. |
 | T6 | The probe: the toggle, the click and the path | not started | **owner stop** | commit + push | |
 | T7 | Close out — the plan, the parts and the exploration | not started | **owner stop** | commit + push | |
 
@@ -803,7 +803,11 @@ the `swift build` line above creates it.
   - `TierTableRow` carries `leaksLight` and `leakShortfall`, both defaulted in the initialiser, and
     `tierTableRows` takes `light:`.
   - The leak comes from `light.leakingRow(_:)` and **`TierTable.swift` contains no comparison against a
-    critical angle** — grep it for `critical` and `asin` and find neither.
+    critical angle, and no `asin`** — `leaking` is read from the readout and worked out nowhere else.
+    **The grep for the word `critical` is not part of this item** — owner-directed on 2026-08-25,
+    correcting it. As written the item also required that word to be absent, which Approach §5's own two
+    doc comments on `leaksLight` and `leakShortfall` carry verbatim; those two comments are its only
+    occurrences in the file.
   - New tests: for `Pattern-Standard-Round-Brilliant` at override `""`, no row has `leaksLight`; at
     override `"1.30"`, exactly the rows `pb` and `pm` have it, with `leakShortfall` `"5.28°"` and
     `"7.28°"`; the crown row `cm` at `42.00°` has `leaksLight == false` **even though 42 is below that

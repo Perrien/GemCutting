@@ -159,7 +159,19 @@ struct TierTableRegion: View {
         }
       }
       TableColumn("Part") { row in cell(row.part, row) }
-      TableColumn("Angle") { row in cell(row.angle, row) }
+      TableColumn("Angle") { row in
+        HStack(spacing: 4) {
+          cell(row.angle, row)
+          // In the Angle column because the mark is a statement about that angle, and orange rather than
+          // the findings red because a shallow pavilion is not a fault. The symbol and the number each
+          // carry it, so it is never colour alone.
+          if row.leaksLight {
+            Label(row.leakShortfall, systemImage: "sun.max")
+              .labelStyle(.titleAndIcon)
+              .foregroundStyle(.orange)
+          }
+        }
+      }
       TableColumn("Indices") { row in cell(row.indices, row) }
       TableColumn("Meet") { row in
         if row.meetPoints.isEmpty {

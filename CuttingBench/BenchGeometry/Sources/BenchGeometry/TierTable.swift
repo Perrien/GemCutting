@@ -29,6 +29,12 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
   public var meetPoints: [MeetPointDot]
   public var instructions: String
   public var state: TierRowState
+  /// Whether a vertical ray leaks straight out of this tier — a pavilion tier at or below the critical
+  /// angle. **Not a finding**: a shallow pavilion may be what the author chose, and a finding must never
+  /// blame a complete tier. Always `false` for a tier that is not pavilion.
+  public var leaksLight: Bool
+  /// How far below the critical angle it sits, as `5.28°`. Empty unless `leaksLight`.
+  public var leakShortfall: String
 
   /// The tier's own label. Decoding rejects a duplicate, so it is unique across a pattern, and an
   /// identity that survives a rebuild is what stops a table from throwing its own state away every time
@@ -45,7 +51,9 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     wheelIsInherited: Bool,
     instructions: String,
     state: TierRowState,
-    meetPoints: [MeetPointDot] = []
+    meetPoints: [MeetPointDot] = [],
+    leaksLight: Bool = false,
+    leakShortfall: String = ""
   ) {
     self.tier = tier
     self.part = part
@@ -57,6 +65,8 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     self.instructions = instructions
     self.state = state
     self.meetPoints = meetPoints
+    self.leaksLight = leaksLight
+    self.leakShortfall = leakShortfall
   }
 }
 
@@ -66,7 +76,9 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
 /// the author wrote**, and dropping it would hide the mistake rather than show it.
 ///
 /// Empty for no pattern, which leaves the table showing its headers over nothing.
-public func tierTableRows(pattern: Pattern?, solid: BenchSolid) -> [TierTableRow] {
+public func tierTableRows(
+  pattern: Pattern?, solid: BenchSolid, light: LightReadout
+) -> [TierTableRow] {
   guard let pattern else { return [] }
   let placed = Set(solid.tiers.map(\.tier))
 
@@ -82,6 +94,11 @@ public func tierTableRows(pattern: Pattern?, solid: BenchSolid) -> [TierTableRow
         .notReached
       }
 
+    // Read from the Light readout and never worked out again here: a second comparison of the same two
+    // angles could disagree with the card about the same tier, and the card and the table marking
+    // different rows is worse than either marking the wrong one.
+    let leaking = light.leakingRow(spec.tier)
+
     return TierTableRow(
       tier: spec.tier,
       part: spec.part.rawValue,
@@ -96,7 +113,12 @@ public func tierTableRows(pattern: Pattern?, solid: BenchSolid) -> [TierTableRow
       wheelIsInherited: spec.wheel == nil,
       instructions: spec.instructions ?? "",
       state: state,
-      meetPoints: meetPointDots(ofTier: spec.tier, pattern: pattern, solid: solid))
+      meetPoints: meetPointDots(ofTier: spec.tier, pattern: pattern, solid: solid),
+      leaksLight: leaking != nil,
+      // The card's margin reads `5.28° shallow`; the cell has no room for the word, and the orange symbol
+      // beside the figure already says which way it falls. Taken from that one string so the two readings
+      // are the same number by construction.
+      leakShortfall: leaking?.margin.split(separator: " ").first.map(String.init) ?? "")
   }
 }
 
