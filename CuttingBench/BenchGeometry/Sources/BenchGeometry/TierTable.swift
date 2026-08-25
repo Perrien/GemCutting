@@ -24,6 +24,9 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
   /// the effective gear either way — a stop number means nothing without one — and this is only how it
   /// is drawn.
   public var wheelIsInherited: Bool
+  /// The named points of this tier's meet, in reading order. Empty for the three meet forms that name
+  /// no facet triple. The cell shows these when there are any and `meet` when there are not.
+  public var meetPoints: [MeetPointDot]
   public var instructions: String
   public var state: TierRowState
 
@@ -41,7 +44,8 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     wheel: String,
     wheelIsInherited: Bool,
     instructions: String,
-    state: TierRowState
+    state: TierRowState,
+    meetPoints: [MeetPointDot] = []
   ) {
     self.tier = tier
     self.part = part
@@ -52,6 +56,7 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     self.wheelIsInherited = wheelIsInherited
     self.instructions = instructions
     self.state = state
+    self.meetPoints = meetPoints
   }
 }
 
@@ -90,7 +95,8 @@ public func tierTableRows(pattern: Pattern?, solid: BenchSolid) -> [TierTableRow
       wheel: String(pattern.wheel(of: spec)),
       wheelIsInherited: spec.wheel == nil,
       instructions: spec.instructions ?? "",
-      state: state)
+      state: state,
+      meetPoints: meetPointDots(ofTier: spec.tier, pattern: pattern, solid: solid))
   }
 }
 
@@ -110,6 +116,6 @@ public func meetText(_ meet: Meet) -> String {
 }
 
 /// Non-localised, which is what `String(format:)` without a locale gives.
-private func percentText(_ value: Double) -> String {
+func percentText(_ value: Double) -> String {
   String(format: "%.2f", value)
 }

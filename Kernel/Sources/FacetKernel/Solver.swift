@@ -258,6 +258,30 @@ private enum Side: Hashable {
   }
 }
 
+/// Where the stone's surface crosses the axis on the same side as `part`, given the tiers cut so far —
+/// or `nil` when nothing has reached the axis there yet.
+///
+/// The surface at the axis is whichever plane crosses it closest to the girdle, since anything beyond
+/// that has already been cut away. A 90-degree tier never reaches the axis, and letting one register a
+/// phantom axial point is a live trap.
+///
+/// Every facet of a tier shares one `z`, so the tier's first index stop answers for the tier.
+public func axialPoint(
+  onTheSideOf part: Part,
+  cutBy tiers: [SolvedTier]
+) -> (x: Double, y: Double, z: Double)? {
+  let side = Side(part)
+  var nearest: Double?
+  for tier in tiers where Side(tier.part) == side {
+    guard let stop = tier.indices.first else { continue }
+    let z = planeNormal(angleDegrees: tier.angle, index: stop, wheel: tier.wheel, part: tier.part).z
+    guard abs(z) >= 1e-9 else { continue }
+    let crossing = tier.d / z
+    if nearest.map({ abs(crossing) < abs($0) }) ?? true { nearest = crossing }
+  }
+  return nearest.map { (x: 0, y: 0, z: $0) }
+}
+
 private typealias Vector = (x: Double, y: Double, z: Double)
 
 /// The solve in progress: the planes placed so far and what they let a later tier resolve against.
@@ -271,8 +295,6 @@ private struct Solve {
   /// Tier label to index stop to plane index — the placed facets, and so also the only references a
   /// meet may name.
   private var placed: [String: [Int: Int]] = [:]
-  /// Where the stone's surface currently crosses the axis, per side.
-  private var axial: [Side: Double] = [:]
 
   init(pattern: Pattern, girdleTargetFraction: Double) {
     self.pattern = pattern
@@ -334,7 +356,7 @@ private struct Solve {
       // The free datum: the tier is cut until it reaches the girdle outline along its own azimuth,
       // where the normalisation puts the outline at radius 1. Only the first tier to set a depth on a
       // side can do this.
-      guard axial[Side(spec.part)] == nil else {
+      guard axialPoint(onTheSideOf: spec.part, cutBy: tiers) == nil else {
         throw SolverError.secondTCPOnSide(tier: spec.tier, part: spec.part)
       }
       return sin(radians(spec.angle))
@@ -382,10 +404,10 @@ private struct Solve {
     case .tcp:
       // The axial point on the same side as this tier: once both crown and pavilion are cut there are
       // two of them.
-      guard let z = axial[Side(spec.part)] else {
+      guard let point = axialPoint(onTheSideOf: spec.part, cutBy: tiers) else {
         throw SolverError.noAxialPointOnSide(tier: spec.tier, part: spec.part)
       }
-      return (x: 0, y: 0, z: z)
+      return point
     case .size, .girdle, .fraction:
       throw SolverError.fractionEndpointNotVertexOrTCP(tier: spec.tier, kind: meet.kindName)
     }
@@ -440,17 +462,6 @@ private struct Solve {
         d: d
       )
     )
-
-    // Where this tier's planes cross the axis, if they do. A 90-degree tier never reaches it, and
-    // letting one register a phantom axial point is a live trap: the surface at the axis is whichever
-    // plane crosses it closest to the girdle, since anything beyond that has already been cut away.
-    let z = normals[0].z
-    guard abs(z) >= 1e-9 else { return }
-    let crossing = d / z
-    let side = Side(spec.part)
-    if axial[side].map({ abs(crossing) < abs($0) }) ?? true {
-      axial[side] = crossing
-    }
   }
 }
 

@@ -449,7 +449,7 @@ continuation of that task, not a blocker.
 | T3 | Pure: the declared-count check | completed | checkpoint | commit | |
 | T4 | The Metrics card draws | completed | **owner stop** | commit | Material alteration: the new doc comments state each reason in words rather than carrying the plan's `(D11)`-style tag, which `CLAUDE.md` forbids in code. `Chore-Decision-Numbers-Cited-In-Code` already covers the pre-existing ones. |
 | T5 | The Facet Count card draws | completed | **owner stop** | commit | |
-| T6 | Close out | awaiting owner | **owner stop** | commit + push | |
+| T6 | Close out | completed | **owner stop** | commit + push | |
 
 **T1 — `BenchSolid` keeps the solve's own solution**
 

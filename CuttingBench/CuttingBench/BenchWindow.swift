@@ -10,6 +10,7 @@ struct BenchWindow: View {
   @ObservedObject var document: PatternDocument
   @State private var inspectorShown = true
   @State private var store = BenchSolidStore()
+  @State private var findingsStore = BenchFindingsStore()
   @State private var camera = BenchCameraState.threeQuarter
   /// How opaque the solid is drawn, `0...1`. Not persisted: a document reopens fully opaque (D6).
   @State private var solidOpacity = 1.0
@@ -21,6 +22,9 @@ struct BenchWindow: View {
   /// pattern invented from scratch has no declared count, and a permanent header field would carry a
   /// one-time claim forever.
   @State private var declaredFacets = ""
+  /// The tier whose meet points are drawn, as the table's own selection. A view state and nothing more:
+  /// it is not persisted and nothing is edited through it.
+  @State private var selectedTier: String?
   #if DEBUG
     /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
     @State private var tierLimit: Int?
@@ -37,6 +41,8 @@ struct BenchWindow: View {
             opacity: solidOpacity,
             highlightedPlaneIndex: selectedPlaneIndex,
             ringLabels: indexRingLabels(store.solid),
+            meetDots: meetDots,
+            meetWarning: false,
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
           )
@@ -44,8 +50,13 @@ struct BenchWindow: View {
           Divider()
           ScrubberRegion()
         }
-        TierTableRegion(rows: tierTableRows(pattern: document.pattern, solid: store.solid))
-          .frame(minHeight: 140)
+        TierTableRegion(
+          rows: tierTableRows(pattern: document.pattern, solid: store.solid),
+          selection: $selectedTier,
+          warningTiers: [],
+          findingCounts: [:]
+        )
+        .frame(minHeight: 140)
       }
       Divider()
       #if DEBUG
@@ -53,12 +64,14 @@ struct BenchWindow: View {
           pattern: document.pattern,
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
+          findings: readout,
           tierLimit: $tierLimit)
       #else
         StatusStripRegion(
           pattern: document.pattern,
           solid: store.solid,
-          selectedFacet: selectedFacetLabel)
+          selectedFacet: selectedFacetLabel,
+          findings: readout)
       #endif
     }
     .frame(minWidth: 900, minHeight: 600)
@@ -98,10 +111,32 @@ struct BenchWindow: View {
     #endif
   }
 
+  /// Recomputed per body pass rather than cached: it is string formatting over at most a few dozen
+  /// findings, and a cache would be a second place the count could be wrong.
+  private var readout: FindingsReadout {
+    findingsReadout(
+      pattern: document.pattern,
+      solid: store.solid,
+      structural: findingsStore.structural,
+      geometric: findingsStore.geometric,
+      isChecking: findingsStore.isChecking)
+  }
+
+  /// The selected tier's named points, or none when nothing is selected.
+  private var meetDots: [MeetPointDot] {
+    guard let selectedTier else { return [] }
+    return meetPointDots(ofTier: selectedTier, pattern: document.pattern, solid: store.solid)
+  }
+
   private func rebuild() {
     // A plane index means nothing across a rebuild: the tier limit decides how many solved planes are
     // appended after the rough's eighteen, so keeping the selection would leave the highlight on an
     // unrelated plane and the strip reading the old name. Opening a different pattern is the same case.
+    //
+    // `selectedTier` is deliberately kept. A tier label survives a rebuild where a plane index does not,
+    // and keeping it is what lets the owner step the tier limit and watch the same tier's dots move. A
+    // label the new pattern does not carry yields no dots, so a stale selection is inert rather than
+    // wrong.
     selectedPlaneIndex = nil
     selectedFacetLabel = nil
     #if DEBUG
@@ -109,6 +144,8 @@ struct BenchWindow: View {
     #else
       store.rebuildIfNeeded(pattern: document.pattern, tierLimit: nil)
     #endif
+    // Last, because it reads the solid the call above produces.
+    findingsStore.rebuild(pattern: document.pattern, solid: store.solid)
   }
 
   /// Direct manipulation: the stone follows the pointer, so the camera goes the other way — a drag to

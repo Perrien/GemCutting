@@ -201,6 +201,103 @@ final class SolverTests: XCTestCase {
     XCTAssertEqual(crown.d, sin(40 * Double.pi / 180), accuracy: 1e-12)
   }
 
+  /// A later tier crossing the axis *nearer the girdle* replaces the earlier crossing. The corpus never
+  /// reaches this branch, and a refactor that dropped the comparison would pass every other test.
+  ///
+  /// The 50% point between the girdle corner and a 45° `tcp` tier's culet lies on that tier's own plane,
+  /// so with P1 alone the fraction resolves to exactly `sin(45°)`. A shallow 20° tier reaching the same
+  /// girdle corner moves the pavilion's axial point up toward the girdle, and the same fraction then
+  /// resolves shallower. Keeping the first crossing would give `sin(45°)` both times.
+  func testANearerAxisCrossingReplacesTheEarlierOne() throws {
+    let corner: Meet = .vertex(facets: [
+      FacetRef(tier: "G", index: 0),
+      FacetRef(tier: "G", index: 12),
+      FacetRef(tier: "P1", index: 0),
+    ])
+    let base = [
+      TierSpec(tier: "G", part: .gdl, angle: 90, indices: octagon, meet: .size),
+      TierSpec(tier: "P1", part: .pav, angle: 45, indices: octagon, meet: .tcp),
+    ]
+    let toTheAxis = TierSpec(
+      tier: "P4", part: .pav, angle: 45, indices: octagon,
+      meet: .fraction(from: corner, percent: 50, to: .tcp))
+    let shallow = TierSpec(tier: "P3", part: .pav, angle: 20, indices: octagon, meet: corner)
+
+    let withoutShallow = try solve(synthetic(base + [toTheAxis]))
+    let alone = try XCTUnwrap(withoutShallow.tiers.first { $0.tier == "P4" })
+    XCTAssertEqual(alone.d, sin(45 * Double.pi / 180), accuracy: 1e-12)
+
+    let withShallow = try solve(synthetic(base + [shallow, toTheAxis]))
+    let replaced = try XCTUnwrap(withShallow.tiers.first { $0.tier == "P4" })
+    XCTAssertLessThan(replaced.d, alone.d - 1e-6)
+
+    // The shallow tier really does cross nearer the girdle than P1 does, which is what makes it
+    // replace P1's crossing: `d / cos(angle)` is the crossing's distance from the girdle plane.
+    let crossing = try XCTUnwrap(withShallow.tiers.first { $0.tier == "P3" })
+    XCTAssertLessThan(crossing.d / cos(20 * Double.pi / 180), 1.0)
+  }
+
+  func testTheAxialPointIsNilBeforeAnythingReachesTheAxis() {
+    XCTAssertNil(axialPoint(onTheSideOf: .pav, cutBy: []))
+    XCTAssertNil(axialPoint(onTheSideOf: .crown, cutBy: []))
+  }
+
+  /// Read off the solved tiers rather than out of the solve: the girdle tier's 90 degrees never reaches
+  /// the axis, and the crown, being uncut, has no axial point at all.
+  func testTheAxialPointReadsOffTheSolvedTiers() throws {
+    let pattern = synthetic([
+      TierSpec(tier: "G", part: .gdl, angle: 90, indices: octagon, meet: .size),
+      TierSpec(tier: "P", part: .pav, angle: 45, indices: octagon, meet: .tcp),
+    ])
+    let solution = try solve(pattern)
+
+    let pavilion = try XCTUnwrap(axialPoint(onTheSideOf: .pav, cutBy: solution.tiers))
+    XCTAssertEqual(pavilion.x, 0, accuracy: 1e-12)
+    XCTAssertEqual(pavilion.y, 0, accuracy: 1e-12)
+    XCTAssertEqual(pavilion.z, -1, accuracy: 1e-12)
+    XCTAssertNil(axialPoint(onTheSideOf: .crown, cutBy: solution.tiers))
+  }
+
+  /// The side comes from the part: `gdl` answers with the pavilion's point and `table` with the crown's,
+  /// which is the mapping the solve's own private `Side` makes.
+  func testTheAxialPointTakesItsSideFromThePart() throws {
+    let pattern = synthetic([
+      TierSpec(tier: "G", part: .gdl, angle: 90, indices: octagon, meet: .size),
+      TierSpec(tier: "P1", part: .pav, angle: 45, indices: octagon, meet: .tcp),
+      TierSpec(tier: "C1", part: .crown, angle: 40, indices: octagon, meet: .tcp),
+    ])
+    let solution = try solve(pattern)
+
+    let pavilion = try XCTUnwrap(axialPoint(onTheSideOf: .pav, cutBy: solution.tiers))
+    let girdle = try XCTUnwrap(axialPoint(onTheSideOf: .gdl, cutBy: solution.tiers))
+    let crown = try XCTUnwrap(axialPoint(onTheSideOf: .crown, cutBy: solution.tiers))
+    let table = try XCTUnwrap(axialPoint(onTheSideOf: .table, cutBy: solution.tiers))
+
+    XCTAssertEqual(pavilion.z, -1, accuracy: 1e-12)
+    XCTAssertEqual(girdle.z, pavilion.z, accuracy: 1e-12)
+    XCTAssertEqual(crown.z, tan(40 * Double.pi / 180), accuracy: 1e-12)
+    XCTAssertEqual(table.z, crown.z, accuracy: 1e-12)
+  }
+
+  /// The replacement branch again, read straight off the function: the shallow tier crosses nearer the
+  /// girdle, so its crossing is the one reported and the 45-degree tier's is cut away.
+  func testTheAxialPointReportsTheNearestCrossing() throws {
+    let corner: Meet = .vertex(facets: [
+      FacetRef(tier: "G", index: 0),
+      FacetRef(tier: "G", index: 12),
+      FacetRef(tier: "P1", index: 0),
+    ])
+    let solution = try solve(
+      synthetic([
+        TierSpec(tier: "G", part: .gdl, angle: 90, indices: octagon, meet: .size),
+        TierSpec(tier: "P1", part: .pav, angle: 45, indices: octagon, meet: .tcp),
+        TierSpec(tier: "P3", part: .pav, angle: 20, indices: octagon, meet: corner),
+      ]))
+
+    let pavilion = try XCTUnwrap(axialPoint(onTheSideOf: .pav, cutBy: solution.tiers))
+    XCTAssertEqual(pavilion.z, -0.363970, accuracy: 1e-6)
+  }
+
   // MARK: - Verification handle (T5, permanent)
 
   /// Prints one line per tier for each authored pattern: label, meet form, solved offset.

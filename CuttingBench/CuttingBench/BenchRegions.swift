@@ -3,8 +3,8 @@ import FacetKernel
 import Foundation
 import SwiftUI
 
-/// The renderer's region. **One Metal subview plus the index-ring overlay** (D2, U4), and nothing
-/// else may draw here.
+/// The renderer's region. **One Metal subview plus the index-ring and meet-point overlays** (D2, U4),
+/// and nothing else may draw here.
 struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
@@ -12,6 +12,10 @@ struct ViewportRegion: View {
   let opacity: Double
   let highlightedPlaneIndex: Int?
   let ringLabels: [IndexRingLabel]
+  /// The selected tier's named points. Empty for no selection, and then the overlay draws nothing.
+  let meetDots: [MeetPointDot]
+  /// Whether this tier carries a finding whose geometry is one of these points.
+  let meetWarning: Bool
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -26,6 +30,9 @@ struct ViewportRegion: View {
       onPick: onPick
     )
     .overlay { IndexRingOverlay(labels: ringLabels, camera: camera) }
+    // After the ring, so a dot near the rim draws over a number rather than under it: the dot is about
+    // the tier you selected and the number is standing context.
+    .overlay { MeetPointOverlay(dots: meetDots, camera: camera, warning: meetWarning) }
   }
 }
 
@@ -44,9 +51,17 @@ struct ScrubberRegion: View {
 /// and a sortable header invites reordering the one thing that must never be normalised.
 struct TierTableRegion: View {
   let rows: [TierTableRow]
+  /// The tier whose meet points are drawn. A view state and nothing more: nothing is edited through it
+  /// and it is not persisted.
+  @Binding var selection: String?
+  /// The tiers whose dots draw as a warning, because a finding says a named point of theirs is not a
+  /// corner of the stone as it stands when they are cut.
+  let warningTiers: Set<String>
+  /// Tier label to how many findings name it. A tier with none is absent.
+  let findingCounts: [String: Int]
 
   var body: some View {
-    Table(rows) {
+    Table(rows, selection: $selection) {
       TableColumn("Tier") { row in
         HStack(spacing: 4) {
           if row.state == .stopped { Image(systemName: "exclamationmark.triangle") }
@@ -56,7 +71,21 @@ struct TierTableRegion: View {
       TableColumn("Part") { row in cell(row.part, row) }
       TableColumn("Angle") { row in cell(row.angle, row) }
       TableColumn("Indices") { row in cell(row.indices, row) }
-      TableColumn("Meet") { row in cell(row.meet, row) }
+      TableColumn("Meet") { row in
+        if row.meetPoints.isEmpty {
+          cell(row.meet, row)
+        } else {
+          let warning = warningTiers.contains(row.tier)
+          HStack(spacing: 8) {
+            ForEach(row.meetPoints) { dot in
+              HStack(spacing: 3) {
+                MeetDotChip(label: dot.label, colour: meetDotColor(dot.role, warning: warning))
+                if !dot.facets.isEmpty { cell(dot.facets, row) }
+              }
+            }
+          }
+        }
+      }
       TableColumn("Wheel") { row in cell(row.wheel, row, dimmed: row.wheelIsInherited) }
       TableColumn("Instructions") { row in cell(row.instructions, row) }
     }
@@ -70,6 +99,23 @@ struct TierTableRegion: View {
   /// screenshot and a colour-blind reader.
   private func cell(_ text: String, _ row: TierTableRow, dimmed: Bool = false) -> some View {
     Text(text).foregroundStyle(dimmed || row.state == .notReached ? .secondary : .primary)
+  }
+}
+
+/// A meet point's dot as it appears in the table: the same label and the same colour as the viewport's,
+/// so the two are read as one thing. Tinted fill under a solid border rather than coloured text, which
+/// keeps the label at `.primary` and readable in both appearances against every one of the four colours.
+private struct MeetDotChip: View {
+  let label: String
+  let colour: Color
+
+  var body: some View {
+    Text(label)
+      .font(.caption2.weight(.semibold))
+      .padding(.horizontal, 4)
+      .padding(.vertical, 1)
+      .background(Capsule().fill(colour.opacity(0.25)))
+      .overlay(Capsule().strokeBorder(colour))
   }
 }
 
@@ -174,21 +220,22 @@ private struct FacetCountCard: View {
   }
 }
 
-/// The main area's bottom row. Leading text is the findings line — nothing computes findings until
-/// part 4, so it is unconditional. Trailing, behind `#if DEBUG`, is what the document actually
-/// decoded.
+/// The main area's bottom row. Leading text is the findings line. Trailing, behind `#if DEBUG`, is what
+/// the document actually decoded.
 struct StatusStripRegion: View {
   let pattern: FacetKernel.Pattern?
   let solid: BenchSolid
   /// The picked facet's label, or `nil` for no selection (D11).
   let selectedFacet: String?
+  /// The one findings value all three surfaces read, so none of them can disagree about the count.
+  let findings: FindingsReadout
   #if DEBUG
     @Binding var tierLimit: Int?
   #endif
 
   var body: some View {
     HStack(spacing: 8) {
-      Text(solid.stoppedReason ?? "No findings")
+      Text(findings.line)
       Spacer(minLength: 8)
       Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG

@@ -167,6 +167,22 @@ final class TierTableTests: XCTestCase {
       ])
   }
 
+  // MARK: - The row carries its meet's named points
+
+  /// The chips and the one-line `meet` are both on the row: the cell prefers the chips when there are
+  /// any, and the text is unchanged for the rows that have none.
+  func testTheRowCarriesItsMeetPointsWithoutChangingItsMeetText() throws {
+    let rows = try rows(of: AuthoredPatterns.noviceAsher)
+
+    let p2 = try XCTUnwrap(rows.first { $0.tier == "P2" })
+    XCTAssertEqual(p2.meetPoints.count, 3)
+    XCTAssertEqual(p2.meet, "24.86% from G@12 · G@24 · P1@24 to tcp")
+
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "G" })
+    XCTAssertEqual(girdle.meetPoints.count, 0)
+    XCTAssertEqual(girdle.meet, "size")
+  }
+
   // MARK: - Helpers
 
   private func rows(of name: String) throws -> [TierTableRow] {
