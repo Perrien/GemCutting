@@ -1,6 +1,8 @@
 # 3 · Cutting Bench Pattern Display — Part 2: Metrics And Facet Count
 
-Status: **DRAFT** — not yet approved.
+Status: **Part 2 completed 2026-08-25.** Nothing here is archived: this is one part of five, and the
+exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for parts 3, 4 and 5,
+which archive this plan along with their own when the last of them closes out.
 
 ## Parts
 
@@ -446,8 +448,8 @@ continuation of that task, not a blocker.
 | T2 | Pure: the split count and the metrics readout | completed | continue | — | |
 | T3 | Pure: the declared-count check | completed | checkpoint | commit | |
 | T4 | The Metrics card draws | completed | **owner stop** | commit | Material alteration: the new doc comments state each reason in words rather than carrying the plan's `(D11)`-style tag, which `CLAUDE.md` forbids in code. `Chore-Decision-Numbers-Cited-In-Code` already covers the pre-existing ones. |
-| T5 | The Facet Count card draws | in progress | **owner stop** | commit | |
-| T6 | Close out | not started | **owner stop** | commit + push | |
+| T5 | The Facet Count card draws | completed | **owner stop** | commit | |
+| T6 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — `BenchSolid` keeps the solve's own solution**
 
@@ -639,3 +641,9 @@ The prefactor. Behaviour-preserving by construction: a new stored property that 
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as a
 ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **The shipped app code cites plans' decision numbers.** `BenchRegions.swift` and `BenchWindow.swift`
+  carry `(D2)`, `(D9)`, `(D11)`-style tags from earlier plans, which `CLAUDE.md` bars from code. Found
+  while editing both files and left alone: it predates this part and is already filed as
+  `Chore-Decision-Numbers-Cited-In-Code`, `Status: untriaged`. This part's own new comments state their
+  reasons in words instead.
