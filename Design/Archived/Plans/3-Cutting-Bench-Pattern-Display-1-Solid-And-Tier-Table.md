@@ -4,6 +4,11 @@ Status: **Part 1 completed 2026-08-25.** Nothing here is archived: this is one p
 exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for parts 2 to 5, which
 archive this plan along with their own when the last of them closes out.
 
+**Archived 2026-08-25 — trust the code, not the two shapes below.** `tierTableRows` takes a third
+argument, `light: LightReadout`, added by part 5. `TierTableRow` carries three members this plan's shape
+does not show: `meetPoints`, added by part 3, and `leaksLight` and `leakShortfall`, added by part 5.
+Everything else here still describes what shipped.
+
 ## Parts
 
 **For the owner and the next authoring session — not for the executor.** Nothing in this part's tasks

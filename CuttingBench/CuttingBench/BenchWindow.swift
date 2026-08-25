@@ -25,9 +25,6 @@ struct BenchWindow: View {
   /// The tier whose meet points are drawn, as the table's own selection. A view state and nothing more:
   /// it is not persisted and nothing is edited through it.
   @State private var selectedTier: String?
-  /// The debug refractive-index override as typed. Session state, never persisted and never written to the
-  /// document: a pattern's `ri` is authored, and editing the header is another slice's work.
-  @State private var riOverride = ""
   /// Whether a viewport click also traces a ray. A mode rather than a side effect of picking, so the path
   /// has a way to be off.
   @State private var probeOn = false
@@ -93,7 +90,6 @@ struct BenchWindow: View {
         pattern: document.pattern,
         solid: store.solid,
         declaredFacets: $declaredFacets,
-        riOverride: $riOverride,
         probeOn: $probeOn,
         probe: probe
       )
@@ -144,7 +140,9 @@ struct BenchWindow: View {
   /// Recomputed per body pass like `readout`, and for the same reason: it is string formatting over a
   /// handful of tiers, and a cache would be a second place the critical angle could be wrong.
   private var light: LightReadout {
-    lightReadout(pattern: document.pattern, solid: store.solid, riOverride: riOverride)
+    // The empty override is the ordinary case, and now the only one: the card reads the pattern's own
+    // authored refractive index.
+    lightReadout(pattern: document.pattern, solid: store.solid, riOverride: "")
   }
 
   /// A new document: one solve, and playback back to off.
@@ -204,7 +202,7 @@ struct BenchWindow: View {
     // above. A click that misses the solid clears the path, which is right: the owner clicked away from
     // the stone.
     guard probeOn, let hit,
-      let ri = effectiveRefractiveIndex(pattern: document.pattern, override: riOverride)
+      let ri = effectiveRefractiveIndex(pattern: document.pattern, override: "")
     else {
       probe = nil
       return

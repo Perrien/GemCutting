@@ -666,8 +666,8 @@ the `swift build` line above creates it.
 | T5 | Pure: one traced ray, as labelled legs | completed | checkpoint | commit | **Runs here, before T3** — owner-directed on 2026-08-25. As tabled, T3 could not typecheck: Approach §4a gives `InspectorRegion` a `let probe: ProbeReadout?` and that type is created by this task. The Approach's own dependency order already puts the probe trace (§3) before the card (§4). Nothing else moved. Material alteration: `leaked` is the ray leaving through a downward-facing facet, not `trace.ending == .left` — every authored pattern at `1.54` returns through the table, so the first reading would have called all four a leak. Owner-directed; D17, Approach §3 and two of this task's *Done when* items are corrected in place. |
 | T3 | The Light card, and the debug refractive-index override | completed | **owner stop** | commit + push | |
 | T4 | The leak mark on the Angle column | completed | **owner stop** | commit | Material alteration: the *Done when* item requiring a grep for `critical` to find nothing could not hold — the two doc comments Approach §5 dictates carry the phrase verbatim. Owner chose to keep the comments and correct the check; the item now asserts no comparison and no `asin`, and the reason is in the plan beside it. |
-| T6 | The probe: the toggle, the click and the path | awaiting owner | **owner stop** | commit + push | |
-| T7 | Close out — the plan, the parts and the exploration | not started | **owner stop** | commit + push | |
+| T6 | The probe: the toggle, the click and the path | completed | **owner stop** | commit + push | |
+| T7 | Close out — the plan, the parts and the exploration | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — Prefactor: the pick hands back its point, snapped to its plane**
 

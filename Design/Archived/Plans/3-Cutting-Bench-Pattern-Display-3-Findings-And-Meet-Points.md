@@ -4,6 +4,14 @@ Status: **Part 3 completed 2026-08-25.** Nothing here is archived: this is one p
 exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for parts 4 and 5, which
 archive this plan along with their own when the last of them closes out.
 
+**Archived 2026-08-25 — trust the code, not the two claims below.** `doesNotClose` **names no tier.** Its
+sentence in the shipped code is `The solid does not close: some facets are incomplete, with an edge no
+other facet shares.`, and `findingTier` returns `nil` for it. The Approach's finding-text table still
+gives the tier-naming sentence for a non-`nil` tier, and the line under it still says `findingTier`
+returns that tier. T7's material alteration, owner-directed, is what changed both: the tier the kernel
+reports is where the open edge was found, not what left it open, and on a part-cut stone that is a tier
+which is complete.
+
 ## Parts
 
 **For the owner and the next authoring session — not for the executor.** Nothing in this part's tasks

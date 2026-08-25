@@ -234,9 +234,6 @@ struct InspectorRegion: View {
   /// The declared facet count as typed. Session state only: it is never read from the document and never
   /// written to it, because a declared count is a one-time claim made while transcribing a printed sheet.
   @Binding var declaredFacets: String
-  /// The debug refractive-index override as typed. Session state only, `#if DEBUG` in the card, and never
-  /// read from or written to the document — a pattern's `ri` is authored, and editing it is another slice.
-  @Binding var riOverride: String
   /// Whether a viewport click also traces a ray. Off by default: the path is a mode, not a side effect of
   /// picking a facet.
   @Binding var probeOn: Bool
@@ -255,8 +252,7 @@ struct InspectorRegion: View {
         }
         GroupBox("Light") {
           LightCard(
-            readout: lightReadout(pattern: pattern, solid: solid, riOverride: riOverride),
-            riOverride: $riOverride,
+            readout: lightReadout(pattern: pattern, solid: solid, riOverride: ""),
             probeOn: $probeOn,
             probe: probe)
         }
@@ -313,7 +309,6 @@ private struct MetricsCard: View {
 /// later edit to this view can soften it.
 private struct LightCard: View {
   let readout: LightReadout
-  @Binding var riOverride: String
   @Binding var probeOn: Bool
   let probe: ProbeReadout?
 
@@ -327,13 +322,6 @@ private struct LightCard: View {
       case .measured(let summary):
         LabeledContent("Critical angle", value: summary.criticalAngle)
         LabeledContent("Refractive index", value: summary.refractiveIndex)
-        #if DEBUG
-          // Temporary, and the only way a leaking state can be reached: no authored pattern leaks at its
-          // own index, and the four fixtures are external ground truth that may not be edited. Free text
-          // parsed by the readout, as the declared count is, so emptying the field *is* the clear.
-          TextField("RI override", text: $riOverride)
-            .textFieldStyle(.roundedBorder)
-        #endif
         Divider()
         ForEach(summary.pavilionTiers) { row in
           LabeledContent(row.tier) { margin(row) }

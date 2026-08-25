@@ -21,3 +21,14 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
   one fixed three-quarter camera are what part 3 replaced
 - 2026-08-24 · 2-Cutting-Bench-App-Shell-3-Camera-And-Facet-Naming · executed
 - 2026-08-24 · 2-Cutting-Bench-App-Shell · executed
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display-1-Solid-And-Tier-Table · superseded by
+  3-Cutting-Bench-Pattern-Display-5-Light — its two-argument `tierTableRows` and its nine-member
+  `TierTableRow` are what parts 3 and 5 added to
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display-2-Metrics-And-Facet-Count · executed
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display-3-Findings-And-Meet-Points · superseded by the shipped
+  code — its finding text names the tier the open edge was found on and its `findingTier` returns that
+  tier, neither of which `doesNotClose` does
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display-4-Playback · superseded by the shipped code — changing
+  granularity carries the position into the new list rather than returning the stone to its finished self
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display-5-Light · executed
+- 2026-08-25 · 3-Cutting-Bench-Pattern-Display · executed
