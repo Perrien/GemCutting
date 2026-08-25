@@ -164,10 +164,11 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
       blue: Double(background.z),
       alpha: Double(background.w))
 
-    let viewMatrix = benchViewMatrix(camera)
-    let eye = benchCameraPosition(camera)
+    let aspect = aspect(of: view)
+    let viewMatrix = benchViewMatrix(camera, aspect: aspect)
+    let eye = benchCameraPosition(camera, aspect: aspect)
     var uniforms = Uniforms(
-      viewProjection: benchProjectionMatrix(aspect: aspect(of: view)) * viewMatrix,
+      viewProjection: benchProjectionMatrix(aspect: aspect) * viewMatrix,
       view: viewMatrix,
       cutColor: rgba(.controlAccentColor, in: appearance),
       roughColor: rgba(.systemGray, in: appearance),

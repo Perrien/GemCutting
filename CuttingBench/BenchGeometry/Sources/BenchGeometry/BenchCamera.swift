@@ -1,20 +1,101 @@
 import Foundation
 import simd
 
-/// The framing constants every camera shares. **These are the tuning point at part 2's T4 owner stop**
-/// (part 2's D20) — nothing else in the render is adjusted by eye, and moving `distance` in means
-/// re-running `BenchCameraTests`' framing check. `azimuthDegrees` and `elevationDegrees` are the
-/// *starting* orientation only: where the camera is now lives in a `BenchCameraState` (D1).
+/// The framing constants every camera shares. `azimuthDegrees` and `elevationDegrees` are the
+/// *starting* orientation only: where the camera is now lives in a `BenchCameraState`.
+///
+/// **There is no `distance` constant.** How far back the camera sits is fitted to the viewport's shape
+/// by `benchCameraDistance(aspect:)`, because one distance chosen for the narrowest window a person
+/// might drag spends most of a wide window on nothing — and wide is the shape this app is used at.
 public enum BenchCamera {
   public static let azimuthDegrees: Float = 45
   public static let elevationDegrees: Float = 25
-  public static let distance: Float = 9
   public static let fieldOfViewDegrees: Float = 30
-  /// The centre of the rough, not the centre of a stone: the rough is what has to fit the frame.
-  public static let target = SIMD3<Float>(0, 0, -0.5)
   public static let near: Float = 0.1
   public static let far: Float = 100
   public static let orbitDegreesPerPoint: Float = 0.5
+
+  // MARK: - The framed volume
+
+  /// A cylinder on the axis that everything ever drawn sits inside. **The frame is fitted to this, not
+  /// to the solid**, which is what keeps the framing still: it does not shift when a tier is stepped,
+  /// when the rough comes away, or as the stone is orbited. A stone that resized itself mid-scrub would
+  /// be impossible to compare against the step before it.
+  ///
+  /// The index ring's circle, which is wider than both the rough's walls and any stone that can be cut
+  /// inside them.
+  public static let framedRadius = Float(IndexRing.radius)
+  /// The rough's crown cap: the highest thing ever drawn.
+  public static let framedTop: Float = 1
+  /// The deepest a *stone* reaches — a barion's culet at −1.216 on a short-axis normalisation, and
+  /// `Novice Ash-er`'s intermediate pavilion point at −1.19175 — with a little to spare.
+  ///
+  /// **Deliberately not the rough's bottom cap at −2.** The pavilion cuts that cap away before it is
+  /// ever the lowest thing on screen, so framing for it would spend a fifth of the viewport's height on
+  /// empty space. The cost is that the bare prism's own bottom point falls outside the frame, which is
+  /// visible on a new document and while the first tier or two are cut, and is empty air after that.
+  public static let framedBottom: Float = -1.25
+
+  /// The centre of the framed volume, which is what the camera looks at.
+  public static let target = SIMD3<Float>(0, 0, (framedTop + framedBottom) / 2)
+
+  /// Room left around the framed volume. An exact fit puts the index ring's circle precisely on the
+  /// frame's edge, and each number is *text centred on that circle*, so half of it would fall off the
+  /// side. This is what that text needs, and it absorbs the hair of float slack an exact fit leaves as
+  /// well.
+  public static let framingMargin: Float = 1.04
+}
+
+/// One sample of the framed volume's silhouette, in the only two terms the fit needs.
+private struct FramedSample: Sendable {
+  /// How far the point is from the target.
+  let radial: Float
+  /// How much frame width it asks for: its distance from the view axis, across the screen.
+  let acrossAxis: Float
+}
+
+/// The framed volume's silhouette, sampled once for the life of the process.
+///
+/// Only the two rims are sampled: a wall runs straight between them and the room a point asks for is
+/// convex along that line, so its worst value is at one end or the other and never in the middle. And
+/// only half a turn, because `cos` and `abs(sin)` repeat over the other half.
+private let framedSamples: [FramedSample] = (0...16).flatMap { step -> [FramedSample] in
+  let theta = Float.pi * Float(step) / 16
+  let alongAxis = BenchCamera.framedRadius * cos(theta)
+  let acrossAxis = BenchCamera.framedRadius * abs(sin(theta))
+  return [BenchCamera.framedTop, BenchCamera.framedBottom].map { z in
+    let height = z - BenchCamera.target.z
+    return FramedSample(
+      radial: (alongAxis * alongAxis + height * height).squareRoot(), acrossAxis: acrossAxis)
+  }
+}
+
+/// The closest the camera can sit with the framed volume wholly inside a viewport of this shape.
+///
+/// Fitted to the **worst orientation the orbit can reach**, not the current one, so turning the stone
+/// never resizes it — only reshaping the window does. Azimuth never enters it: the framed volume is a
+/// cylinder, which presents the same silhouette at every azimuth.
+///
+/// **No orientation is swept**, because the worst one has a closed form. Turned to face the camera
+/// squarely, a point at distance `radial` from the target needs the frame's half-height to reach
+/// `radial · sin(half the field of view)` — which is the volume's bounding sphere, and a sphere looks
+/// the same from every angle. The width term is the same statement across the screen instead of up it.
+/// Both are worst cases rather than approximations, so the fit can never come out too close.
+///
+/// This matters because it is on the drag path: every index label asks for it on every frame, and a
+/// version of this that swept 181 elevations cost 3 ms a call and dropped dragging to a crawl.
+public func benchCameraDistance(aspect: Float) -> Float {
+  let upTangent = tan(BenchCamera.fieldOfViewDegrees * .pi / 360)
+  let rightTangent = upTangent * aspect
+  let cosecant = (1 + 1 / (upTangent * upTangent)).squareRoot()
+  var distance: Float = 0
+
+  for sample in framedSamples {
+    distance = max(
+      distance, sample.radial * cosecant, sample.radial + sample.acrossAxis / rightTangent)
+  }
+
+  return distance * BenchCamera.framingMargin
 }
 
 /// Where the camera is, as a value. `distance` and the field of view are not in here: there is no
@@ -47,18 +128,25 @@ public struct BenchCameraState: Equatable, Sendable {
   }
 }
 
-/// Where the camera sits, in world space.
-public func benchCameraPosition(_ camera: BenchCameraState = .threeQuarter) -> SIMD3<Float> {
+/// Where the camera sits, in world space. `aspect` is the viewport's width over its height, which is
+/// what fixes how far back it has to be.
+public func benchCameraPosition(
+  _ camera: BenchCameraState = .threeQuarter,
+  aspect: Float
+) -> SIMD3<Float> {
   let az = camera.azimuthDegrees * .pi / 180
   let el = camera.elevationDegrees * .pi / 180
   let direction = SIMD3<Float>(cos(el) * cos(az), cos(el) * sin(az), sin(el))
-  return BenchCamera.target + BenchCamera.distance * direction
+  return BenchCamera.target + benchCameraDistance(aspect: aspect) * direction
 }
 
 /// Right-handed look-at. The stone's axis is +z, and the camera never rolls: screen right stays in the
-/// world's xy plane at every elevation (D2).
-public func benchViewMatrix(_ camera: BenchCameraState = .threeQuarter) -> simd_float4x4 {
-  let eye = benchCameraPosition(camera)
+/// world's xy plane at every elevation.
+public func benchViewMatrix(
+  _ camera: BenchCameraState = .threeQuarter,
+  aspect: Float
+) -> simd_float4x4 {
+  let eye = benchCameraPosition(camera, aspect: aspect)
   let zAxis = normalize(eye - BenchCamera.target)
 
   // The +z up reference is parallel to the view direction at the poles, where
@@ -101,7 +189,8 @@ public func benchRay(
   aspect: Float,
   camera: BenchCameraState = .threeQuarter
 ) -> (origin: SIMD3<Float>, direction: SIMD3<Float>) {
-  let inverse = (benchProjectionMatrix(aspect: aspect) * benchViewMatrix(camera)).inverse
+  let inverse = (benchProjectionMatrix(aspect: aspect) * benchViewMatrix(camera, aspect: aspect))
+    .inverse
   let near = unproject(inverse, ndcX: ndcX, ndcY: ndcY, ndcZ: 0)
   let far = unproject(inverse, ndcX: ndcX, ndcY: ndcY, ndcZ: 1)
   return (origin: near, direction: far - near)
@@ -115,7 +204,8 @@ public func benchScreenPoint(
   aspect: Float,
   camera: BenchCameraState = .threeQuarter
 ) -> (x: Double, y: Double)? {
-  let viewProjection = benchProjectionMatrix(aspect: aspect) * benchViewMatrix(camera)
+  let viewProjection =
+    benchProjectionMatrix(aspect: aspect) * benchViewMatrix(camera, aspect: aspect)
   let clip = viewProjection * SIMD4<Float>(world, 1)
   guard clip.w > 0 else { return nil }
   let ndc = SIMD2<Float>(clip.x / clip.w, clip.y / clip.w)
