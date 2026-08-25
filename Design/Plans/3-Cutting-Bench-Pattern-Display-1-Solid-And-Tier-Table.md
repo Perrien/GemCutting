@@ -1,6 +1,8 @@
 # 3 · Cutting Bench Pattern Display — Part 1: Solid And Tier Table
 
-Status: **DRAFT** — not yet approved.
+Status: **Part 1 completed 2026-08-25.** Nothing here is archived: this is one part of five, and the
+exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for parts 2 to 5, which
+archive this plan along with their own when the last of them closes out.
 
 ## Parts
 
@@ -454,7 +456,7 @@ continuation of that task, not a blocker.
 | T2 | The tier the solve stopped on | awaiting owner | **owner stop** | commit | |
 | T3 | Pure: the tier table's rows | completed | continue | — | |
 | T4 | The tier table draws | awaiting owner | **owner stop** | commit | |
-| T5 | Close out | not started | **owner stop** | commit + push | |
+| T5 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — The rough is scaffolding, and drops at closure**
 
@@ -663,3 +665,11 @@ continuation of that task, not a blocker.
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as
 a ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **Decisions are cited in code by their plan's local numbers**, which restart at `D1` in every plan and
+  point at documents that get archived, so one rule ends up with several names and one name means several
+  rules. Found while rewriting `BenchSolid.swift`, which carried the app shell's `D1` and `D9` while this
+  plan meant different things by both. Fixed in that one file by T1 and left alone in the rest of
+  `CuttingBench/`, where a sweep needs care: four of the files are tests whose citations sit on checks
+  other plans pinned as untouchable. Filed as `Chore-Decision-Numbers-Cited-In-Code`, `untriaged`. The
+  rule that replaced it — cite ADRs, or write the reason in words — is now in `CLAUDE.md`.
