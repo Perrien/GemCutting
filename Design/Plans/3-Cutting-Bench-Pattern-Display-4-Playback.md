@@ -692,8 +692,8 @@ an owner-stop verification. If the `-I` path does not exist, the `swift build` l
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
 | T1 | Prefactor: split the drawn solid off the solve | completed | continue | commit | |
-| T2 | Pure: the step list | not started | continue | — | |
-| T3 | Pure: the step's solid, with no re-solve | not started | checkpoint | commit | |
+| T2 | Pure: the step list | completed | continue | — | |
+| T3 | Pure: the step's solid, with no re-solve | completed | checkpoint | commit | |
 | T4 | The scrubber scrubs; the debug stepper goes | not started | **owner stop** | commit + push | |
 | T5 | One honest wait: the eager precompute and its bar | not started | **owner stop** | commit + push | |
 | T6 | Close out | not started | **owner stop** | commit + push | |
