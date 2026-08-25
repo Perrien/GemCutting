@@ -73,19 +73,70 @@ final class BenchSolidTests: XCTestCase {
 
   // MARK: - The plane indices
 
-  func testThePatternsPlanesStartAtEighteenAndCarryTheirOwners() throws {
+  func testAClosedPatternsPlanesStartAtZeroAndCarryTheirOwners() throws {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
     let solution = try solve(pattern)
     let bench = benchSolid(for: pattern)
 
-    XCTAssertEqual(bench.planes.count, 18 + solution.planes.count)
+    XCTAssertFalse(bench.includesRough)
+    XCTAssertEqual(bench.planes.count, solution.planes.count)
 
     for (k, owner) in solution.planeOwner {
       XCTAssertEqual(
-        bench.origin[18 + k],
+        bench.origin[k],
         .cut(FacetRef(tier: owner.tier, index: owner.index)),
         "solved plane \(k)")
     }
+  }
+
+  // MARK: - The scaffolding rule: the rough leaves when the pattern stands up on its own
+
+  func testAClosedPatternDropsTheRoughEntirely() throws {
+    for name in AuthoredPatterns.all {
+      let pattern = try AuthoredPatterns.load(name)
+      let solved = try solve(pattern)
+      let bench = benchSolid(for: pattern)
+
+      XCTAssertFalse(bench.includesRough, name)
+      XCTAssertEqual(bench.planes.count, solved.planes.count, name)
+    }
+  }
+
+  /// The solve has already turned these planes into a solid, and with the scaffolding gone they are the
+  /// same planes in the same order — so the app hands back that polytope rather than building it twice.
+  func testAClosedPatternsSolidIsTheSolvesOwnPolytope() throws {
+    for name in AuthoredPatterns.all {
+      let pattern = try AuthoredPatterns.load(name)
+      let solved = try solve(pattern)
+      let bench = benchSolid(for: pattern)
+
+      XCTAssertEqual(Set(bench.polytope.facets.keys), Set(solved.polytope.facets.keys), name)
+      XCTAssertEqual(bench.polytope.vertices.count, solved.polytope.vertices.count, name)
+    }
+  }
+
+  func testAnOpenPatternKeepsTheRoughAsScaffolding() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
+    let solid = benchSolid(for: pattern, tierLimit: 2)
+
+    XCTAssertTrue(solid.includesRough)
+
+    let cut = solid.origin.values.filter { origin in
+      guard case .cut = origin else { return false }
+      return true
+    }
+    XCTAssertEqual(solid.planes.count, roughPlaneCount + cut.count)
+
+    // This solid is the app's own intersection rather than the solve's: it carries facets below the
+    // pattern's base, which the solve's rough-free polytope cannot have.
+    XCTAssertTrue(solid.polytope.facets.keys.contains { $0 < roughPlaneCount })
+  }
+
+  func testWithNoPatternTheRoughIsAllThereIs() {
+    let solid = benchSolid(for: nil)
+
+    XCTAssertTrue(solid.includesRough)
+    XCTAssertEqual(solid.planes.count, 18)
   }
 
   // MARK: - The part-cut state, which no authored pattern can show

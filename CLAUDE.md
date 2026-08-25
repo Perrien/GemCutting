@@ -96,6 +96,27 @@ different rules for two different things; both are hard.
 
 ---
 
+## Never cite a decision by its plan's number
+
+**A plan's decision numbers — `D1`, `D7` — are local to that plan and mean nothing outside it.** Every
+plan starts again at `D1`, and plans get archived, so a bare `Dn` in code is a pointer to a document
+that will one day both be gone *and* have a namesake meaning something else. One rule, one decision,
+and four different names for it is how the reasoning gets lost.
+
+- **In code, cite only ADRs, as `ADR-0004`.** That number is unique, permanent and never archived.
+- **A decision with no ADR gets its reason written into the comment, in words.** If it isn't worth an
+  ADR it is worth a sentence, and the sentence is what a future reader actually needed.
+- **In a plan or an exploration, `Dn` is correct** — that's where the numbers are defined and where
+  cross-references to them resolve.
+- **When a plan restates a decision another document already settled, that's the signal to write the
+  ADR** and cite it from both, rather than making a third copy.
+
+**Talking to the owner, name the thing in words, never by code.** Not *"D5 versus the app shell's D1"* —
+say *"the rule that the rough is added by the app, not the solver."* The codes are internal bookkeeping;
+they carry no information for a reader who isn't holding the document open.
+
+---
+
 ## Where the durable records live
 
 Both are created **lazily** — only when there is something real to put in them. Neither is

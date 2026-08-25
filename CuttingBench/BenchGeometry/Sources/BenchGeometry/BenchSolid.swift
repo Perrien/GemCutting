@@ -1,37 +1,46 @@
 import FacetKernel
 import Foundation
 
-/// Where the rough's own planes stop and the pattern's begin. Fixed for every pattern and for no
-/// pattern at all, which is what makes the rough plane indices and their names testable (D9).
+/// How many half-spaces the rough contributes, and nothing more than that: the pattern's own planes
+/// start at this index only while `BenchSolid.includesRough` is true, and at `0` once the scaffolding
+/// has come away. Fixed for every pattern and for no pattern at all, which is what makes the rough
+/// plane indices and their names testable.
 let roughPlaneCount = 2 + Rough.wallCount
 
 /// What a plane of the drawn solid belongs to. Two cases, so a rough wall named `G1` and a tier named
-/// `G1` are never the same value (D8).
+/// `G1` are never the same value.
 public enum FacetOrigin: Equatable, Sendable {
   case rough(RoughFacet)
   case cut(FacetRef)
 }
 
-/// The solid the viewport draws: the rough intersected with whatever tiers have been placed.
+/// The solid the viewport draws: the pattern's own planes, and the rough's as well for as long as the
+/// pattern still needs the scaffolding.
 public struct BenchSolid: Sendable {
-  /// Rough planes at indices 0…17, then the pattern's solved planes from 18 up (D9).
+  /// The rough's planes first and then the pattern's solved planes while the rough is included; the
+  /// pattern's alone once it is not. `includesRough` says which.
   public var planes: [Plane]
   /// An entry for every index in `planes`.
   public var origin: [Int: FacetOrigin]
   public var polytope: Polytope
-  /// The tiers that actually placed, as the index ring's source. Empty for no pattern (D17).
+  /// The tiers that actually placed, as the index ring's source. Empty for no pattern.
   public var tiers: [SolvedTier]
+  /// Whether the rough's half-spaces are in `planes` — and so whether the pattern's own planes start at
+  /// `roughPlaneCount` or at `0`. Nothing should have to infer which base it is looking at.
+  public var includesRough: Bool
 
   public init(
     planes: [Plane],
     origin: [Int: FacetOrigin],
     polytope: Polytope,
-    tiers: [SolvedTier] = []
+    tiers: [SolvedTier] = [],
+    includesRough: Bool = true
   ) {
     self.planes = planes
     self.origin = origin
     self.polytope = polytope
     self.tiers = tiers
+    self.includesRough = includesRough
   }
 
   /// The plane indices that survived as facets, split by origin. Both read `polytope.facets.keys`, so
@@ -62,41 +71,75 @@ public struct BenchSolid: Sendable {
 ///
 /// The rough is intersected here, in the app, and never handed to the solver: the kernel's own polytope
 /// stays rough-free, because a rough-capped solid always closes and feeding rough into the solve would
-/// make the closure check pass for every pattern including the ones it exists to catch (D1).
+/// make the closure check pass for every pattern including the ones it exists to catch (ADR-0004).
 ///
-/// `tierLimit` is the diagnostic in T2: `nil` means every tier, `n` means only the first `n`. Truncating
-/// is safe because a meet may only name an earlier tier — a forward reference is
+/// **The rough is scaffolding rather than a bounding box.** Its half-spaces enter the intersection only
+/// while the pattern's own planes fail to bound a closed solid, and come away the moment they do —
+/// otherwise a rescale that deepened a pavilion would have its culet cut off by a preform that is no
+/// longer there. At closure the stone stands well inside the prism, so the intersection already equals
+/// the pattern's own solid and the transition is invisible.
+///
+/// `tierLimit` is the tier-limit diagnostic: `nil` means every tier, `n` means only the first `n`.
+/// Truncating is safe because a meet may only name an earlier tier — a forward reference is
 /// `SolverError.forwardReference`, never something the solver resolves — so the first `n` tiers solve to
 /// exactly the depths they have in the whole pattern.
 public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSolid {
-  var planes = roughPlanes()
-  var origin: [Int: FacetOrigin] = [:]
-  var tiers: [SolvedTier] = []
-  for (index, facet) in roughFacets().enumerated() {
-    origin[index] = .rough(facet)
+  guard var truncated = pattern else { return roughOnly() }
+  if let tierLimit {
+    truncated.tiers = Array(truncated.tiers.prefix(tierLimit))
   }
 
-  if var truncated = pattern {
-    if let tierLimit {
-      truncated.tiers = Array(truncated.tiers.prefix(tierLimit))
-    }
-    // `solveAsFarAsPossible`, never `solve`: a half-authored pattern is the normal state of authoring,
-    // and its `failure` is discarded because the tiers that placed are what there is to draw (D11). No
-    // `girdleTargetFraction` argument, so the pattern reproduces its own diagram (D12).
-    let partial = solveAsFarAsPossible(truncated)
-    // From the **solution**, never from `truncated.tiers`: a tier the solver could not place has no
-    // depth, no planes and therefore no index stops (D17).
-    tiers = partial.solution.tiers
-    for (k, plane) in partial.solution.planes.enumerated() {
-      planes.append(plane)
-      // A plane with no owner is impossible today. If one appears, it is left out of `origin` rather
-      // than given an invented name — a missing entry is something a test can see.
-      if let owner = partial.solution.planeOwner[k] {
-        origin[roughPlaneCount + k] = .cut(FacetRef(tier: owner.tier, index: owner.index))
-      }
+  // `solveAsFarAsPossible`, never `solve`: a half-authored pattern is the normal state of authoring, and
+  // the tiers that placed are what there is to draw. No `girdleTargetFraction` argument, so the pattern
+  // reproduces its own diagram.
+  let partial = solveAsFarAsPossible(truncated)
+
+  // The kernel's own closure check decides whether the scaffolding is still needed. Nothing here
+  // computes closure a second time, because a second implementation could agree with a broken one.
+  let isOpen = solidFindings(partial.solution, declaredFacetCount: nil).contains { finding in
+    guard case .doesNotClose = finding else { return false }
+    return true
+  }
+
+  var (planes, origin) = roughScaffolding(included: isOpen)
+  let base = isOpen ? roughPlaneCount : 0
+  for (k, plane) in partial.solution.planes.enumerated() {
+    planes.append(plane)
+    // A plane with no owner is impossible today. If one appears, it is left out of `origin` rather
+    // than given an invented name — a missing entry is something a test can see.
+    if let owner = partial.solution.planeOwner[k] {
+      origin[base + k] = .cut(FacetRef(tier: owner.tier, index: owner.index))
     }
   }
 
   return BenchSolid(
-    planes: planes, origin: origin, polytope: intersectHalfSpaces(planes), tiers: tiers)
+    planes: planes,
+    origin: origin,
+    // With the scaffolding gone, `planes` *is* `partial.solution.planes` in its own order, so the
+    // kernel's polytope is already the answer and intersecting it again would be the same work twice.
+    polytope: isOpen ? intersectHalfSpaces(planes) : partial.solution.polytope,
+    // From the **solution**, never from `truncated.tiers`: a tier the solver could not place has no
+    // depth, no planes and therefore no index stops.
+    tiers: partial.solution.tiers,
+    includesRough: isOpen)
+}
+
+/// The bare prism: a window has a solid before any pattern is open, and that solid is the rough alone.
+private func roughOnly() -> BenchSolid {
+  let (planes, origin) = roughScaffolding(included: true)
+  return BenchSolid(
+    planes: planes, origin: origin, polytope: intersectHalfSpaces(planes), includesRough: true)
+}
+
+/// The rough's planes and their names, or two empties once the pattern's own planes bound a solid and
+/// the scaffolding has come away.
+private func roughScaffolding(
+  included: Bool
+) -> (planes: [Plane], origin: [Int: FacetOrigin]) {
+  guard included else { return ([], [:]) }
+  var origin: [Int: FacetOrigin] = [:]
+  for (index, facet) in roughFacets().enumerated() {
+    origin[index] = .rough(facet)
+  }
+  return (roughPlanes(), origin)
 }

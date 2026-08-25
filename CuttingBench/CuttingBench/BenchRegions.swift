@@ -154,7 +154,8 @@ struct StatusStripRegion: View {
       let counts =
         "\(solid.polytope.facets.count) facets "
         + "(\(solid.cutFacetIndices.count) cut, \(solid.roughFacetIndices.count) rough)"
-      return "\(document) · \(counts)"
+      let rough = solid.includesRough ? "rough scaffolding" : "rough dropped"
+      return "\(document) · \(counts) · \(rough)"
     }
   #endif
 }

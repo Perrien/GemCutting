@@ -790,7 +790,7 @@ continuation of that task, not a blocker.
 | T5 | Click a facet, highlight it, name it | completed | **owner stop** | commit | material alteration: the highlight is `NSColor.systemOrange`, not the accent colour — see D18 |
 | T6 | Pure: the index ring's labels and its fade | completed | continue | — | |
 | T7 | The index ring over the viewport | completed | **owner stop** | commit | |
-| T8 | Close out | awaiting owner | **owner stop** | commit + push | |
+| T8 | Close out | completed | **owner stop** | commit + push | |
 
 Five owner stops in eight tasks, because **T2, T3, T5 and T7 each change what the owner can see and
 operate** and the protocol puts a stop after every one of those; T8 is plan completion, which always
