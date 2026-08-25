@@ -1,6 +1,8 @@
 # 3 · Cutting Bench Pattern Display — Part 4: Playback
 
-Status: **DRAFT** — not yet approved.
+Status: **Part 4 completed 2026-08-25.** Nothing here is archived: this is one part of five, and the
+exploration `3-Cutting-Bench-Pattern-Display` stays live as the design source for part 5, which archives
+this plan along with parts 1 to 3 and its own when it closes out.
 
 ## Parts
 
@@ -695,8 +697,8 @@ an owner-stop verification. If the `-I` path does not exist, the `swift build` l
 | T2 | Pure: the step list | completed | continue | — | |
 | T3 | Pure: the step's solid, with no re-solve | completed | checkpoint | commit | |
 | T4 | The scrubber scrubs; the debug stepper goes | completed | **owner stop** | commit + push | Material alteration: `BenchSolidStore`'s `nonisolated init()` cannot assign a main-actor property, so `full`, `solid`, `mesh` and `fullFrame` take their defaults from one file-private `barePrismFrame` built once, and the init is empty as `BenchFindingsStore`'s is. |
-| T5 | One honest wait: the eager precompute and its bar | awaiting owner | **owner stop** | commit + push | |
-| T6 | Close out | not started | **owner stop** | commit + push | |
+| T5 | One honest wait: the eager precompute and its bar | completed | **owner stop** | commit + push | |
+| T6 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — Prefactor: split the drawn solid off the solve**
 
