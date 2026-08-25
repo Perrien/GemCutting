@@ -48,6 +48,7 @@ struct BenchWindow: View {
             ringLabels: indexRingLabels(store.solid),
             meetDots: meetDots,
             meetWarning: selectedTier.map { readout.warningTiers.contains($0) } ?? false,
+            probe: probe,
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
           )
@@ -170,6 +171,9 @@ struct BenchWindow: View {
   private func afterSolidChanged() {
     selectedPlaneIndex = nil
     selectedFacetLabel = nil
+    // The path goes with the solid it was traced through. The Probe *mode* stays on: the owner turned it
+    // on, and a rebuild is not them turning it off.
+    probe = nil
     // Last, because it reads the solid the store has just produced.
     findingsStore.rebuild(pattern: document.pattern, solid: store.solid)
   }
@@ -194,5 +198,17 @@ struct BenchWindow: View {
     let hit = pickFacet(store.solid, origin: ray.origin, direction: ray.direction)
     selectedPlaneIndex = hit?.planeIndex
     selectedFacetLabel = hit.map { facetLabel($0.facet) }
+
+    // The pick above is unchanged and always happens; the trace is the mode on top of it. Straight down
+    // from the point that was clicked, which is how windowing is judged — looking at a face-up stone from
+    // above. A click that misses the solid clears the path, which is right: the owner clicked away from
+    // the stone.
+    guard probeOn, let hit,
+      let ri = effectiveRefractiveIndex(pattern: document.pattern, override: riOverride)
+    else {
+      probe = nil
+      return
+    }
+    probe = probeTrace(store.solid, ri: ri, from: hit.point)
   }
 }

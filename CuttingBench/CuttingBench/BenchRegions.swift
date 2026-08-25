@@ -3,8 +3,8 @@ import FacetKernel
 import Foundation
 import SwiftUI
 
-/// The renderer's region. **One Metal subview plus the index-ring and meet-point overlays** (D2, U4),
-/// and nothing else may draw here.
+/// The renderer's region. **One Metal subview plus the index-ring, meet-point and probe-path overlays**
+/// (D2, U4), and nothing else may draw here.
 struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
@@ -16,6 +16,8 @@ struct ViewportRegion: View {
   let meetDots: [MeetPointDot]
   /// Whether this tier carries a finding whose geometry is one of these points.
   let meetWarning: Bool
+  /// The last traced path. `nil` for none, and then the overlay draws nothing.
+  let probe: ProbeReadout?
   let onOrbit: (CGFloat, CGFloat) -> Void
   let onPick: (CGPoint, CGSize) -> Void
 
@@ -33,6 +35,9 @@ struct ViewportRegion: View {
     // After the ring, so a dot near the rim draws over a number rather than under it: the dot is about
     // the tier you selected and the number is standing context.
     .overlay { MeetPointOverlay(dots: meetDots, camera: camera, warning: meetWarning) }
+    // Last of the three, so the path draws over a dot rather than under it: the path is what the owner
+    // just asked for and the dots are standing context.
+    .overlay { ProbePathOverlay(probe: probe, camera: camera) }
   }
 }
 
