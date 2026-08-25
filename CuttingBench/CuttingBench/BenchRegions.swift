@@ -112,7 +112,7 @@ struct StatusStripRegion: View {
 
   var body: some View {
     HStack(spacing: 8) {
-      Text("No findings")
+      Text(solid.stoppedReason ?? "No findings")
       Spacer(minLength: 8)
       Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG
@@ -155,7 +155,8 @@ struct StatusStripRegion: View {
         "\(solid.polytope.facets.count) facets "
         + "(\(solid.cutFacetIndices.count) cut, \(solid.roughFacetIndices.count) rough)"
       let rough = solid.includesRough ? "rough scaffolding" : "rough dropped"
-      return "\(document) · \(counts) · \(rough)"
+      let stopped = solid.stoppedAtTier.map { " · stopped at \($0)" } ?? ""
+      return "\(document) · \(counts) · \(rough)\(stopped)"
     }
   #endif
 }

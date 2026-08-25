@@ -186,7 +186,63 @@ final class BenchSolidTests: XCTestCase {
     XCTAssertEqual(solid.polytope.vertices.count, bare.polytope.vertices.count)
   }
 
+  // MARK: - The tier the solve stopped on
+
+  func testTheStopIsTheTierAndTheKernelsOwnSentence() throws {
+    let solid = benchSolid(for: try brokenAsher())
+
+    XCTAssertEqual(solid.stoppedAtTier, "P2")
+    XCTAssertEqual(solid.stoppedReason, "tier P2: there is no facet P9@24")
+    XCTAssertEqual(solid.tiers.map(\.tier), ["G", "P1"])
+    // Two tiers do not bound a solid, so the scaffolding is still there: the two rules meeting.
+    XCTAssertTrue(solid.includesRough)
+  }
+
+  func testAWholeSolveLeavesNoStopAndNorDoesNoPatternAtAll() throws {
+    for name in AuthoredPatterns.all {
+      let solid = benchSolid(for: try AuthoredPatterns.load(name))
+
+      XCTAssertNil(solid.stoppedAtTier, name)
+      XCTAssertNil(solid.stoppedReason, name)
+    }
+
+    let bare = benchSolid(for: nil)
+    XCTAssertNil(bare.stoppedAtTier)
+    XCTAssertNil(bare.stoppedReason)
+  }
+
+  /// A tier limit is not a failure: the tiers past it were never attempted, so nothing stopped.
+  func testATierLimitIsNotAStop() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
+    let solid = benchSolid(for: pattern, tierLimit: 2)
+
+    XCTAssertNil(solid.stoppedAtTier)
+    XCTAssertNil(solid.stoppedReason)
+  }
+
   // MARK: - Helpers
+
+  /// `Novice Ash-er` with `P2`'s meet naming a facet of a tier that does not exist, which is the one
+  /// state no authored pattern can be in. Built in memory: the corpus is ground truth and is never
+  /// edited to feed a check.
+  ///
+  /// The named facets resolve in file order, so the first unknown one wins and the sentence is
+  /// deterministic. `P2` is found by label rather than by position — a hardcoded index would silently
+  /// point at another tier if the file were ever reordered.
+  private func brokenAsher() throws -> FacetKernel.Pattern {
+    var pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
+    let index = try XCTUnwrap(pattern.tiers.firstIndex { $0.tier == "P2" })
+
+    pattern.tiers[index].meet = .fraction(
+      from: .vertex(facets: [
+        FacetRef(tier: "G", index: 12),
+        FacetRef(tier: "G", index: 24),
+        FacetRef(tier: "P9", index: 24),
+      ]),
+      percent: 24.862,
+      to: .tcp)
+    return pattern
+  }
 
   /// The solved plane offsets belonging to one tier, in plane order.
   private func depths(of tier: String, in solid: BenchSolid) -> [Double] {

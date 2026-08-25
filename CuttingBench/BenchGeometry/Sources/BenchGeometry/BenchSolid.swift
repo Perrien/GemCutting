@@ -28,19 +28,30 @@ public struct BenchSolid: Sendable {
   /// Whether the rough's half-spaces are in `planes` — and so whether the pattern's own planes start at
   /// `roughPlaneCount` or at `0`. Nothing should have to infer which base it is looking at.
   public var includesRough: Bool
+  /// The tier the partial solve stopped on, and the kernel's own sentence saying why — its wording
+  /// verbatim, so no display code has to invent one. Both `nil` when every tier placed.
+  ///
+  /// Two plain strings rather than the `SolverError` itself, which keeps this `Sendable` value free of a
+  /// kernel error type.
+  public var stoppedAtTier: String?
+  public var stoppedReason: String?
 
   public init(
     planes: [Plane],
     origin: [Int: FacetOrigin],
     polytope: Polytope,
     tiers: [SolvedTier] = [],
-    includesRough: Bool = true
+    includesRough: Bool = true,
+    stoppedAtTier: String? = nil,
+    stoppedReason: String? = nil
   ) {
     self.planes = planes
     self.origin = origin
     self.polytope = polytope
     self.tiers = tiers
     self.includesRough = includesRough
+    self.stoppedAtTier = stoppedAtTier
+    self.stoppedReason = stoppedReason
   }
 
   /// The plane indices that survived as facets, split by origin. Both read `polytope.facets.keys`, so
@@ -121,7 +132,11 @@ public func benchSolid(for pattern: Pattern?, tierLimit: Int? = nil) -> BenchSol
     // From the **solution**, never from `truncated.tiers`: a tier the solver could not place has no
     // depth, no planes and therefore no index stops.
     tiers: partial.solution.tiers,
-    includesRough: isOpen)
+    includesRough: isOpen,
+    // Kept rather than discarded. The tiers that placed are what there is to draw, and the tier that
+    // stopped the solve is what there is to say.
+    stoppedAtTier: partial.failure?.tier,
+    stoppedReason: partial.failure?.description)
 }
 
 /// The bare prism: a window has a solid before any pattern is open, and that solid is the rough alone.
