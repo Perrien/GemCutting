@@ -25,10 +25,6 @@ struct BenchWindow: View {
   /// The tier whose meet points are drawn, as the table's own selection. A view state and nothing more:
   /// it is not persisted and nothing is edited through it.
   @State private var selectedTier: String?
-  #if DEBUG
-    /// The tier-limit diagnostic. `nil` is every tier, which is the default and the shipped behaviour.
-    @State private var tierLimit: Int?
-  #endif
 
   var body: some View {
     VStack(spacing: 0) {
@@ -48,7 +44,14 @@ struct BenchWindow: View {
           )
           .frame(minHeight: 240)
           Divider()
-          ScrubberRegion()
+          ScrubberRegion(
+            steps: store.steps,
+            stepIndex: store.stepIndex,
+            granularity: store.granularity,
+            progress: store.progress,
+            canPlay: !store.full.tiers.isEmpty,
+            onGranularity: setGranularity(_:),
+            onStep: setStep(_:))
         }
         TierTableRegion(
           rows: tierTableRows(pattern: document.pattern, solid: store.solid),
@@ -64,7 +67,8 @@ struct BenchWindow: View {
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
           findings: readout,
-          tierLimit: $tierLimit)
+          cachedFrames: store.cachedFrameCount,
+          stepTotal: store.steps.count)
       #else
         StatusStripRegion(
           pattern: document.pattern,
@@ -105,9 +109,6 @@ struct BenchWindow: View {
     // The store is driven from here rather than from `body`'s own evaluation, so nothing mutates
     // observable state during a view update.
     .onChange(of: document.pattern, initial: true) { rebuild() }
-    #if DEBUG
-      .onChange(of: tierLimit) { rebuild() }
-    #endif
   }
 
   /// Recomputed per body pass rather than cached: it is string formatting over at most a few dozen
@@ -127,23 +128,31 @@ struct BenchWindow: View {
     return meetPointDots(ofTier: selectedTier, pattern: document.pattern, solid: store.solid)
   }
 
+  /// A new document: one solve, and playback back to off.
   private func rebuild() {
-    // A plane index means nothing across a rebuild: the tier limit decides how many solved planes are
-    // appended after the rough's eighteen, so keeping the selection would leave the highlight on an
-    // unrelated plane and the strip reading the old name. Opening a different pattern is the same case.
-    //
-    // `selectedTier` is deliberately kept. A tier label survives a rebuild where a plane index does not,
-    // and keeping it is what lets the owner step the tier limit and watch the same tier's dots move. A
-    // label the new pattern does not carry yields no dots, so a stale selection is inert rather than
-    // wrong.
+    store.setPattern(document.pattern)
+    afterSolidChanged()
+  }
+
+  private func setGranularity(_ granularity: PlaybackGranularity?) {
+    store.setGranularity(granularity)
+    afterSolidChanged()
+  }
+
+  private func setStep(_ index: Int) {
+    store.setStepIndex(index)
+    afterSolidChanged()
+  }
+
+  /// The facet selection goes, the tier selection stays. A plane index means nothing across a rebuild —
+  /// the rough's eighteen come and go and the cut planes are re-expanded — so a kept index would leave
+  /// the highlight on an unrelated facet and the strip reading the old name. A tier *label* survives, and
+  /// keeping it is what lets the owner scrub and watch one tier's meet dots arrive. A label the new
+  /// pattern does not carry yields no dots, so a stale selection is inert rather than wrong.
+  private func afterSolidChanged() {
     selectedPlaneIndex = nil
     selectedFacetLabel = nil
-    #if DEBUG
-      store.rebuildIfNeeded(pattern: document.pattern, tierLimit: tierLimit)
-    #else
-      store.rebuildIfNeeded(pattern: document.pattern, tierLimit: nil)
-    #endif
-    // Last, because it reads the solid the call above produces.
+    // Last, because it reads the solid the store has just produced.
     findingsStore.rebuild(pattern: document.pattern, solid: store.solid)
   }
 

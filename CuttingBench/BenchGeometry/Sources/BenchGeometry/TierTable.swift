@@ -6,7 +6,7 @@ public enum TierRowState: Equatable, Sendable {
   case solved
   /// The tier the partial solve stopped on.
   case stopped
-  /// Never attempted: it sits after the stopped tier, or past the debug tier limit.
+  /// Never attempted: it sits after the stopped tier, or past the playback step the scrubber is at.
   case notReached
 }
 

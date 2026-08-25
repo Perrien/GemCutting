@@ -36,14 +36,98 @@ struct ViewportRegion: View {
   }
 }
 
-/// The strip directly under the viewport. Empty in this part (D11).
+/// The strip directly under the viewport: the granularity control, the scrubber and the step readout.
+///
+/// **No state of its own**, like `ViewportRegion` and `TierTableRegion`. The window mutates the store
+/// and rebuilds the findings after, so a pattern change and a scrub go down one path.
 struct ScrubberRegion: View {
+  /// Every position playback can reach. Empty when there is nothing to play.
+  let steps: [PlaybackStep]
+  let stepIndex: Int
+  /// `nil` is playback off.
+  let granularity: PlaybackGranularity?
+  /// Non-`nil` while the frames are being built, which is when the slider is disabled.
+  let progress: PlaybackProgress?
+  /// Whether the solve placed any tier at all. `false` disables the whole strip.
+  let canPlay: Bool
+  let onGranularity: (PlaybackGranularity?) -> Void
+  let onStep: (Int) -> Void
+
   var body: some View {
-    Text("Scrubber")
-      .font(.callout)
-      .foregroundStyle(.secondary)
-      .frame(maxWidth: .infinity)
-      .frame(height: 32)
+    HStack(spacing: 10) {
+      picker
+      if let progress {
+        building(progress)
+      } else {
+        Slider(
+          value: Binding(
+            get: { Double(stepIndex) },
+            set: { onStep(Int($0.rounded())) }),
+          in: 0...Double(max(steps.count - 1, 1)),
+          step: 1
+        )
+        .disabled(isIdle)
+      }
+      // A slider alone cannot reliably hit one step of seventy-four.
+      Button {
+        onStep(stepIndex - 1)
+      } label: {
+        Image(systemName: "chevron.left")
+      }
+      .disabled(isIdle || stepIndex <= 0)
+      Button {
+        onStep(stepIndex + 1)
+      } label: {
+        Image(systemName: "chevron.right")
+      }
+      .disabled(isIdle || stepIndex >= steps.count - 1)
+      // A fixed width, so the strip does not reflow as the numbers change.
+      Text(steps.indices.contains(stepIndex) ? steps[stepIndex].label : "—")
+        .monospaced()
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .frame(width: 220, alignment: .trailing)
+    }
+    .padding(.horizontal, 10)
+    .frame(height: 32)
+  }
+
+  /// The tags are spelled as optionals, or the picker never matches its selection: the binding's value
+  /// is `PlaybackGranularity?`, and a bare `.tag(PlaybackGranularity.tier)` is a different type from
+  /// the selection's, so that row is simply never selected.
+  ///
+  /// **Enabled while a precompute runs**, because choosing Off is the cancel — there is no separate
+  /// Cancel button, since the control that started the wait is the one to hand.
+  private var picker: some View {
+    Picker(
+      "Playback",
+      selection: Binding(get: { granularity }, set: { onGranularity($0) })
+    ) {
+      Text("Off").tag(Optional<PlaybackGranularity>.none)
+      Text("Tier").tag(Optional(PlaybackGranularity.tier))
+      Text("Facet").tag(Optional(PlaybackGranularity.facet))
+    }
+    .pickerStyle(.segmented)
+    .labelsHidden()
+    .frame(width: 180)
+    .disabled(!canPlay)
+  }
+
+  /// Determinate, because the count is known before the work starts: an indeterminate spinner would say
+  /// nothing about how long the one honest wait is.
+  private func building(_ progress: PlaybackProgress) -> some View {
+    HStack(spacing: 8) {
+      ProgressView(value: Double(progress.done), total: Double(progress.total))
+      Text("building \(progress.done)/\(progress.total)")
+        .font(.callout)
+        .foregroundStyle(.secondary)
+    }
+  }
+
+  /// The slider and both chevrons are inert with playback off, while the frames are still being built,
+  /// and when the sequence is too short to move through.
+  private var isIdle: Bool {
+    granularity == nil || progress != nil || steps.count < 2
   }
 }
 
@@ -236,7 +320,10 @@ struct StatusStripRegion: View {
   /// The one findings value all three surfaces read, so none of them can disagree about the count.
   let findings: FindingsReadout
   #if DEBUG
-    @Binding var tierLimit: Int?
+    /// How many step frames are cached, and how many the list has. The owner's window onto the
+    /// precompute.
+    let cachedFrames: Int
+    let stepTotal: Int
   #endif
   /// Whether the detail is open. View state: a popover closes when you look away and nothing about it is
   /// worth persisting.
@@ -259,7 +346,6 @@ struct StatusStripRegion: View {
       Spacer(minLength: 8)
       Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG
-        tierLimitStepper
         Text(documentSummary)
       #endif
     }
@@ -270,26 +356,8 @@ struct StatusStripRegion: View {
   }
 
   #if DEBUG
-    private var tierTotal: Int { pattern?.tiers.count ?? 0 }
-    private var tiersShown: Int { tierLimit ?? tierTotal }
-
-    /// The only way to see a rough-and-pattern solid at all: every authored pattern is `finished`, and a
-    /// finished pattern cuts the whole prism away. A later slice's scrubber supersedes this.
-    private var tierLimitStepper: some View {
-      Stepper("tiers \(tiersShown)/\(tierTotal)") {
-        setTierLimit(min(tiersShown + 1, tierTotal))
-      } onDecrement: {
-        setTierLimit(max(tiersShown - 1, 0))
-      }
-      .disabled(pattern == nil)
-    }
-
-    /// At the total it stores `nil` rather than the number, so the unlimited case stays the default.
-    private func setTierLimit(_ value: Int) {
-      tierLimit = value >= tierTotal ? nil : value
-    }
-
-    /// What the document decoded, and what the solid it produced is made of.
+    /// What the document decoded, what the solid it produced is made of, and how much of the playback
+    /// sequence is cached.
     private var documentSummary: String {
       let document =
         pattern.map { "\($0.name) · \($0.state.rawValue) · \($0.tiers.count) tiers" }
@@ -299,7 +367,7 @@ struct StatusStripRegion: View {
         + "(\(solid.cutFacetIndices.count) cut, \(solid.roughFacetIndices.count) rough)"
       let rough = solid.includesRough ? "rough scaffolding" : "rough dropped"
       let stopped = solid.stoppedAtTier.map { " · stopped at \($0)" } ?? ""
-      return "\(document) · \(counts) · \(rough)\(stopped)"
+      return "\(document) · \(counts) · \(rough)\(stopped) · frames \(cachedFrames)/\(stepTotal)"
     }
   #endif
 }
