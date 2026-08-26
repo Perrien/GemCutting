@@ -188,6 +188,10 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case girdleTargetNotPositive(typed: String)
   case tiersWithoutMeet([String])
   case noTiers
+  /// The `finished` transition declined, with each finding as its own sentence (D10).
+  case finishedWithFindings([String])
+  /// The `finished` transition declined because the solve does not reach the end of the pattern (D11).
+  case finishedWithSolveStoppedShort(tier: String, reason: String)
 
   /// The sentence the alert shows and the log line records. One wording, so the two cannot disagree.
   public var message: String {
@@ -217,10 +221,21 @@ public enum DraftRefusal: Error, Equatable, Sendable {
       "A girdle target has to be greater than zero. "
         + "Leave the field empty for the default of \(Pattern.defaultGirdleTargetFraction)."
     case .tiersWithoutMeet(let tiers):
-      "This pattern cannot be saved yet: \(list(tiers)) \(tiers.count == 1 ? "has" : "have") no meet. "
+      // No "cannot be saved" prefix: this case now answers a `finished` transition as well as a save, and
+      // `DraftSaveError.errorDescription` already says "This pattern cannot be saved yet." above it.
+      "\(list(tiers)) \(tiers.count == 1 ? "has" : "have") no meet. "
         + "Choose one for each, or delete the tier."
     case .noTiers:
       "This pattern has no tiers yet."
+    case .finishedWithFindings(let sentences):
+      // A bulleted list rather than `list(_:)`'s commas: these are whole sentences, and comma-joining
+      // sentences is unreadable at four of them.
+      "This pattern cannot be marked finished yet — "
+        + "\(sentences.count) \(sentences.count == 1 ? "finding" : "findings") fired:\n"
+        + sentences.map { "• \($0)" }.joined(separator: "\n")
+    case .finishedWithSolveStoppedShort(let tier, let reason):
+      "This pattern cannot be marked finished: the solve stops at \(tier) — \(reason). "
+        + "A tier that will not place has no facets on the stone."
     }
   }
 

@@ -109,7 +109,8 @@ struct BenchWindow: View {
         probeOn: $probeOn,
         probe: probe,
         draft: document.draft,
-        edit: edit
+        edit: edit,
+        setState: setState(_:)
       )
       .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }
@@ -179,6 +180,21 @@ struct BenchWindow: View {
     }
     refusals.present(refusal)
     return false
+  }
+
+  /// The `state` switch. **The one check in this app that blocks rather than reports** (D8): everywhere
+  /// else the author is mid-work, here they are asserting something about the result.
+  ///
+  /// Going back to `in progress` claims nothing, so it is applied without a check (D13). The refusal goes
+  /// through the same presenter every other refused edit does, which is what puts it in the unified log.
+  private func setState(_ state: PatternState) {
+    if state == .finished,
+      let refusal = finishRefusal(draft: document.draft, declaredFacets: declaredFacets)
+    {
+      refusals.present(refusal)
+      return
+    }
+    edit("Change State", { setting(state: state, in: $0) })
   }
 
   private func setGranularity(_ granularity: PlaybackGranularity?) {

@@ -151,7 +151,7 @@ final class PatternDraftTests: XCTestCase {
         + "Leave the field empty for the default of 0.04.")
     XCTAssertEqual(
       DraftRefusal.tiersWithoutMeet(["P4", "C3"]).message,
-      "This pattern cannot be saved yet: P4, C3 have no meet. "
+      "P4, C3 have no meet. "
         + "Choose one for each, or delete the tier.")
     XCTAssertEqual(DraftRefusal.noTiers.message, "This pattern has no tiers yet.")
   }
@@ -161,6 +161,6 @@ final class PatternDraftTests: XCTestCase {
   func testTheUnsavableSentenceAgreesWithItsOwnCount() {
     XCTAssertEqual(
       DraftRefusal.tiersWithoutMeet(["N1"]).message,
-      "This pattern cannot be saved yet: N1 has no meet. Choose one for each, or delete the tier.")
+      "N1 has no meet. Choose one for each, or delete the tier.")
   }
 }

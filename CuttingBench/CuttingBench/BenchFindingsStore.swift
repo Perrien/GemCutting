@@ -73,6 +73,9 @@ import func FacetKernel.structuralFindings
     isChecking = true
     isArmed = true
     running = Task.detached(priority: .userInitiated) { [weak self] in
+      // The quiet period (D4). A burst of committed edits leaves one pass standing: every earlier task
+      // is cancelled here, before it has done any work at all.
+      do { try await Task.sleep(for: geometricQuietPeriod) } catch { return }
       await self?.startedRunning(generation: generation)
 
       let computed = runTierChecks(

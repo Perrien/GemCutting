@@ -203,6 +203,16 @@ public func setting(name: String, in draft: PatternDraft) -> Result<PatternDraft
   return .success(edited)
 }
 
+/// **Never refused here.** Whether `finished` may be claimed is `finishRefusal`'s question, asked by the
+/// window before this is applied; going back to `in progress` claims nothing and is always allowed (D13).
+public func setting(state: PatternState, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  var edited = draft
+  edited.state = state
+  return .success(edited)
+}
+
 public func setting(designer: String, in draft: PatternDraft)
   -> Result<PatternDraft, DraftRefusal>
 {

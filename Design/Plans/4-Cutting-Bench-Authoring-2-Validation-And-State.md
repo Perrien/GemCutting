@@ -682,10 +682,10 @@ verification. If the `-I` path does not exist, the `swift build` line above crea
 |---|---|---|---|---|---|
 | T1 | Prefactor: one rule for parsing the declared facet count | completed | continue | — | |
 | T2 | Pure: the surviving prefix, the per-tier cache, and the oracle test | completed | checkpoint | commit | material alteration ↓ |
-| T3 | The store validates from the cache | awaiting owner | **owner stop** | commit | |
-| T4 | The quiet period before the expensive half | not started | **owner stop** | commit | |
-| T5 | Pure: the finish verdict and its refusals | not started | checkpoint | commit | |
-| T6 | The state switch in the inspector | not started | **owner stop** | commit | |
+| T3 | The store validates from the cache | completed | **owner stop** | commit | |
+| T4 | The quiet period before the expensive half | completed | **owner stop** | commit | |
+| T5 | Pure: the finish verdict and its refusals | completed | checkpoint | commit | |
+| T6 | The state switch in the inspector | awaiting owner | **owner stop** | commit | |
 | T7 | Close out | not started | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one rule for parsing the declared facet count**

@@ -415,11 +415,14 @@ struct InspectorRegion: View {
   /// measures, so no card can disagree with the draft about what is being solved.
   let draft: PatternDraft
   let edit: (String, DraftChange) -> Bool
+  /// The `state` switch's setter. The window owns the check behind it, because the check needs the declared
+  /// facet count, which is the window's session state.
+  let setState: (PatternState) -> Void
 
   var body: some View {
     ScrollView {
       VStack(spacing: 12) {
-        GroupBox("Pattern") { PatternCard(draft: draft, edit: edit) }
+        GroupBox("Pattern") { PatternCard(draft: draft, edit: edit, setState: setState) }
         GroupBox("Notes") { NotesCard(draft: draft, edit: edit) }
         GroupBox("Metrics") {
           // Called here rather than cached in the store: measuring is arithmetic over facets the hull has
@@ -552,9 +555,10 @@ private struct LightCard: View {
   }
 }
 
-/// The header fields, in the order the format writes them. `state` and the gear are read-only here: a
-/// `state` switch is a claim that needs a complete validation behind it, and a gear change has to refuse
-/// the stops it would put out of range, neither of which is built yet.
+/// The header fields, in the order the format writes them. The gear is read-only here: a gear change has
+/// to refuse the stops it would put out of range, which is not built yet. `state` is a two-way switch, and
+/// whether `finished` may be claimed is `finishRefusal`'s question, asked by the window before the edit is
+/// applied.
 ///
 /// **RI shows three decimals and the girdle target four, because an editable field has to be able to
 /// round-trip its own value.** Two decimals would render corundum's `1.762` as `1.76`, and committing that
@@ -563,6 +567,9 @@ private struct LightCard: View {
 private struct PatternCard: View {
   let draft: PatternDraft
   let edit: (String, DraftChange) -> Bool
+  /// Applied only once the transition has been allowed. The window owns the check, because the check
+  /// needs the declared facet count, which is the window's session state.
+  let setState: (PatternState) -> Void
 
   var body: some View {
     VStack(alignment: .leading, spacing: 6) {
@@ -571,7 +578,20 @@ private struct PatternCard: View {
           edit("Change Name") { setting(name: typed, in: $0) }
         }
       }
-      row("State") { Text(draft.state.rawValue).foregroundStyle(.secondary) }
+      row("State") {
+        // A segmented `Picker` rather than a `Toggle`: the two values have names — `in progress` and
+        // `finished` — and a switch would show only one of them.
+        //
+        // **The binding's getter is the draft**, so a refused transition needs no revert code: the draft
+        // is untouched, the next body pass reads the old value back, and the control springs back. The
+        // same mechanism `EditableCell` uses.
+        Picker("", selection: Binding(get: { draft.state }, set: { setState($0) })) {
+          Text(PatternState.inProgress.rawValue).tag(PatternState.inProgress)
+          Text(PatternState.finished.rawValue).tag(PatternState.finished)
+        }
+        .pickerStyle(.segmented)
+        .labelsHidden()
+      }
       row("Gear") { Text(String(draft.wheel)).foregroundStyle(.secondary) }
       row("RI") {
         EditableCell(stored: String(format: "%.3f", draft.ri)) { typed in
