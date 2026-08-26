@@ -131,6 +131,17 @@ public func metricsReadout(pattern: Pattern?, solid: BenchSolid) -> MetricsReado
       ]))
 }
 
+/// The declared facet count as a number, or `nil` for a field that is not making a claim — empty,
+/// or holding something that is not a positive whole number.
+///
+/// **One rule, in one place.** The Facet Count card and the `finished` transition both read this field,
+/// and two parsers would let them disagree about whether `5x` is a count.
+func declaredCount(_ typed: String) -> Int? {
+  let trimmed = typed.trimmingCharacters(in: .whitespaces)
+  guard let count = Int(trimmed), count > 0 else { return nil }
+  return count
+}
+
 /// `declared` is the field's raw text, so parsing it is this function's job and not the view's.
 public func facetCountCheck(
   pattern: Pattern?, solid: BenchSolid, declared: String
@@ -146,11 +157,11 @@ public func facetCountCheck(
   // claims.
   let split = splitFacetCount(metrics(solution), tiers: solution.tiers)
 
-  let typed = declared.trimmingCharacters(in: .whitespaces)
-  guard !typed.isEmpty else {
+  let trimmed = declared.trimmingCharacters(in: .whitespaces)
+  guard !trimmed.isEmpty else {
     return FacetCountCheck(solved: split, verdict: "No count declared.")
   }
-  guard let count = Int(typed), count > 0 else {
+  guard let count = declaredCount(trimmed) else {
     return FacetCountCheck(solved: split, verdict: "Not a facet count.")
   }
 

@@ -743,8 +743,8 @@ verification. If the `-I` path does not exist, the `swift build` line above crea
 | T5 | Pure: the value edits, the header edits, and the refusal messages | completed | checkpoint | commit | material alteration ↓ |
 | T6 | Editable tier-table cells, and refusals the owner can see | completed | **owner stop** | commit | two material alterations ↓ |
 | T7 | Add, delete and move a tier | completed | **owner stop** | commit | |
-| T8 | The Pattern and Notes cards | awaiting owner | **owner stop** | commit | material alteration ↓ |
-| T9 | Close out | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
+| T8 | The Pattern and Notes cards | completed | **owner stop** | commit | material alteration ↓ |
+| T9 | Close out | completed | **owner stop** | commit + push | material alteration ↓ |
 
 **T1 — Prefactor: the findings store stops keying on the pattern's name**
 

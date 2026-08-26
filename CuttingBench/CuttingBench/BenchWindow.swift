@@ -83,7 +83,10 @@ struct BenchWindow: View {
           findings: readout,
           cachedFrames: store.cachedFrameCount,
           stepTotal: store.steps.count,
-          draftLine: draftSummary(document.draft))
+          draftLine: draftSummary(document.draft),
+          tierChecks: findingsStore.tierChecksRun,
+          geometricPasses: findingsStore.geometricPassesRun,
+          isArmed: findingsStore.isArmed)
       #else
         StatusStripRegion(
           pattern: document.pattern,

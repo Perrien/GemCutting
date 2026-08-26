@@ -677,6 +677,11 @@ struct StatusStripRegion: View {
     /// What the draft holds, which is not always what the display solves: a tier with no meet yet is a
     /// row the author wrote and a tier the stone has never heard of.
     let draftLine: String
+    /// What the deferred half of validation has actually done, so the per-tier cache and the quiet
+    /// period are both watchable.
+    let tierChecks: Int
+    let geometricPasses: Int
+    let isArmed: Bool
   #endif
   /// Whether the detail is open. View state: a popover closes when you look away and nothing about it is
   /// worth persisting.
@@ -720,8 +725,9 @@ struct StatusStripRegion: View {
         + "(\(solid.cutFacetIndices.count) cut, \(solid.roughFacetIndices.count) rough)"
       let rough = solid.includesRough ? "rough scaffolding" : "rough dropped"
       let stopped = solid.stoppedAtTier.map { " · stopped at \($0)" } ?? ""
+      let checks = "checks \(geometricPasses) · tiers \(tierChecks)\(isArmed ? " · armed" : "")"
       return "\(document) · \(counts) · \(rough)\(stopped) · frames \(cachedFrames)/\(stepTotal)"
-        + " · \(draftLine)"
+        + " · \(draftLine) · \(checks)"
     }
   #endif
 }
