@@ -687,8 +687,8 @@ creates it.
 | T2 | Pure: what a click hit — the edge, or the facet | completed | checkpoint | commit | |
 | T3 | Pure: the click machine, and the refusals it states | completed | continue | — | material alteration ↓ |
 | T4 | Pure: the corner, the third name, and the meet it writes | completed | checkpoint | commit | material alteration ↓ |
-| T5 | Picking in the window, against the intermediate solid | awaiting owner | **owner stop** | commit | |
-| T6 | The ghost, and the markers on what has been clicked | not started | **owner stop** | commit + push | |
+| T5 | Picking in the window, against the intermediate solid | completed | **owner stop** | commit | |
+| T6 | The ghost, and the markers on what has been clicked | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
 | T7 | `Easy Octagon`, cut in the app | not started | **owner stop** | commit + push | |
 | T8 | Close out | not started | **owner stop** | commit + push | |
 
@@ -938,6 +938,14 @@ a named chip on every facet the author has clicked or may click next.
     CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` is clean.
 - **Do not:** edit `Shaders.metal` or the `Uniforms` struct; fill the ghost — edges only; give the ghost its
   own colour; add an occlusion test to the overlay (D20); bump `fullGeneration` on a scrub.
+- **Material alteration.** **`ghostGeneration: store.fullGeneration` cannot work, and §6's own doc comment
+  is what it was corrected to.** The ghost mesh changes on two events — the finished stone being rebuilt,
+  and a pick starting or ending — and `fullGeneration` sees only the first, so a pick starting would leave
+  `uploadedGhost` equal and the outline would never be uploaded. §6 states the contract the counter has to
+  meet ("bumped whenever `ghostMesh` changes, **including to and from `nil`**"), and §10's expression
+  contradicts it. The window now computes `2 * store.fullGeneration + (pick == nil ? 0 : 1)`, which changes
+  on either event and cannot collide, and `fullGeneration` keeps the meaning T5 gave it — still bumped in
+  `setPattern` only, and still not by a scrub.
 - **Verification handle** — `permanent`:
   - **Where:** the viewport. Open `Pattern-Easy-Octagon.json`, select row `C2`, and start
     **Pick in viewport…** from its Meet menu.

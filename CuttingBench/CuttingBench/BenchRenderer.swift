@@ -31,6 +31,9 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
   var opacity: Double = 1
   /// The picked facet's plane index, or `nil` for no selection (D12).
   var highlightedPlaneIndex: Int?
+  /// How strongly the finished stone's wireframe shows while a meet is being picked. A build constant
+  /// and not a preference.
+  static let ghostEdgeAlpha: Float = 0.35
 
   private let commandQueue: MTLCommandQueue
   private let fillPipeline: MTLRenderPipelineState
@@ -43,6 +46,9 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
   private var triangleCount = 0
   private var edgeBuffer: MTLBuffer?
   private var edgeCount = 0
+  /// The finished stone's edges, drawn over the solid while a meet is being picked.
+  private var ghostEdgeBuffer: MTLBuffer?
+  private var ghostEdgeCount = 0
 
   init(view: MTKView) {
     // A Mac that cannot run Metal cannot run this OS, so neither of these is reachable and neither gets
@@ -140,6 +146,12 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
     edgeCount = mesh.edgeVertices.count
   }
 
+  /// The finished stone, in **edges only** — the ghost is never filled. `nil` clears it.
+  func setGhostMesh(_ mesh: SolidMesh?) {
+    ghostEdgeBuffer = mesh.flatMap { makeBuffer($0.edgeVertices) }
+    ghostEdgeCount = mesh?.edgeVertices.count ?? 0
+  }
+
   /// An empty array makes no buffer; the draw skips it.
   private func makeBuffer(_ vertices: [MeshVertex]) -> MTLBuffer? {
     guard !vertices.isEmpty else { return nil }
@@ -218,6 +230,20 @@ final class BenchRenderer: NSObject, MTKViewDelegate {
         encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
         encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: edgeCount)
       }
+    }
+
+    // The ghost: the finished stone's outline over the intermediate solid, while a meet is being picked.
+    // **Last of the three edge passes, and depth-always**, so it shows through the solid rather than
+    // being hidden inside it — which is the whole point of drawing it. It reuses `edgeColor`, so it
+    // tracks light and dark appearance with everything else.
+    if let ghostEdgeBuffer, ghostEdgeCount > 0 {
+      encoder.setRenderPipelineState(edgePipeline)
+      encoder.setVertexBuffer(ghostEdgeBuffer, offset: 0, index: 0)
+      uniforms.params.w = BenchRenderer.ghostEdgeAlpha
+      encoder.setDepthStencilState(depthAlways)
+      encoder.setVertexBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+      encoder.setFragmentBytes(&uniforms, length: MemoryLayout<Uniforms>.stride, index: 1)
+      encoder.drawPrimitives(type: .line, vertexStart: 0, vertexCount: ghostEdgeCount)
     }
 
     encoder.endEncoding()

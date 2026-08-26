@@ -58,12 +58,15 @@ struct BenchWindow: View {
           ViewportRegion(
             mesh: drawnMesh,
             generation: drawGeneration,
+            ghostMesh: ghostMesh,
+            ghostGeneration: ghostGeneration,
             camera: camera,
             opacity: solidOpacity,
             highlightedPlaneIndex: selectedPlaneIndex,
             ringLabels: indexRingLabels(store.solid),
             meetDots: meetDots,
             meetWarning: selectedTier.map { readout.warningTiers.contains($0) } ?? false,
+            pickMarkers: pick.map { meetPickMarkers($0.state, solid: $0.frame.solid) } ?? [],
             probe: probe,
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
@@ -164,6 +167,13 @@ struct BenchWindow: View {
   /// The solid on screen: the pick's intermediate stone while one is running, and the store's otherwise.
   private var drawnSolid: BenchSolid { pick?.frame.solid ?? store.solid }
   private var drawnMesh: SolidMesh { pick?.frame.mesh ?? store.mesh }
+
+  /// The finished stone, drawn in edges only over the intermediate solid, and nothing when no pick runs.
+  private var ghostMesh: SolidMesh? { pick == nil ? nil : store.fullMesh }
+  /// A counter that changes whenever `ghostMesh` does: with the finished stone itself, **and** with the
+  /// pick's arrival and departure, which `fullGeneration` cannot see because starting a pick rebuilds no
+  /// stone. Doubling leaves the low bit for the pick, so no two states of the pair collide.
+  private var ghostGeneration: Int { 2 * store.fullGeneration + (pick == nil ? 0 : 1) }
 
   /// Recomputed per body pass rather than cached: it is string formatting over at most a few dozen
   /// findings, and a cache would be a second place the count could be wrong.

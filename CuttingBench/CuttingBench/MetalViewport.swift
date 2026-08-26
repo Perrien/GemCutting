@@ -56,6 +56,10 @@ struct MetalViewport: NSViewRepresentable {
   let mesh: SolidMesh
   /// Bumped by the store on every rebuild. Comparing this beats comparing two arrays of vertices.
   let generation: Int
+  /// The finished stone's mesh, drawn in edges only while a meet is being picked, or `nil` for none.
+  let ghostMesh: SolidMesh?
+  /// Bumped whenever `ghostMesh` changes, including to and from `nil`.
+  let ghostGeneration: Int
   let camera: BenchCameraState
   let opacity: Double
   let highlightedPlaneIndex: Int?
@@ -65,6 +69,9 @@ struct MetalViewport: NSViewRepresentable {
   final class Coordinator {
     var renderer: BenchRenderer?
     var uploaded: Int?
+    /// The ghost's own counter: the two meshes change on different events, and comparing arrays of
+    /// vertices is what the counters exist to avoid.
+    var uploadedGhost: Int?
   }
 
   func makeCoordinator() -> Coordinator { Coordinator() }
@@ -93,6 +100,10 @@ struct MetalViewport: NSViewRepresentable {
     if context.coordinator.uploaded != generation {
       renderer.setMesh(mesh)
       context.coordinator.uploaded = generation
+    }
+    if context.coordinator.uploadedGhost != ghostGeneration {
+      renderer.setGhostMesh(ghostMesh)
+      context.coordinator.uploadedGhost = ghostGeneration
     }
     renderer.camera = camera
     renderer.opacity = opacity

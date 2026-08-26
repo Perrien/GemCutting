@@ -3,11 +3,14 @@ import FacetKernel
 import Foundation
 import SwiftUI
 
-/// The renderer's region. **One Metal subview plus the index-ring, meet-point and probe-path overlays**
-/// (D2, U4), and nothing else may draw here.
+/// The renderer's region. **One Metal subview plus the index-ring, meet-point, meet-pick and
+/// probe-path overlays** (D2, U4), and nothing else may draw here.
 struct ViewportRegion: View {
   let mesh: SolidMesh
   let generation: Int
+  /// The finished stone's mesh, drawn in edges only while a meet is being picked, or `nil` for none.
+  let ghostMesh: SolidMesh?
+  let ghostGeneration: Int
   let camera: BenchCameraState
   let opacity: Double
   let highlightedPlaneIndex: Int?
@@ -16,6 +19,8 @@ struct ViewportRegion: View {
   let meetDots: [MeetPointDot]
   /// Whether this tier carries a finding whose geometry is one of these points.
   let meetWarning: Bool
+  /// What the pick in progress has clicked, and what it may click next. Empty for no pick.
+  let pickMarkers: [MeetPickMarker]
   /// The last traced path. `nil` for none, and then the overlay draws nothing.
   let probe: ProbeReadout?
   let onOrbit: (CGFloat, CGFloat) -> Void
@@ -25,6 +30,8 @@ struct ViewportRegion: View {
     MetalViewport(
       mesh: mesh,
       generation: generation,
+      ghostMesh: ghostMesh,
+      ghostGeneration: ghostGeneration,
       camera: camera,
       opacity: opacity,
       highlightedPlaneIndex: highlightedPlaneIndex,
@@ -35,7 +42,10 @@ struct ViewportRegion: View {
     // After the ring, so a dot near the rim draws over a number rather than under it: the dot is about
     // the tier you selected and the number is standing context.
     .overlay { MeetPointOverlay(dots: meetDots, camera: camera, warning: meetWarning) }
-    // Last of the three, so the path draws over a dot rather than under it: the path is what the owner
+    // After the dots: a pick marker is what the author is doing now, and a stored meet's dots are
+    // standing context.
+    .overlay { MeetPickOverlay(markers: pickMarkers, camera: camera) }
+    // Last of the four, so the path draws over a dot rather than under it: the path is what the owner
     // just asked for and the dots are standing context.
     .overlay { ProbePathOverlay(probe: probe, camera: camera) }
   }
@@ -450,7 +460,10 @@ private let inheritTag = "inherit"
 /// A meet point's dot as it appears in the table: the same label and the same colour as the viewport's,
 /// so the two are read as one thing. Tinted fill under a solid border rather than coloured text, which
 /// keeps the label at `.primary` and readable in both appearances against every one of the four colours.
-private struct MeetDotChip: View {
+///
+/// Not `private`: `MeetPickOverlay` draws the same chip for a clicked facet, and a second capsule with the
+/// same job is how the two come to look different.
+struct MeetDotChip: View {
   let label: String
   let colour: Color
 
