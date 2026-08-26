@@ -194,6 +194,12 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case finishedWithFindings([String])
   /// The `finished` transition declined because the solve does not reach the end of the pattern (D11).
   case finishedWithSolveStoppedShort(tier: String, reason: String)
+  /// A click on a facet of the rough, which a meet may never name.
+  case roughFacetNotNameable(name: String)
+  /// A corner no three cut facets name — every candidate through it is a facet of the rough.
+  case roughDerivedPoint(tier: String)
+  /// Three named planes that pin no point.
+  case pickedFacetsDoNotMeet(tier: String)
 
   /// The sentence the alert shows and the log line records. One wording, so the two cannot disagree.
   public var message: String {
@@ -244,6 +250,14 @@ public enum DraftRefusal: Error, Equatable, Sendable {
     case .finishedWithSolveStoppedShort(let tier, let reason):
       "This pattern cannot be marked finished: the solve stops at \(tier) — \(reason). "
         + "A tier that will not place has no facets on the stone."
+    case .roughFacetNotNameable(let name):
+      "\(name) is part of the rough, not the stone. "
+        + "A meet may only name facets the pattern cuts."
+    case .roughDerivedPoint(let tier):
+      "\(tier)'s meet cannot be aimed at that point: naming it would need a facet of the rough, "
+        + "which is a build constant with no design meaning."
+    case .pickedFacetsDoNotMeet(let tier):
+      "\(tier)'s three named facets do not meet at a point."
     }
   }
 

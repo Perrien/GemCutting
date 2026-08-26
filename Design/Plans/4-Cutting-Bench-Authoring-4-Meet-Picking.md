@@ -685,8 +685,8 @@ creates it.
 |---|---|---|---|---|---|
 | T1 | Prefactor: one enumeration of the solid's edges | completed | continue | — | |
 | T2 | Pure: what a click hit — the edge, or the facet | completed | checkpoint | commit | |
-| T3 | Pure: the click machine, and the refusals it states | not started | continue | — | |
-| T4 | Pure: the corner, the third name, and the meet it writes | not started | checkpoint | commit | |
+| T3 | Pure: the click machine, and the refusals it states | completed | continue | — | material alteration ↓ |
+| T4 | Pure: the corner, the third name, and the meet it writes | completed | checkpoint | commit | material alteration ↓ |
 | T5 | Picking in the window, against the intermediate solid | not started | **owner stop** | commit | |
 | T6 | The ghost, and the markers on what has been clicked | not started | **owner stop** | commit + push | |
 | T7 | `Easy Octagon`, cut in the app | not started | **owner stop** | commit + push | |
@@ -785,6 +785,14 @@ click on a waiting candidate. Nothing else is stubbed.
     CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` is clean.
 - **Do not:** implement `meetPicked`, the `tcp` rule, the candidate set or the prompt — all T4; add a
   refusal case beyond the three named; edit any other case's sentence; touch any app file.
+- **Material alteration.** D9 and D10 leave two clicks undefined, and a state machine must answer every
+  click, so both were settled the conservative way and are stated here for the owner to overrule:
+  **an edge one of whose two facets is part of the rough is refused with `roughFacetNotNameable`, naming
+  that rough facet**, rather than selected — selecting an edge commits two of the three names at once, so a
+  rough one there is the same refusal a click on that facet states, and no completion could ever follow it;
+  and **a third facet through *both* ends of the selected edge** — which on a convex solid can only be one
+  of the two facets already sharing it, since an edge belongs to no others — **falls to D9's "through
+  neither" arm**, dropping the edge and highlighting that facet. Nothing else in D9 or D10 was interpreted.
 
 **T4 — Pure: the corner, the third name, and the meet it writes**
 
@@ -838,6 +846,20 @@ the two derived displays the window reads. The two `// T4` markers from T3 becom
 - **Do not:** re-derive the axial point or the second-`tcp` rule — call `axialPoint(onTheSideOf:cutBy:)` and
   `structuralFindings` (D16); sort the `vertex` triple; look at any structural finding other than
   `secondTCPOnSide`; touch any app file.
+- **Material alteration.** **D16's `tcp` arm cannot fire on any real draft, and the *Done when* case that
+  asked for it was unsatisfiable as written.** The kernel reports an axial point on a side only once an
+  earlier tier there has crossed the axis (`axialPoint(onTheSideOf:cutBy:)` skips a 90° tier), and crossing
+  the axis is exactly what claims that side's free datum (`structuralFindings` marks the side spoken for
+  from the tier's angle, not from its meet form) — so wherever a picked corner *is* the axial point,
+  `secondTCPOnSide` fires and the `vertex` triple is written. There is no draft in which one holds and the
+  other does not, so the plan's "pavilion carrying no `tcp` at all" fixture cannot be built: the tier that
+  puts the corner on the axis is itself what claims the datum. D16 is implemented exactly as written and
+  asks both questions of the kernel; **the arm is covered by a directly-constructed pair** — the authored
+  intermediate solid with a draft whose pavilion has not reached the axis, which is legitimate because the
+  solid and the draft are independent arguments — and a second case,
+  `testTheAxialPointExistsOnlyOnceThatSidesDatumIsSpokenFor`, states the mutual exclusion against the real
+  corpus so it cannot be rediscovered by accident. What ships is exactly D17's behaviour, on every path.
+  Filed as `Decision-A-Picked-Corner-Can-Never-Be-Written-As-TCP`.
 
 **T5 — Picking in the window, against the intermediate solid**
 
@@ -1090,3 +1112,7 @@ or unreachable from the UI, and neither is worth a commit of its own.
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as a
 ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **A picked corner can never be written as `tcp`** (found in T4). The axial point on a side exists only
+  once that side's datum is claimed, so D16's `tcp` arm is unreachable and every pick writes the `vertex`
+  triple. Ticket: `Decision-A-Picked-Corner-Can-Never-Be-Written-As-TCP`.
