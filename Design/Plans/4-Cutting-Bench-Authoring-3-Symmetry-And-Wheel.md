@@ -1,6 +1,8 @@
 # 4 · Cutting Bench Authoring — 3 · Symmetry And Wheel
 
-Status: **APPROVED** 2026-08-26 — in execution.
+Status: **PART 3 COMPLETED** 2026-08-26. Archives nothing and closes no ticket — the exploration
+`4-Cutting-Bench-Authoring` is still the design source for parts 4 and 5, and
+`4-Cutting-Bench-Authoring-5-Fraction-Meets` archives this set.
 
 ## Parts
 
@@ -590,8 +592,8 @@ CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` and take it clean**,
 | T3 | The three symmetry setters, and the folds refusal | completed | continue | — | material alteration ↓ |
 | T4 | Seeds, Folds and Mirror, on the row and in the table | completed | **owner stop** | commit | |
 | T5 | The two gear setters | completed | continue | — | |
-| T6 | The Wheel popup, and the header Gear popup | awaiting owner | **owner stop** | commit + push | |
-| T7 | Close out | not started | **owner stop** | commit + push | |
+| T6 | The Wheel popup, and the header Gear popup | completed | **owner stop** | commit + push | |
+| T7 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one place a tier's stop list is written**
 
