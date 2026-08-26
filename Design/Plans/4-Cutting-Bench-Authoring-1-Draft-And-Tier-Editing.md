@@ -1,6 +1,7 @@
 # 4 · Cutting Bench Authoring — Part 1: Draft and Tier Editing
 
-Status: **APPROVED** (2026-08-26) — in execution.
+Status: **PART 1 COMPLETED** (2026-08-26). Not archived — the final part archives this plan, every sibling
+part by name, the exploration and the ticket.
 
 ## Parts
 
@@ -741,9 +742,9 @@ verification. If the `-I` path does not exist, the `swift build` line above crea
 | T4 | Pure: the reference graph, and the delete and move refusals | completed | continue | — | |
 | T5 | Pure: the value edits, the header edits, and the refusal messages | completed | checkpoint | commit | material alteration ↓ |
 | T6 | Editable tier-table cells, and refusals the owner can see | completed | **owner stop** | commit | two material alterations ↓ |
-| T7 | Add, delete and move a tier | awaiting owner | **owner stop** | commit | |
-| T8 | The Pattern and Notes cards | not started | **owner stop** | commit | |
-| T9 | Close out | not started | **owner stop** | commit + push | |
+| T7 | Add, delete and move a tier | completed | **owner stop** | commit | |
+| T8 | The Pattern and Notes cards | awaiting owner | **owner stop** | commit | material alteration ↓ |
+| T9 | Close out | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
 
 **T1 — Prefactor: the findings store stops keying on the pattern's name**
 
@@ -1047,6 +1048,11 @@ reading exactly what it read before, through `displayPattern`.
   not add a `formatVersion` control. Do not move, reorder or restyle the Metrics, Light or Facet Count
   cards — `Pattern` first and `Notes` directly below it is the app shell's ordering and is not this task's
   to change.
+- **Material alteration.** *Done when* asks that `EmptyCard` "still exists and is still used by whatever
+  card has nothing to show". It exists and is untouched, as instructed, but **nothing uses it any more**:
+  Pattern and Notes were its only two callers and this task fills both, leaving no inspector card empty.
+  It was left in place rather than deleted, because the *Do not* list forbids tidying here and parts 2–5
+  add cards that may want it. The unused half of the item is simply not satisfiable now.
 - **Verification handle** — `permanent`:
   - **Where:** the inspector's `Pattern` and `Notes` cards down the trailing edge of the window, with
     `Design/Patterns/Pattern-Easy-Octagon.json` open. They read `Easy Octagon`, `finished`, `96`, `1.540`,
@@ -1094,6 +1100,12 @@ reading exactly what it read before, through `displayPattern`.
   archived either — the final part archives itself, every sibling part by name, the exploration and the
   ticket.
 - **Update this plan's own `Status:` line** to say part 1 completed, with the date.
+- **Material alteration, two of them.** The round trip is performed on a **copy** rather than on
+  `Design/Patterns/Pattern-Easy-Octagon.json`, because the document autosaves in place — see the Deferred
+  entry — so opening the authored file and changing an angle rewrites external ground truth before Save As
+  is ever reached. And the `facetsolve` line needs `--disable-sandbox`, which the plan's copy omits: without
+  it SwiftUI's manifest compile fails with `sandbox_apply: Operation not permitted`, exactly as the
+  protocol's environment block says it will for `swift build` and `swift test`.
 
 ```
 4-cutting-bench-authoring-1 T9: close out the draft slice
@@ -1118,10 +1130,10 @@ ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protoc
   write over external ground truth — a guardrail violation the plan's own *"never save over
   `Design/Patterns/`"* rule assumed could not happen, because it assumed saves are explicit. **Verification
   must run on a copy outside `Design/Patterns/`.**
-- **The Meet column's menu label does not render the meet.** `TierTableRegion`'s Meet cell put the dots
-  and their facet text inside a `Menu`'s label, per the Approach, and SwiftUI renders only the first chip —
-  so `M` showed and `G1@0 · G1@12 · P1@0` did not. **Corrected in T6** with the owner's approval: the meet
-  content is an ordinary cell and the menu is a button beside it. No ticket — fixed rather than deferred.
+
+**Found and fixed inside the plan, so not deferred and carrying no ticket:** the Meet column's `Menu` label
+rendered only its first chip, hiding the facets a meet names. Corrected in T6 with the owner's approval —
+see that task's material alteration note.
 
 
 

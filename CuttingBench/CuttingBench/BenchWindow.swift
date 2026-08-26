@@ -104,7 +104,9 @@ struct BenchWindow: View {
         solid: store.solid,
         declaredFacets: $declaredFacets,
         probeOn: $probeOn,
-        probe: probe
+        probe: probe,
+        draft: document.draft,
+        edit: edit
       )
       .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }

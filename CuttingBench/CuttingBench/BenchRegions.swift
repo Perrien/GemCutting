@@ -352,15 +352,20 @@ private struct EditableCell: View {
   let stored: String
   /// Returns whether the edit was accepted.
   let commit: (String) -> Bool
+  /// Vertical for prose that wants line breaks. Every field but Notes takes the default.
+  var axis: Axis = .horizontal
+  /// `false` where Return has to keep inserting a line break rather than committing — which is Notes, and
+  /// only Notes: prose is the one thing here whose content includes the key that would submit it.
+  var commitsOnReturn = true
 
   @State private var typed = ""
   @FocusState private var focused: Bool
 
   var body: some View {
-    TextField("", text: $typed)
+    TextField("", text: $typed, axis: axis)
       .textFieldStyle(.plain)
       .focused($focused)
-      .onSubmit { commitNow() }
+      .onSubmit { if commitsOnReturn { commitNow() } }
       .onChange(of: focused) { _, isFocused in if !isFocused { commitNow() } }
       // The buffer follows the draft, so an accepted edit, an undo and a rename all correct it.
       .onChange(of: stored, initial: true) { typed = stored }
@@ -406,12 +411,16 @@ struct InspectorRegion: View {
   @Binding var probeOn: Bool
   /// The last traced path, or `nil` for none. Cleared whenever the solid changes.
   let probe: ProbeReadout?
+  /// The header fields the Pattern and Notes cards edit. The derived `pattern` stays what every other card
+  /// measures, so no card can disagree with the draft about what is being solved.
+  let draft: PatternDraft
+  let edit: (String, DraftChange) -> Bool
 
   var body: some View {
     ScrollView {
       VStack(spacing: 12) {
-        GroupBox("Pattern") { EmptyCard() }
-        GroupBox("Notes") { EmptyCard() }
+        GroupBox("Pattern") { PatternCard(draft: draft, edit: edit) }
+        GroupBox("Notes") { NotesCard(draft: draft, edit: edit) }
         GroupBox("Metrics") {
           // Called here rather than cached in the store: measuring is arithmetic over facets the hull has
           // already produced, so a cache would add a second source of truth to save nothing measurable.
@@ -540,6 +549,78 @@ private struct LightCard: View {
           .foregroundStyle(.secondary)
       }
     }
+  }
+}
+
+/// The header fields, in the order the format writes them. `state` and the gear are read-only here: a
+/// `state` switch is a claim that needs a complete validation behind it, and a gear change has to refuse
+/// the stops it would put out of range, neither of which is built yet.
+///
+/// **RI shows three decimals and the girdle target four, because an editable field has to be able to
+/// round-trip its own value.** Two decimals would render corundum's `1.762` as `1.76`, and committing that
+/// would silently change the pattern. A field is only ever committed by an explicit edit, so a value
+/// carrying more precision than the field shows is safe until the author touches it.
+private struct PatternCard: View {
+  let draft: PatternDraft
+  let edit: (String, DraftChange) -> Bool
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      row("Name") {
+        EditableCell(stored: draft.name) { typed in
+          edit("Change Name") { setting(name: typed, in: $0) }
+        }
+      }
+      row("State") { Text(draft.state.rawValue).foregroundStyle(.secondary) }
+      row("Gear") { Text(String(draft.wheel)).foregroundStyle(.secondary) }
+      row("RI") {
+        EditableCell(stored: String(format: "%.3f", draft.ri)) { typed in
+          edit("Change Refractive Index") { setting(ri: typed, in: $0) }
+        }
+      }
+      row("Girdle target") {
+        // Empty is absent, which means the documented default rather than zero — and the fraction the file
+        // stores, not a percentage, because a second unit is a second place the number can be wrong.
+        EditableCell(
+          stored: draft.girdleTargetFraction.map { String(format: "%.4f", $0) } ?? ""
+        ) { typed in
+          edit("Change Girdle Target") { setting(girdleTarget: typed, in: $0) }
+        }
+      }
+      row("Designer") {
+        EditableCell(stored: draft.designer) { typed in
+          edit("Change Designer") { setting(designer: typed, in: $0) }
+        }
+      }
+    }
+    .monospacedDigit()
+    .frame(maxWidth: .infinity, alignment: .leading)
+  }
+
+  /// `LabeledContent`, as `MetricsCard`'s rows are, so the label-and-value alignment is the platform's
+  /// rather than hand-built and the two cards read as one column.
+  private func row(_ label: String, @ViewBuilder content: () -> some View) -> some View {
+    LabeledContent(label, content: content)
+  }
+}
+
+/// The pattern's prose, as one multi-line field.
+///
+/// **Commits on losing focus only.** Return inserts a line break in a vertical `TextField`, and notes are
+/// prose that wants them — so the key that would submit is the key the content needs.
+private struct NotesCard: View {
+  let draft: PatternDraft
+  let edit: (String, DraftChange) -> Bool
+
+  var body: some View {
+    EditableCell(
+      stored: draft.notes,
+      commit: { typed in edit("Change Notes") { setting(notes: typed, in: $0) } },
+      axis: .vertical,
+      commitsOnReturn: false
+    )
+    .lineLimit(3...10)
+    .frame(maxWidth: .infinity, alignment: .leading)
   }
 }
 
