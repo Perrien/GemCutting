@@ -587,10 +587,10 @@ CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` and take it clean**,
 |---|---|---|---|---|---|
 | T1 | Prefactor: one place a tier's stop list is written | completed | continue | — | |
 | T2 | Pure: the gears, the generator, and its inverse | completed | checkpoint | commit | |
-| T3 | The three symmetry setters, and the folds refusal | in progress | continue | — | |
-| T4 | Seeds, Folds and Mirror, on the row and in the table | not started | **owner stop** | commit | |
-| T5 | The two gear setters | not started | continue | — | |
-| T6 | The Wheel popup, and the header Gear popup | not started | **owner stop** | commit + push | |
+| T3 | The three symmetry setters, and the folds refusal | completed | continue | — | material alteration ↓ |
+| T4 | Seeds, Folds and Mirror, on the row and in the table | completed | **owner stop** | commit | |
+| T5 | The two gear setters | completed | continue | — | |
+| T6 | The Wheel popup, and the header Gear popup | awaiting owner | **owner stop** | commit + push | |
 | T7 | Close out | not started | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one place a tier's stop list is written**
@@ -701,6 +701,15 @@ sentence. All three go through `settingStops`, so none of them repeats a check.
 - **Do not:** touch `TierTable.swift` or anything in `CuttingBench/CuttingBench/` — the row and the columns
   are T4. Do not add a refusal case for a bad seed or for a gear change; those reuse existing cases (D9,
   D15). Do not store the folds or the mirror flag on `DraftTier`.
+- **Material alteration.** The seed-acceptance case reads `P2` and not `G1`. As written it was
+  unsatisfiable: `G1`'s stops 0, 12 and 24 are named by `P2`'s and `C2`'s meets, so re-seeding `G1` to 6
+  removes three named stops and D10 refuses it — the existing coverage already states this at
+  `DraftEditsTests.swift:222` (`// These three read `P2`, the one tier of `Easy Octagon` whose stops nothing
+  names`). `P2` derives the same eight folds and mirroring and nothing names it, so seed `0` gives
+  `[0, 12, 24, 36, 48, 60, 72, 84]` — the same shape of check, and the same list the case named, with seed
+  and result swapped. The comma-splitting, out-of-range, not-a-whole-number and empty-field cases moved to
+  `P2` with it for the same reason. **No other case changed**, and the refusal side of D10 is still covered
+  by the `Rand's` mirroring case the plan asked for.
 
 **T4 — Seeds, Folds and Mirror, on the row and in the table**
 
@@ -859,5 +868,15 @@ Both popups, and the rewritten doc comment on the header card.
 
 ## Deferred
 
-Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as a
-ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+The executor appends adjacent problems it found and must not fix — and files each as a ticket in
+`Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **Dragging the stone stutters since the three symmetry columns landed** —
+  `Bug-Dragging-The-Stone-Stutters`. Found by the owner at T4's verification. `tierTableRows` is called
+  inline in `BenchWindow`'s `body` and a drag delta mutates the camera, so every row is rebuilt per drag
+  event and each rebuild now derives its tier's symmetry. Measured in debug, that derivation is 0.46 ms of
+  `Rand's` 0.85 ms row build — real, but small enough that the ten-column table with a `Toggle` per row is
+  the likelier dominant cost, and telling the two apart needs the running app. **Not fixed here:** the
+  cheap fix is to cache or memoise the derivation, which contradicts the rule that nothing
+  symmetry-shaped is stored and that this part adds no cache work, and dropping a column contradicts the
+  agreed column order. Both are the owner's call.

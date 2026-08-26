@@ -170,6 +170,111 @@ public func setting(meet: Meet?, ofTier tier: String, in draft: PatternDraft)
   return .success(edited)
 }
 
+// MARK: - Symmetry, which is generated and never stored
+
+/// The stop list the typed seeds generate, at the folds and mirroring the tier's **current** stops derive.
+///
+/// Refused for a piece that is not a whole number, for a seed outside the tier's gear, and — through
+/// `settingStops` — for a regeneration that would remove a stop a later meet names.
+public func setting(seeds typed: String, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+  guard let seeds = parsedStops(typed) else {
+    return .failure(.indicesNotWholeNumbers(typed: typed))
+  }
+
+  // Seeds *are* index stops, so a bad one reuses the Indices cell's own two sentences rather than getting
+  // a second wording for the same fault.
+  let gear = draft.wheel(of: draft.tiers[position])
+  for seed in seeds where seed < 0 || seed >= gear {
+    return .failure(.indexOutOfRange(tier: tier, index: seed, wheel: gear))
+  }
+
+  let current = derivedSymmetry(stops: draft.tiers[position].indices, wheel: gear)
+  return settingStops(
+    expandedStops(seeds: seeds, folds: current.folds, mirror: current.mirror, wheel: gear),
+    atPosition: position,
+    in: draft)
+}
+
+/// Refused for a value that is not a whole number, and for one that does not divide the tier's effective
+/// gear — 7-fold is reachable on 84 and impossible on 96.
+public func setting(folds typed: String, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+  guard let folds = Int(typed.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+    return .failure(.notANumber(field: "folds", typed: typed))
+  }
+
+  let gear = draft.wheel(of: draft.tiers[position])
+  guard foldCounts(onWheel: gear).contains(folds) else {
+    return .failure(.foldsNotADivisor(tier: tier, folds: folds, wheel: gear))
+  }
+
+  let current = derivedSymmetry(stops: draft.tiers[position].indices, wheel: gear)
+  return settingStops(
+    expandedStops(seeds: current.seeds, folds: folds, mirror: current.mirror, wheel: gear),
+    atPosition: position,
+    in: draft)
+}
+
+/// Never refused for its own value: it only ever writes a stop list, and nothing records what generated
+/// one. Making a set *less* symmetric is an ordinary edit, refused only if it drops a named stop.
+public func setting(mirror: Bool, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+
+  let gear = draft.wheel(of: draft.tiers[position])
+  let current = derivedSymmetry(stops: draft.tiers[position].indices, wheel: gear)
+  return settingStops(
+    expandedStops(seeds: current.seeds, folds: current.folds, mirror: mirror, wheel: gear),
+    atPosition: position,
+    in: draft)
+}
+
+// MARK: - The index gear
+
+/// A tier's own gear, or `nil` to inherit the design's.
+///
+/// Refused when the new effective gear would put one of this tier's existing stops out of range — 100 is a
+/// valid stop on 120 and rejected on 96 — naming the first such stop in the order the author wrote them.
+/// Accepted otherwise, and **no stop is ever rewritten**: every plane on the tier moves, which the solve
+/// reports.
+public func setting(wheel: Int?, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+
+  // A negative stop cannot be present, because nothing can put one there.
+  let gear = wheel ?? draft.wheel
+  for index in draft.tiers[position].indices where index >= gear {
+    return .failure(.indexOutOfRange(tier: tier, index: index, wheel: gear))
+  }
+
+  var edited = draft
+  edited.tiers[position].wheel = wheel
+  return .success(edited)
+}
+
+/// The design's default gear, which applies to every tier declaring none of its own.
+///
+/// Refused when it would put any inheriting tier's existing stop out of range, naming the first such stop
+/// in file order. A tier with its own gear is untouched and is not checked.
+public func setting(wheel: Int, in draft: PatternDraft) -> Result<PatternDraft, DraftRefusal> {
+  for spec in draft.tiers where spec.wheel == nil {
+    for index in spec.indices where index >= wheel {
+      return .failure(.indexOutOfRange(tier: spec.tier, index: index, wheel: wheel))
+    }
+  }
+
+  var edited = draft
+  edited.wheel = wheel
+  return .success(edited)
+}
+
 // MARK: - The header
 
 /// Stored verbatim, whitespace included. A name is the author's and not the tool's to tidy.

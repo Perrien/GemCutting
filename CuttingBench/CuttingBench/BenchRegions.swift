@@ -260,6 +260,35 @@ struct TierTableRegion: View {
           }
         }
       }
+      // Seeds, Folds and Mirror sit before Indices so the row reads left to right as the generation
+      // itself: these seeds, expanded this many folds, optionally mirrored, giving these stops.
+      // All three are derived from the stops every time the table is built — nothing symmetry-shaped is
+      // stored, in the file or in the draft — so editing Indices directly re-derives them and a tier
+      // whose stops are not symmetric honestly reads as 1-fold.
+      TableColumn("Seeds") { row in
+        EditableCell(stored: row.seeds) { typed in
+          edit("Change Seed Stops") { setting(seeds: typed, ofTier: row.tier, in: $0) }
+        }
+      }
+      TableColumn("Folds") { row in
+        EditableCell(stored: row.folds) { typed in
+          edit("Change Symmetry Folds") { setting(folds: typed, ofTier: row.tier, in: $0) }
+        }
+      }
+      TableColumn("Mirror") { row in
+        // Discarded rather than reverted, as the Part popup's result is: the binding's getter reads the
+        // row, which is rebuilt from the draft, so a refused change leaves the toggle showing the stored
+        // value with no revert code.
+        Toggle(
+          "",
+          isOn: Binding(
+            get: { row.mirror },
+            set: { on in
+              _ = edit("Change Mirroring") { setting(mirror: on, ofTier: row.tier, in: $0) }
+            })
+        )
+        .labelsHidden()
+      }
       TableColumn("Indices") { row in
         EditableCell(stored: row.indices) { typed in
           edit("Change Index Stops") { setting(indices: typed, ofTier: row.tier, in: $0) }
@@ -271,7 +300,35 @@ struct TierTableRegion: View {
           meetMenu(row)
         }
       }
-      TableColumn("Wheel") { row in cell(row.wheel, row, dimmed: row.wheelIsInherited) }
+      TableColumn("Wheel") { row in
+        // The `inherit` item carries the effective gear in its label, because that is what the cell showed
+        // before it was a popup and a stop number means nothing without one. The tag stays the bare word,
+        // so the label can change without moving the selection. `gearsOffered` adds a gear the document
+        // already carries that is not one of the eight, or the popup would render blank.
+        Picker(
+          "Wheel",
+          selection: Binding(
+            get: { row.wheelIsInherited ? inheritTag : row.wheel },
+            set: { chosen in
+              if chosen == inheritTag {
+                _ = edit("Change Index Gear") { setting(wheel: nil, ofTier: row.tier, in: $0) }
+              } else if let gear = gearsOffered(including: draft.wheel)
+                .first(where: { String($0) == chosen })
+              {
+                _ = edit("Change Index Gear") { setting(wheel: gear, ofTier: row.tier, in: $0) }
+              }
+            })
+        ) {
+          Text("\(inheritTag) (\(draft.wheel))").tag(inheritTag)
+          ForEach(
+            gearsOffered(including: row.wheelIsInherited ? nil : Int(row.wheel)), id: \.self
+          ) { gear in
+            Text(String(gear)).tag(String(gear))
+          }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+      }
       TableColumn("Instructions") { row in
         EditableCell(stored: row.instructions) { typed in
           edit("Change Instructions") { setting(instructions: typed, ofTier: row.tier, in: $0) }
@@ -380,6 +437,10 @@ private struct EditableCell: View {
 /// `allCases` is only synthesised at the point of declaration, so a retroactive conformance would mean
 /// hand-writing this same list behind a protocol that buys nothing.
 private let partCases: [Part] = [.pav, .gdl, .crown, .table]
+
+/// The Wheel popup's tag for a tier declaring no gear of its own. A `String` tag rather than an `Int?`,
+/// for the reason `partCases` is matched by `rawValue`: an optional tag is the case that idiom avoids.
+private let inheritTag = "inherit"
 
 /// A meet point's dot as it appears in the table: the same label and the same colour as the viewport's,
 /// so the two are read as one thing. Tinted fill under a solid border rather than coloured text, which
@@ -555,8 +616,9 @@ private struct LightCard: View {
   }
 }
 
-/// The header fields, in the order the format writes them. The gear is read-only here: a gear change has
-/// to refuse the stops it would put out of range, which is not built yet. `state` is a two-way switch, and
+/// The header fields, in the order the format writes them. The gear is a popup of the eight index gears: a
+/// change is refused when it would put an existing stop of an inheriting tier out of range, and it never
+/// renumbers a stop — the planes move, and the solve reports it. `state` is a two-way switch, and
 /// whether `finished` may be claimed is `finishRefusal`'s question, asked by the window before the edit is
 /// applied.
 ///
@@ -592,7 +654,27 @@ private struct PatternCard: View {
         .pickerStyle(.segmented)
         .labelsHidden()
       }
-      row("Gear") { Text(String(draft.wheel)).foregroundStyle(.secondary) }
+      row("Gear") {
+        // No `inherit` item: the design's default gear has nothing above it to inherit from.
+        Picker(
+          "",
+          selection: Binding(
+            get: { String(draft.wheel) },
+            set: { chosen in
+              guard
+                let gear = gearsOffered(including: draft.wheel)
+                  .first(where: { String($0) == chosen })
+              else { return }
+              _ = edit("Change Index Gear") { setting(wheel: gear, in: $0) }
+            })
+        ) {
+          ForEach(gearsOffered(including: draft.wheel), id: \.self) { gear in
+            Text(String(gear)).tag(String(gear))
+          }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+      }
       row("RI") {
         EditableCell(stored: String(format: "%.3f", draft.ri)) { typed in
           edit("Change Refractive Index") { setting(ri: typed, in: $0) }

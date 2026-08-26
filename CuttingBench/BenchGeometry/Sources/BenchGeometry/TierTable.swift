@@ -22,6 +22,17 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
   /// unwrap a lookup that cannot fail.
   public var angleValue: String
   public var indices: String
+  /// The seed stops this tier's own stop list derives, space-separated as `indices` is. Empty for a tier
+  /// with no stops.
+  ///
+  /// **Derived, never stored**: the file holds no generator, so what the seeds are is a question about the
+  /// stops and is asked again every time the row is built.
+  public var seeds: String
+  /// The fold count the stops derive, as a plain number. `1` for a set no rotation maps onto itself, which
+  /// is the generator honestly reading as off.
+  public var folds: String
+  /// Whether reflecting the stops about index 0 maps the set onto itself.
+  public var mirror: Bool
   public var meet: String
   public var wheel: String
   /// Whether the tier declares no wheel of its own, so the header's gear is what applies. The cell shows
@@ -51,6 +62,9 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     angle: String,
     angleValue: String,
     indices: String,
+    seeds: String,
+    folds: String,
+    mirror: Bool,
     meet: String,
     wheel: String,
     wheelIsInherited: Bool,
@@ -65,6 +79,9 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     self.angle = angle
     self.angleValue = angleValue
     self.indices = indices
+    self.seeds = seeds
+    self.folds = folds
+    self.mirror = mirror
     self.meet = meet
     self.wheel = wheel
     self.wheelIsInherited = wheelIsInherited
@@ -110,6 +127,10 @@ public func tierTableRows(
     // different rows is worse than either marking the wrong one.
     let leaking = light.leakingRow(spec.tier)
 
+    // The effective gear is what the symmetry is read against: a tier may override it, and the fold counts
+    // a set can have are the divisors of the gear it is cut on.
+    let symmetry = derivedSymmetry(stops: spec.indices, wheel: draft.wheel(of: spec))
+
     return TierTableRow(
       tier: spec.tier,
       part: spec.part.rawValue,
@@ -119,6 +140,10 @@ public func tierTableRows(
       // `Novice Ash-er`'s eight stops as `12 24 36 48 60 72 84 0`, and a pattern transcribed that way
       // has to render that way.
       indices: spec.indices.map(String.init).joined(separator: " "),
+      // Space-separated to match `indices`, so the two read as one statement across the row.
+      seeds: symmetry.seeds.map(String.init).joined(separator: " "),
+      folds: String(symmetry.folds),
+      mirror: symmetry.mirror,
       // `—` is the cell for a tier whose depth has not been decided yet, and it is also what the Meet
       // menu's own label reads.
       meet: spec.meet.map(meetText) ?? "—",

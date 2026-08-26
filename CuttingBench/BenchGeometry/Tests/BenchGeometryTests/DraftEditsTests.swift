@@ -275,6 +275,211 @@ final class DraftEditsTests: XCTestCase {
     XCTAssertEqual(try tier("G1", of: edited).indices, [0, 12, 24, 48, 60, 72, 84])
   }
 
+  // MARK: - Symmetry
+
+  // Nothing symmetry-shaped is stored, so each of these reads the tier's current stops, replaces the one
+  // thing the author changed, and expands — and every one of them lands through the same stop-list writer
+  // the Indices cell uses, which is why a generated list is refused for exactly what a typed one is.
+
+  /// Seed 18 stepped by 12 and wrapped. `C2` derives four folds and no mirroring, and eight folds keeps 18
+  /// — which is the one stop of `C2` that `T`'s meet names, so the regeneration is not refused.
+  func testRaisingTheFoldsExpandsTheTiersOwnSeedAndLeavesEveryOtherTierAlone() throws {
+    let draft = try octagon()
+    let edited = try XCTUnwrap(try setting(folds: "8", ofTier: "C2", in: draft).get())
+
+    XCTAssertEqual(try tier("C2", of: edited).indices, [6, 18, 30, 42, 54, 66, 78, 90])
+    for label in draft.tiers.map(\.tier) where label != "C2" {
+      XCTAssertEqual(try tier(label, of: edited).indices, try tier(label, of: draft).indices, label)
+    }
+  }
+
+  /// A fold count that does not divide the gear would land between stops, so it is refused rather than
+  /// rounded — and the sentence lists the counts the gear does reach.
+  func testAFoldCountThatDoesNotDivideTheGearIsRefused() throws {
+    let draft = try octagon()
+
+    XCTAssertEqual(
+      setting(folds: "7", ofTier: "G1", in: draft),
+      .failure(.foldsNotADivisor(tier: "G1", folds: 7, wheel: 96)))
+  }
+
+  /// The other side of the same refusal, and the case the two common gears cannot reach: the constraint is
+  /// per tier, because a tier may be cut on its own gear.
+  func testSevenFoldIsAcceptedOnATierCutOnAGearOfEightyFour() throws {
+    var draft = try octagon()
+    let position = try XCTUnwrap(draft.position(ofTier: "T"))
+    draft.tiers[position].wheel = 84
+
+    let edited = try XCTUnwrap(try setting(folds: "7", ofTier: "T", in: draft).get())
+
+    XCTAssertEqual(try tier("T", of: edited).indices, [0, 12, 24, 36, 48, 60, 72])
+  }
+
+  /// The new seed rides the folds and mirroring the tier's **current** stops derive: `P2` reads eight folds
+  /// and mirrored, so seed 0 gives `Easy Octagon`'s girdle list exactly.
+  func testANewSeedRidesTheFoldsAndMirroringTheTiersOwnStopsDerive() throws {
+    let edited = try XCTUnwrap(try setting(seeds: "0", ofTier: "P2", in: try octagon()).get())
+
+    XCTAssertEqual(try tier("P2", of: edited).indices, [0, 12, 24, 36, 48, 60, 72, 84])
+  }
+
+  /// Seeds *are* index stops, so the field splits as the Indices cell does and a seed outside the gear
+  /// reuses that cell's own sentence rather than getting a second one for the same fault.
+  func testSeedsSplitOnCommasAndAreRefusedOutsideTheGear() throws {
+    let draft = try octagon()
+
+    XCTAssertEqual(
+      setting(seeds: "0, 8", ofTier: "P2", in: draft),
+      setting(seeds: "0 8", ofTier: "P2", in: draft))
+    XCTAssertEqual(
+      setting(seeds: "96", ofTier: "P2", in: draft),
+      .failure(.indexOutOfRange(tier: "P2", index: 96, wheel: 96)))
+  }
+
+  func testSeedsAndFoldsAreRefusedForNotBeingWholeNumbers() throws {
+    let draft = try octagon()
+
+    XCTAssertEqual(
+      setting(seeds: "nine", ofTier: "P2", in: draft),
+      .failure(.indicesNotWholeNumbers(typed: "nine")))
+    XCTAssertEqual(
+      setting(folds: "nine", ofTier: "P2", in: draft),
+      .failure(.notANumber(field: "folds", typed: "nine")))
+  }
+
+  /// Seed 0 at eight folds generates the same set with or without the reflection, so dropping mirroring
+  /// here writes the list it already had.
+  func testTurningMirroringOffLeavesAnEightFoldSetOnZeroIdentical() throws {
+    let draft = try octagon()
+    let edited = try XCTUnwrap(try setting(mirror: false, ofTier: "G1", in: draft).get())
+
+    XCTAssertEqual(try tier("G1", of: edited).indices, try tier("G1", of: draft).indices)
+  }
+
+  /// **Making a set less symmetric is not refused for being less symmetric** — only for dropping a stop a
+  /// later meet names. `Rand's` tier `2` derives two seeds, two folds and mirroring, and dropping the
+  /// reflection loses 40 and 88, neither of which the pattern itself names.
+  func testTurningMirroringOffDropsStopsAndIsRefusedOnlyForANamedOne() throws {
+    let draft = try rands()
+
+    let accepted = try XCTUnwrap(try setting(mirror: false, ofTier: "2", in: draft).get())
+    XCTAssertEqual(try tier("2", of: accepted).indices, [0, 8, 48, 56])
+
+    // Point a later tier's meet at the stop that would go, which no authored meet does.
+    let pointed = try XCTUnwrap(
+      try setting(
+        meet: .vertex(facets: [
+          FacetRef(tier: "2", index: 40),
+          FacetRef(tier: "2", index: 48),
+          FacetRef(tier: "1", index: 0),
+        ]),
+        ofTier: "3",
+        in: draft
+      ).get())
+
+    XCTAssertEqual(
+      setting(mirror: false, ofTier: "2", in: pointed),
+      .failure(.stopReferenced(tier: "2", index: 40, by: ["3"])))
+  }
+
+  /// An empty seed field expands to nothing, exactly as an empty Indices cell is accepted — the tier cuts
+  /// no facets, which the solve reports.
+  func testAnEmptySeedFieldLeavesTheTierWithNoStops() throws {
+    let edited = try XCTUnwrap(try setting(seeds: "", ofTier: "P2", in: try octagon()).get())
+
+    XCTAssertEqual(try tier("P2", of: edited).indices, [])
+  }
+
+  /// The counts are computed into the sentence rather than spelled, so it cannot drift from what the setter
+  /// actually accepts.
+  func testTheFoldRefusalListsTheCountsTheGearDoesReach() {
+    XCTAssertEqual(
+      DraftRefusal.foldsNotADivisor(tier: "G1", folds: 7, wheel: 96).message,
+      "7-fold does not divide G1's gear of 96. "
+        + "On 96 the fold counts are 1, 2, 3, 4, 6, 8, 12, 16, 24, 32, 48, 96.")
+  }
+
+  // MARK: - The index gear
+
+  // Neither setter ever rewrites a stop. A 96-wheel `24` is not a 120-wheel `24`, so every plane on an
+  // affected tier moves — and that is a geometric consequence the solve reports, not a structural edit to
+  // refuse. What *is* refused is a gear too small to hold a stop the tier already has.
+
+  /// Accepted, and the stops come through untouched: a gear change moves planes, it does not renumber
+  /// anything.
+  func testATierTakingItsOwnGearKeepsItsStopsAndLeavesEveryOtherTierInheriting() throws {
+    let draft = try octagon()
+    let edited = try XCTUnwrap(try setting(wheel: 120, ofTier: "C2", in: draft).get())
+
+    XCTAssertEqual(try tier("C2", of: edited).wheel, 120)
+    XCTAssertEqual(try tier("C2", of: edited).indices, [18, 42, 66, 90])
+    for label in draft.tiers.map(\.tier) where label != "C2" {
+      XCTAssertNil(try tier(label, of: edited).wheel, label)
+      XCTAssertEqual(draft.wheel(of: try tier(label, of: edited)), 96, label)
+    }
+  }
+
+  /// The **first** offending stop in the order the author wrote them, not the largest: the sentence names
+  /// the stop the author has to deal with first.
+  func testAGearTooSmallForATiersOwnStopsIsRefusedNamingTheFirstOfThem() throws {
+    let draft = try octagon()
+
+    XCTAssertEqual(
+      setting(wheel: 32, ofTier: "C2", in: draft),
+      .failure(.indexOutOfRange(tier: "C2", index: 42, wheel: 32)))
+  }
+
+  /// Going back to inheritance is a gear change like any other, checked against the header's gear — so a
+  /// tier that only fits on its own gear cannot silently fall back to one too small for it.
+  func testGoingBackToInheritanceIsCheckedAgainstTheHeadersGear() throws {
+    let onItsOwnGear = try XCTUnwrap(try setting(wheel: 120, ofTier: "C2", in: try octagon()).get())
+
+    let restored = try XCTUnwrap(try setting(wheel: nil, ofTier: "C2", in: onItsOwnGear).get())
+    XCTAssertNil(try tier("C2", of: restored).wheel)
+
+    // 100 is a valid stop on 120 and rejected on 96. Stop 18 stays, because `T`'s meet names it.
+    let outOfHeaderRange = try XCTUnwrap(
+      try setting(indices: "18 100", ofTier: "C2", in: onItsOwnGear).get())
+    XCTAssertEqual(
+      setting(wheel: nil, ofTier: "C2", in: outOfHeaderRange),
+      .failure(.indexOutOfRange(tier: "C2", index: 100, wheel: 96)))
+  }
+
+  /// Every tier inherits, so every plane in the pattern moves — and not one stop is rewritten.
+  func testRaisingTheHeaderGearMovesEveryTierAndRewritesNoStops() throws {
+    let draft = try octagon()
+    let edited = try XCTUnwrap(try setting(wheel: 120, in: draft).get())
+
+    XCTAssertEqual(edited.wheel, 120)
+    for label in draft.tiers.map(\.tier) {
+      XCTAssertNil(try tier(label, of: edited).wheel, label)
+      XCTAssertEqual(try tier(label, of: edited).indices, try tier(label, of: draft).indices, label)
+      XCTAssertEqual(edited.wheel(of: try tier(label, of: edited)), 120, label)
+    }
+  }
+
+  /// The first tier in file order, and the first of its stops that will not fit.
+  func testAHeaderGearTooSmallIsRefusedNamingTheFirstStopInFileOrder() throws {
+    let draft = try octagon()
+
+    XCTAssertEqual(
+      setting(wheel: 32, in: draft),
+      .failure(.indexOutOfRange(tier: "G1", index: 36, wheel: 32)))
+  }
+
+  /// A tier on its own gear is not affected by a header change, so it is not checked by one either.
+  func testAHeaderGearChangeDoesNotCheckATierThatDeclaresItsOwn() throws {
+    let onItsOwnGear = try XCTUnwrap(try setting(wheel: 120, ofTier: "C2", in: try octagon()).get())
+    let withAHighStop = try XCTUnwrap(
+      try setting(indices: "18 100", ofTier: "C2", in: onItsOwnGear).get())
+
+    let edited = try XCTUnwrap(try setting(wheel: 96, in: withAHighStop).get())
+
+    XCTAssertEqual(edited.wheel, 96)
+    XCTAssertEqual(try tier("C2", of: edited).indices, [18, 100])
+    XCTAssertEqual(try tier("C2", of: edited).wheel, 120)
+  }
+
   // MARK: - The part
 
   /// Always allowed, even for a tier three meets name: a new part moves the facet rather than removing it,
@@ -426,6 +631,10 @@ final class DraftEditsTests: XCTestCase {
 
   private func asher() throws -> PatternDraft {
     PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.noviceAsher))
+  }
+
+  private func rands() throws -> PatternDraft {
+    PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.rands))
   }
 
   private func tier(_ label: String, of draft: PatternDraft) throws -> DraftTier {

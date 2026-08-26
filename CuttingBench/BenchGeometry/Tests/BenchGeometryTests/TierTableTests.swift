@@ -147,6 +147,86 @@ final class TierTableTests: XCTestCase {
     XCTAssertEqual(row.instructions, "cut to the culet, then check the point")
   }
 
+  // MARK: - The symmetry the stops derive
+
+  // Three more cells the corpus does answer, all of them derived from the stops the row already carries
+  // rather than read off a stored field — the file holds no generator, so the question is asked again every
+  // time a row is built.
+
+  /// One seed eight-fold mirrored, a four-fold set that is not mirrored, and a single stop that is — three
+  /// different readings off one pattern.
+  func testEasyOctagonsRowsReadTheirOwnSeedsFoldsAndMirroring() throws {
+    let rows = try rows(of: AuthoredPatterns.easyOctagon)
+
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "G1" })
+    XCTAssertEqual(girdle.seeds, "0")
+    XCTAssertEqual(girdle.folds, "8")
+    XCTAssertTrue(girdle.mirror)
+
+    let crown = try XCTUnwrap(rows.first { $0.tier == "C2" })
+    XCTAssertEqual(crown.seeds, "18")
+    XCTAssertEqual(crown.folds, "4")
+    XCTAssertFalse(crown.mirror)
+
+    let table = try XCTUnwrap(rows.first { $0.tier == "T" })
+    XCTAssertEqual(table.seeds, "0")
+    XCTAssertEqual(table.folds, "1")
+    XCTAssertTrue(table.mirror)
+  }
+
+  /// Space-separated, matching the Indices cell's own separator, so the two read as one statement across
+  /// the row. A rectangle's girdle takes two seeds to state.
+  func testRandsGirdleReadsItsTwoSeedsSpaceSeparated() throws {
+    let rows = try rows(of: AuthoredPatterns.rands)
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "2" })
+
+    XCTAssertEqual(girdle.seeds, "0 8")
+    XCTAssertEqual(girdle.indices, "0 8 40 48 56 88")
+  }
+
+  /// The state of every tier the Add Tier button appends: no seeds, one fold, not mirrored. By special case,
+  /// because every rotation maps the empty set onto itself.
+  func testATierWithNoStopsReadsNoSeedsOneFoldAndNotMirrored() throws {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    let position = try XCTUnwrap(draft.position(ofTier: "P2"))
+    draft.tiers[position].indices = []
+
+    let solid = benchSolid(for: draft.displayPattern)
+    let rows = tierTableRows(
+      draft: draft, solid: solid,
+      light: lightReadout(pattern: draft.displayPattern, solid: solid, riOverride: ""))
+    let row = try XCTUnwrap(rows.first { $0.tier == "P2" })
+
+    XCTAssertEqual(row.seeds, "")
+    XCTAssertEqual(row.folds, "1")
+    XCTAssertFalse(row.mirror)
+  }
+
+  /// **Against the tier's own gear and not the header's.** Eight stops twelve apart are one seed eight-fold
+  /// mirrored on 96 and nothing at all on 120, so the same stop list reads two ways on one pattern.
+  func testATierOnItsOwnWheelDerivesAgainstThatGear() throws {
+    var pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
+    let c1 = try XCTUnwrap(pattern.tiers.firstIndex { $0.tier == "C1" })
+    pattern.tiers[c1].wheel = 120
+
+    let solid = benchSolid(for: pattern)
+    let rows = tierTableRows(
+      draft: PatternDraft(pattern), solid: solid,
+      light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
+
+    let own = try XCTUnwrap(rows.first { $0.tier == "C1" })
+    XCTAssertEqual(own.indices, "0 12 24 36 48 60 72 84")
+    XCTAssertEqual(own.seeds, "0 12 24 36 48 60 72 84")
+    XCTAssertEqual(own.folds, "1")
+    XCTAssertFalse(own.mirror)
+
+    let inheriting = try XCTUnwrap(rows.first { $0.tier == "C2" })
+    XCTAssertEqual(inheriting.indices, own.indices)
+    XCTAssertEqual(inheriting.seeds, "0")
+    XCTAssertEqual(inheriting.folds, "8")
+    XCTAssertTrue(inheriting.mirror)
+  }
+
   // MARK: - The three states
 
   func testATierLimitLeavesTheTiersPastItNotReachedAndNoneStopped() throws {
