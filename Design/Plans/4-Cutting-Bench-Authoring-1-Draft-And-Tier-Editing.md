@@ -735,13 +735,13 @@ verification. If the `-I` path does not exist, the `swift build` line above crea
 
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
-| T1 | Prefactor: the findings store stops keying on the pattern's name | awaiting owner | continue | — | |
+| T1 | Prefactor: the findings store stops keying on the pattern's name | completed | continue | — | |
 | T2 | Pure: the draft and its two conversions | completed | continue | — | |
-| T3 | The document holds the draft, with undo | awaiting owner | **owner stop** | commit | |
-| T4 | Pure: the reference graph, and the delete and move refusals | not started | continue | — | |
-| T5 | Pure: the value edits, the header edits, and the refusal messages | not started | checkpoint | commit | |
-| T6 | Editable tier-table cells, and refusals the owner can see | not started | **owner stop** | commit | |
-| T7 | Add, delete and move a tier | not started | **owner stop** | commit | |
+| T3 | The document holds the draft, with undo | completed | **owner stop** | commit | |
+| T4 | Pure: the reference graph, and the delete and move refusals | completed | continue | — | |
+| T5 | Pure: the value edits, the header edits, and the refusal messages | completed | checkpoint | commit | material alteration ↓ |
+| T6 | Editable tier-table cells, and refusals the owner can see | completed | **owner stop** | commit | two material alterations ↓ |
+| T7 | Add, delete and move a tier | awaiting owner | **owner stop** | commit | |
 | T8 | The Pattern and Notes cards | not started | **owner stop** | commit | |
 | T9 | Close out | not started | **owner stop** | commit + push | |
 
@@ -918,9 +918,16 @@ reading exactly what it read before, through `displayPattern`.
 - **Do not:** touch the app target, `PatternDraft.swift`, `DraftReferences.swift` or `Kernel/`. Do not add
   a validity rule the Approach does not name — in particular do not clamp or range-check an angle, an
   `ri`, or the size of an index list.
+- **Material alteration.** Three of this task's index-stop cases name `C2` as the tier whose list is
+  retyped — `"0, 12,24"`, `"12 0 84"` and `""`, each expected to succeed. They cannot: `T`'s meet names
+  `C2@18`, so retyping `C2`'s list at all drops stop 18 and the stop-reference rule this same task
+  specifies refuses it. The three were written to check the parsing — comma and whitespace splitting, order
+  preserved, an empty list accepted — so they now read `P2`, the one tier of `Easy Octagon` whose stops
+  nothing names. Every rule, every other case and the dedicated stop-reference case are unchanged, and the
+  out-of-range and non-whole-number cases still read `C2` as written, because both are refused before the
+  stop-reference check runs.
 
 **T6 — Editable tier-table cells, and refusals the owner can see**
-
 - **Files:** `CuttingBench/CuttingBench/RefusalPresenter.swift` (new),
   `CuttingBench/BenchGeometry/Sources/BenchGeometry/TierTable.swift` (edit),
   `CuttingBench/BenchGeometry/Tests/BenchGeometryTests/TierTableTests.swift` (edit),
@@ -947,6 +954,19 @@ reading exactly what it read before, through `displayPattern`.
   prompt, or any second place a refusal is shown. Do not change `meetPointDots`, `findingsReadout`,
   `lightReadout` or `benchSolid` — they keep taking a `Pattern?`, and the window keeps handing them
   `document.pattern`.
+- **Material alteration.** The added case names `C1` as the tier whose meet is cleared and expects every
+  other row to stay `.solved`. It cannot: `C2` and `T` both name `C1`, so dropping `C1` from the display
+  pattern stops the solve at `C2`, leaving `C2` `.stopped` and `T` `.notReached`. The case is now two.
+  `P2` — the one tier nothing names — carries the shape as written, six rows with `P2` reading `—` and
+  `.notReached` and every other row `.solved`. A second case keeps `C1` and asserts what actually happens,
+  because a cleared meet cascading into the tier that names it is worth pinning rather than losing.
+- **Material alteration.** The Approach makes the Meet cell's `Menu` label the existing dots-and-facets
+  content. SwiftUI renders only the first element of a composed `Menu` label, so the cell read `M` with
+  `G1@0 · G1@12 · P1@0` nowhere on screen — the column stopped saying what a meet is, and positive check ②
+  could not be performed. **The meet content is now an ordinary cell again, rendering exactly as it did
+  before this task, and the four-way menu is a chevron button beside it** with the style's own indicator
+  hidden. Approved by the owner. Every rule about which four forms are offered is unchanged; only where the
+  control sits moved.
 - **Verification handle** — `permanent`:
   - **Where:** the tier table, with `Design/Patterns/Pattern-Easy-Octagon.json` open. Every cell of the
     Tier, Part, Angle, Indices, Meet and Instructions columns is now a field, a menu or a popup, edited in
@@ -1086,6 +1106,22 @@ reading exactly what it read before, through `displayPattern`.
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as a
 ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- **The sandbox is read-only for user-selected files, so every save panel crashes the app.**
+  `ENABLE_USER_SELECTED_FILES = readonly` in both configurations. Filed as
+  `Bug-Save-Panel-Crashes-On-A-Read-Only-Sandbox`. **This blocks T9**, whose whole check is a Save As to a
+  scratch path and a reopen, and it blocks the save-refusal check at the end of T9 too. Fixing it is a
+  capability change, which the protocol's guardrails reserve to the owner.
+- **The document autosaves in place, so editing an opened pattern rewrites it.** Filed as
+  `Bug-Autosave-In-Place-Rewrites-The-File-That-Was-Opened`. Every verification handle in this plan says to
+  open `Design/Patterns/Pattern-Easy-Octagon.json` and edit it, which once the sandbox is read/write will
+  write over external ground truth — a guardrail violation the plan's own *"never save over
+  `Design/Patterns/`"* rule assumed could not happen, because it assumed saves are explicit. **Verification
+  must run on a copy outside `Design/Patterns/`.**
+- **The Meet column's menu label does not render the meet.** `TierTableRegion`'s Meet cell put the dots
+  and their facet text inside a `Menu`'s label, per the Approach, and SwiftUI renders only the first chip —
+  so `M` showed and `G1@0 · G1@12 · P1@0` did not. **Corrected in T6** with the owner's approval: the meet
+  content is an ordinary cell and the menu is a button beside it. No ticket — fixed rather than deferred.
 
 
 

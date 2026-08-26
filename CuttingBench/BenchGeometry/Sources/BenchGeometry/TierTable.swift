@@ -17,6 +17,10 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
   public var tier: String
   public var part: String
   public var angle: String
+  /// The same angle without the degree sign, which is what the Angle cell edits while `angle` is what it
+  /// displays. Carried on the row so a cell never has to reach back into the draft by label and force-
+  /// unwrap a lookup that cannot fail.
+  public var angleValue: String
   public var indices: String
   public var meet: String
   public var wheel: String
@@ -45,6 +49,7 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     tier: String,
     part: String,
     angle: String,
+    angleValue: String,
     indices: String,
     meet: String,
     wheel: String,
@@ -58,6 +63,7 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     self.tier = tier
     self.part = part
     self.angle = angle
+    self.angleValue = angleValue
     self.indices = indices
     self.meet = meet
     self.wheel = wheel
@@ -72,17 +78,22 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
 
 /// One row per authored tier, in file order.
 ///
-/// From `pattern.tiers` and never from `solid.tiers`: **a tier the solve never reached is still a row
-/// the author wrote**, and dropping it would hide the mistake rather than show it.
+/// From `draft.tiers` and never from `solid.tiers`: **a tier the solve never reached is still a row the
+/// author wrote**, and dropping it would hide the mistake rather than show it. **A tier whose meet is not
+/// chosen yet is exactly that row** — it lands on `.notReached` by construction, being absent from the
+/// solid's own tiers and not the tier that stopped the solve.
 ///
-/// Empty for no pattern, which leaves the table showing its headers over nothing.
+/// Empty for a draft with no tiers, which leaves the table showing its headers over nothing.
 public func tierTableRows(
-  pattern: Pattern?, solid: BenchSolid, light: LightReadout
+  draft: PatternDraft, solid: BenchSolid, light: LightReadout
 ) -> [TierTableRow] {
-  guard let pattern else { return [] }
   let placed = Set(solid.tiers.map(\.tier))
+  // Derived once rather than per row: it is the same pattern for every row, and it is what the meet dots
+  // are read against. A meet-less label is absent from it, so it yields no dots — right, because a meet
+  // nobody has chosen names no point to draw.
+  let displayed = draft.displayPattern
 
-  return pattern.tiers.map { spec in
+  return draft.tiers.map { spec in
     // The tier that stopped the solve is by construction absent from the solid's own tiers, so testing
     // for it first is belt and braces rather than a real ambiguity.
     let state: TierRowState =
@@ -103,17 +114,20 @@ public func tierTableRows(
       tier: spec.tier,
       part: spec.part.rawValue,
       angle: String(format: "%.2f°", spec.angle),
+      angleValue: String(format: "%.2f", spec.angle),
       // **Never sorted.** The format permits any order and the order is data: a printed sheet reads
       // `Novice Ash-er`'s eight stops as `12 24 36 48 60 72 84 0`, and a pattern transcribed that way
       // has to render that way.
       indices: spec.indices.map(String.init).joined(separator: " "),
-      meet: meetText(spec.meet),
+      // `—` is the cell for a tier whose depth has not been decided yet, and it is also what the Meet
+      // menu's own label reads.
+      meet: spec.meet.map(meetText) ?? "—",
       // The effective gear, which is what makes the neighbouring index stops legible.
-      wheel: String(pattern.wheel(of: spec)),
+      wheel: String(draft.wheel(of: spec)),
       wheelIsInherited: spec.wheel == nil,
       instructions: spec.instructions ?? "",
       state: state,
-      meetPoints: meetPointDots(ofTier: spec.tier, pattern: pattern, solid: solid),
+      meetPoints: meetPointDots(ofTier: spec.tier, pattern: displayed, solid: solid),
       leaksLight: leaking != nil,
       // The card's margin reads `5.28° shallow`; the cell has no room for the word, and the orange symbol
       // beside the figure already says which way it falls. Taken from that one string so the two readings

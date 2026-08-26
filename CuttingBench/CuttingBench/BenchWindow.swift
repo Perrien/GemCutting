@@ -11,6 +11,11 @@ struct BenchWindow: View {
   @State private var inspectorShown = true
   @State private var store = BenchSolidStore()
   @State private var findingsStore = BenchFindingsStore()
+  /// Where a refused edit is shown and logged. One presenter for the window, so there is exactly one place
+  /// a refusal can appear.
+  @State private var refusals = RefusalPresenter()
+  /// The window's own undo manager, which is what makes ⌘Z an edit's inverse rather than the document's.
+  @Environment(\.undoManager) private var undoManager
   @State private var camera = BenchCameraState.threeQuarter
   /// How opaque the solid is drawn, `0...1`. Not persisted: a document reopens fully opaque (D6).
   @State private var solidOpacity = 1.0
@@ -61,11 +66,13 @@ struct BenchWindow: View {
             onStep: setStep(_:))
         }
         TierTableRegion(
-          rows: tierTableRows(pattern: document.pattern, solid: store.solid, light: light),
+          rows: tierTableRows(draft: document.draft, solid: store.solid, light: light),
           selection: $selectedTier,
-          findings: readout
+          findings: readout,
+          draft: document.draft,
+          edit: edit
         )
-        .frame(minHeight: 140)
+        .frame(minHeight: 180)
       }
       Divider()
       #if DEBUG
@@ -86,6 +93,11 @@ struct BenchWindow: View {
       #endif
     }
     .frame(minWidth: 900, minHeight: 600)
+    .alert("Edit refused", isPresented: refusals.isPresented) {
+      Button("OK") { refusals.dismiss() }
+    } message: {
+      Text(refusals.message ?? "")
+    }
     .inspector(isPresented: $inspectorShown) {
       InspectorRegion(
         pattern: document.pattern,
@@ -150,6 +162,18 @@ struct BenchWindow: View {
   private func rebuild() {
     store.setPattern(document.pattern)
     afterSolidChanged()
+  }
+
+  /// Every edit in the window goes through here: apply it, register its undo, and present the refusal if
+  /// there is one. Returns whether the edit was accepted, which is what an editable cell reverts on.
+  @discardableResult
+  private func edit(_ actionName: String, _ change: DraftChange) -> Bool {
+    guard let refusal = document.apply(change, undoManager: undoManager, actionName: actionName)
+    else {
+      return true
+    }
+    refusals.present(refusal)
+    return false
   }
 
   private func setGranularity(_ granularity: PlaybackGranularity?) {

@@ -15,7 +15,7 @@ final class TierTableTests: XCTestCase {
 
     XCTAssertTrue(
       tierTableRows(
-        pattern: nil, solid: solid,
+        draft: .empty, solid: solid,
         light: lightReadout(pattern: nil, solid: solid, riOverride: "")
       ).isEmpty)
   }
@@ -81,7 +81,7 @@ final class TierTableTests: XCTestCase {
       let pattern = try AuthoredPatterns.load(name)
       let solid = benchSolid(for: pattern)
       let rows = tierTableRows(
-        pattern: pattern, solid: solid,
+        draft: PatternDraft(pattern), solid: solid,
         light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
       XCTAssertEqual(rows.count, pattern.tiers.count, name)
@@ -102,7 +102,7 @@ final class TierTableTests: XCTestCase {
 
     let solid = benchSolid(for: pattern)
     let rows = tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
     let row = try XCTUnwrap(rows.first { $0.tier == "G" })
 
@@ -120,7 +120,7 @@ final class TierTableTests: XCTestCase {
 
     let solid = benchSolid(for: pattern)
     let rows = tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     for row in rows where row.tier == "C1" {
@@ -140,7 +140,7 @@ final class TierTableTests: XCTestCase {
 
     let solid = benchSolid(for: pattern)
     let rows = tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
     let row = try XCTUnwrap(rows.first { $0.tier == "P1" })
 
@@ -153,7 +153,7 @@ final class TierTableTests: XCTestCase {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
     let solid = benchSolid(for: pattern, tierLimit: 2)
     let rows = tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     XCTAssertEqual(
@@ -179,7 +179,7 @@ final class TierTableTests: XCTestCase {
 
     let solid = benchSolid(for: pattern)
     let rows = tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: ""))
 
     XCTAssertEqual(
@@ -255,17 +255,71 @@ final class TierTableTests: XCTestCase {
     XCTAssertFalse(table.leaksLight)
   }
 
+  // MARK: - A tier whose meet is not chosen yet
+
+  /// The row stays and reads `—`. Dropping it would hide the work the author has already done on that
+  /// tier; keeping it is what makes the table the place a half-authored tier is finished.
+  ///
+  /// `P2` is the one tier of this pattern nothing names, so clearing its meet takes it out of what is
+  /// solved without disturbing any other row — which is the state this case is about.
+  func testATierWithNoMeetKeepsItsRowReadingAsNotReached() throws {
+    let rows = try rows(ofOctagonWithoutTheMeetOf: "P2")
+
+    XCTAssertEqual(rows.count, 6)
+    let row = try XCTUnwrap(rows.first { $0.tier == "P2" })
+    XCTAssertEqual(row.meet, "—")
+    XCTAssertTrue(row.meetPoints.isEmpty)
+    XCTAssertEqual(row.state, .notReached)
+
+    for row in rows where row.tier != "P2" {
+      XCTAssertEqual(row.state, .solved, row.tier)
+    }
+  }
+
+  /// Clearing the meet of a tier others name takes its facets out of the solve, so the first tier that
+  /// names one of them stops it. **The table shows both** — the undecided tier and the tier that can no
+  /// longer be cut — which is the whole reason a meet-less tier keeps its row.
+  func testClearingAMeetOtherTiersNameStopsTheSolveAtTheFirstOfThem() throws {
+    let rows = try rows(ofOctagonWithoutTheMeetOf: "C1")
+
+    XCTAssertEqual(rows.count, 6)
+    XCTAssertEqual(
+      states(of: rows),
+      [
+        "G1": .solved, "P1": .solved, "P2": .solved,
+        // Undecided, and so absent from what is solved.
+        "C1": .notReached,
+        // Names `C1@12`, which the display pattern no longer carries.
+        "C2": .stopped,
+        "T": .notReached,
+      ])
+    XCTAssertEqual(try XCTUnwrap(rows.first { $0.tier == "C1" }).meet, "—")
+  }
+
   // MARK: - Helpers
 
   private func rows(of name: String, riOverride: String = "") throws -> [TierTableRow] {
     let pattern = try AuthoredPatterns.load(name)
     let solid = benchSolid(for: pattern)
     return tierTableRows(
-      pattern: pattern, solid: solid,
+      draft: PatternDraft(pattern), solid: solid,
       light: lightReadout(pattern: pattern, solid: solid, riOverride: riOverride))
   }
 
   private func states(of rows: [TierTableRow]) -> [String: TierRowState] {
     Dictionary(uniqueKeysWithValues: rows.map { ($0.tier, $0.state) })
+  }
+
+  /// `Easy Octagon` with one tier's meet cleared — the half-authored state, which no file can hold and so
+  /// no fixture can carry.
+  private func rows(ofOctagonWithoutTheMeetOf label: String) throws -> [TierTableRow] {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    let position = try XCTUnwrap(draft.position(ofTier: label), label)
+    draft.tiers[position].meet = nil
+
+    let solid = benchSolid(for: draft.displayPattern)
+    return tierTableRows(
+      draft: draft, solid: solid,
+      light: lightReadout(pattern: draft.displayPattern, solid: solid, riOverride: ""))
   }
 }

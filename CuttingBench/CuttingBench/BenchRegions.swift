@@ -140,13 +140,70 @@ struct ScrubberRegion: View {
 /// and a sortable header invites reordering the one thing that must never be normalised.
 struct TierTableRegion: View {
   let rows: [TierTableRow]
-  /// The tier whose meet points are drawn. A view state and nothing more: nothing is edited through it
-  /// and it is not persisted.
+  /// The tier whose meet points are drawn, and the tier the structural buttons act on. Not persisted.
   @Binding var selection: String?
   /// The one findings value all three surfaces read, so none of them can disagree about the count.
   let findings: FindingsReadout
+  /// The raw values the cells edit, and the labels the buttons act on. The formatted `rows` stay the
+  /// display: a cell shows `47.60°` and edits `47.60`.
+  let draft: PatternDraft
+  let edit: (String, DraftChange) -> Bool
 
   var body: some View {
+    VStack(spacing: 0) {
+      buttonRow
+      Divider()
+      table
+    }
+  }
+
+  /// Add, delete and reorder, over the table rather than in it. **Delete and both moves act on the
+  /// selection**, which is why the selection is no longer a read-only view state.
+  ///
+  /// Add is always live: appending can never create a forward reference, so there is nothing for it to be
+  /// refused for. Delete asks for no confirmation — a refused delete already explains itself and an
+  /// accepted one is one ⌘Z away.
+  private var buttonRow: some View {
+    HStack(spacing: 8) {
+      Button {
+        _ = edit("Add Tier") { appendingTier(to: $0) }
+      } label: {
+        Label("Add Tier", systemImage: "plus")
+      }
+      Button {
+        guard let selection else { return }
+        _ = edit("Delete Tier") { deleting(tier: selection, from: $0) }
+      } label: {
+        Label("Delete Tier", systemImage: "minus")
+      }
+      .disabled(selectedPosition == nil)
+      Button {
+        guard let selection else { return }
+        _ = edit("Move Tier") { moving(tier: selection, by: -1, in: $0) }
+      } label: {
+        Label("Move Up", systemImage: "chevron.up")
+      }
+      .disabled(selectedPosition.map { $0 == 0 } ?? true)
+      Button {
+        guard let selection else { return }
+        _ = edit("Move Tier") { moving(tier: selection, by: 1, in: $0) }
+      } label: {
+        Label("Move Down", systemImage: "chevron.down")
+      }
+      .disabled(selectedPosition.map { $0 == draft.tiers.count - 1 } ?? true)
+      Spacer()
+    }
+    .padding(.horizontal, 10)
+    .frame(height: 28)
+  }
+
+  /// Where the selected tier sits, or `nil` for no selection and for a label the draft does not carry — a
+  /// stale selection is inert rather than wrong, so it disables the three buttons that would act on it.
+  private var selectedPosition: Int? {
+    selection.flatMap { draft.position(ofTier: $0) }
+  }
+
+  private var table: some View {
     Table(rows, selection: $selection) {
       TableColumn("Tier") { row in
         HStack(spacing: 4) {
@@ -160,13 +217,39 @@ struct TierTableRegion: View {
               .labelStyle(.titleAndIcon)
               .foregroundStyle(.red)
           }
-          cell(row.tier, row)
+          EditableCell(stored: row.tier) { typed in
+            edit("Rename Tier") { renaming(tier: row.tier, to: typed, in: $0) }
+          }
         }
       }
-      TableColumn("Part") { row in cell(row.part, row) }
+      TableColumn("Part") { row in
+        Picker(
+          "Part",
+          selection: Binding(
+            get: { row.part },
+            set: { chosen in
+              guard let part = partCases.first(where: { $0.rawValue == chosen }) else { return }
+              // Discarded rather than reverted: a `Picker` reads its value back from the draft, so a
+              // refusal already leaves it showing the stored part. Only a text buffer needs the answer.
+              _ = edit("Change Part") { setting(part: part, ofTier: row.tier, in: $0) }
+            })
+        ) {
+          ForEach(partCases, id: \.rawValue) { part in
+            Text(part.rawValue).tag(part.rawValue)
+          }
+        }
+        .labelsHidden()
+        .pickerStyle(.menu)
+      }
       TableColumn("Angle") { row in
         HStack(spacing: 4) {
-          cell(row.angle, row)
+          // The number without the degree sign, so what the author edits is what they typed; the `°` is a
+          // label beside the field rather than part of its text.
+          EditableCell(stored: row.angleValue) { typed in
+            edit("Change Angle") { setting(angle: typed, ofTier: row.tier, in: $0) }
+          }
+          Text("°")
+            .foregroundStyle(row.state == .notReached ? .secondary : .primary)
           // In the Angle column because the mark is a statement about that angle, and orange rather than
           // the findings red because a shallow pavilion is not a fault. The symbol and the number each
           // carry it, so it is never colour alone.
@@ -177,25 +260,76 @@ struct TierTableRegion: View {
           }
         }
       }
-      TableColumn("Indices") { row in cell(row.indices, row) }
+      TableColumn("Indices") { row in
+        EditableCell(stored: row.indices) { typed in
+          edit("Change Index Stops") { setting(indices: typed, ofTier: row.tier, in: $0) }
+        }
+      }
       TableColumn("Meet") { row in
-        if row.meetPoints.isEmpty {
-          cell(row.meet, row)
-        } else {
-          let warning = findings.warningTiers.contains(row.tier)
-          HStack(spacing: 8) {
-            ForEach(row.meetPoints) { dot in
-              HStack(spacing: 3) {
-                MeetDotChip(label: dot.label, colour: meetDotColor(dot.role, warning: warning))
-                if !dot.facets.isEmpty { cell(dot.facets, row) }
-              }
-            }
-          }
+        HStack(spacing: 6) {
+          meetContent(row)
+          meetMenu(row)
         }
       }
       TableColumn("Wheel") { row in cell(row.wheel, row, dimmed: row.wheelIsInherited) }
-      TableColumn("Instructions") { row in cell(row.instructions, row) }
+      TableColumn("Instructions") { row in
+        EditableCell(stored: row.instructions) { typed in
+          edit("Change Instructions") { setting(instructions: typed, ofTier: row.tier, in: $0) }
+        }
+      }
     }
+  }
+
+  /// What the meet actually is: each named point as a chip beside the facets it names, or the one-line form
+  /// for the three that name none, and `—` for a tier whose depth is not decided yet.
+  ///
+  /// **Deliberately not inside the menu's label.** SwiftUI renders only the first element of a composed
+  /// `Menu` label, which left the cell reading `M` with `G1@0 · G1@12 · P1@0` nowhere on screen — and
+  /// saying what a meet is, is most of what this column is for.
+  @ViewBuilder
+  private func meetContent(_ row: TierTableRow) -> some View {
+    if row.meetPoints.isEmpty {
+      cell(row.meet, row)
+    } else {
+      let warning = findings.warningTiers.contains(row.tier)
+      HStack(spacing: 8) {
+        ForEach(row.meetPoints) { dot in
+          HStack(spacing: 3) {
+            MeetDotChip(label: dot.label, colour: meetDotColor(dot.role, warning: warning))
+            if !dot.facets.isEmpty { cell(dot.facets, row) }
+          }
+        }
+      }
+    }
+  }
+
+  /// The four forms this part can set, beside the meet rather than over it. A `vertex` or a `fraction` is
+  /// shown by `meetContent` but never offered here: picking facets is a viewport interaction with its own
+  /// rules, and choosing *Not chosen yet* is how one is cleared.
+  ///
+  /// The result of the funnel is discarded because a menu reads its state back from the draft — a refusal
+  /// leaves the cell reading the stored meet, so there is nothing to revert. Only a text buffer needs the
+  /// answer.
+  private func meetMenu(_ row: TierTableRow) -> some View {
+    Menu {
+      Button("Not chosen yet") {
+        _ = edit("Change Meet") { setting(meet: nil, ofTier: row.tier, in: $0) }
+      }
+      Divider()
+      Button("size") { _ = edit("Change Meet") { setting(meet: .size, ofTier: row.tier, in: $0) } }
+      Button("tcp") { _ = edit("Change Meet") { setting(meet: .tcp, ofTier: row.tier, in: $0) } }
+      Button("girdle") {
+        _ = edit("Change Meet") { setting(meet: .girdle, ofTier: row.tier, in: $0) }
+      }
+    } label: {
+      Image(systemName: "chevron.up.chevron.down")
+    }
+    // An explicit chevron with the style's own indicator hidden, or the cell carries two of them.
+    .menuStyle(.borderlessButton)
+    .menuIndicator(.hidden)
+    .fixedSize()
+    .help("Change this tier's meet")
+    .accessibilityLabel("Change meet")
   }
 
   /// Every cell of a tier the solve never reached reads secondary, and a Wheel cell does too when the
@@ -208,6 +342,39 @@ struct TierTableRegion: View {
     Text(text).foregroundStyle(dimmed || row.state == .notReached ? .secondary : .primary)
   }
 }
+
+/// A cell that commits on Return or on losing focus, and snaps back to the stored value when the edit is
+/// refused. `stored` is what the draft holds; the buffer is local and never the source of truth.
+///
+/// **The commit boundary is what makes the refusal rules possible at all**: a refusal needs a whole value
+/// to judge, and a half-typed index list means nothing.
+private struct EditableCell: View {
+  let stored: String
+  /// Returns whether the edit was accepted.
+  let commit: (String) -> Bool
+
+  @State private var typed = ""
+  @FocusState private var focused: Bool
+
+  var body: some View {
+    TextField("", text: $typed)
+      .textFieldStyle(.plain)
+      .focused($focused)
+      .onSubmit { commitNow() }
+      .onChange(of: focused) { _, isFocused in if !isFocused { commitNow() } }
+      // The buffer follows the draft, so an accepted edit, an undo and a rename all correct it.
+      .onChange(of: stored, initial: true) { typed = stored }
+  }
+
+  /// On a refusal the draft is untouched, so `stored` is still the old value and assigning it is the
+  /// revert. On acceptance `stored` changes and the observer above does it instead.
+  private func commitNow() { if !commit(typed) { typed = stored } }
+}
+
+/// The four cases in the kernel's own declaration order. **`Part` gains no `CaseIterable` conformance**:
+/// `allCases` is only synthesised at the point of declaration, so a retroactive conformance would mean
+/// hand-writing this same list behind a protocol that buys nothing.
+private let partCases: [Part] = [.pav, .gdl, .crown, .table]
 
 /// A meet point's dot as it appears in the table: the same label and the same colour as the viewport's,
 /// so the two are read as one thing. Tinted fill under a solid border rather than coloured text, which
