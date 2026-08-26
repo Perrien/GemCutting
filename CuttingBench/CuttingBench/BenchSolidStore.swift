@@ -27,6 +27,15 @@ private let barePrismFrame: PlaybackFrame = {
   private(set) var mesh: SolidMesh = barePrismFrame.mesh
   /// Bumped on every change to `solid`. Comparing this beats comparing two arrays of vertices.
   private(set) var generation = 0
+  /// Bumped when the whole stone is rebuilt, which is the only thing the ghost mesh follows.
+  ///
+  /// Deliberately **not** bumped by a scrub: the ghost is the finished stone, and scrubbing does not
+  /// change it.
+  private(set) var fullGeneration = 0
+
+  /// The finished stone's mesh, so a caller can draw its edges without `fullFrame` stopping being
+  /// private.
+  var fullMesh: SolidMesh { fullFrame.mesh }
 
   /// `nil` is playback off, which is what a document opens at.
   private(set) var granularity: PlaybackGranularity?
@@ -73,6 +82,7 @@ private let barePrismFrame: PlaybackFrame = {
     let frame = PlaybackFrame(solid: solid, mesh: solidMesh(solid))
     full = solid
     fullFrame = frame
+    fullGeneration += 1
     show(frame)
     builtPattern = .some(pattern)
   }

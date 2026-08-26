@@ -148,6 +148,9 @@ struct TierTableRegion: View {
   /// display: a cell shows `47.60°` and edits `47.60`.
   let draft: PatternDraft
   let edit: (String, DraftChange) -> Bool
+  /// Starts a pick on one tier. **Not `edit`**: starting a pick changes no draft, so it is not a
+  /// `DraftChange` and must not register an undo entry.
+  let startPick: (String) -> Void
 
   var body: some View {
     VStack(spacing: 0) {
@@ -360,9 +363,9 @@ struct TierTableRegion: View {
     }
   }
 
-  /// The four forms this part can set, beside the meet rather than over it. A `vertex` or a `fraction` is
-  /// shown by `meetContent` but never offered here: picking facets is a viewport interaction with its own
-  /// rules, and choosing *Not chosen yet* is how one is cleared.
+  /// The three forms that need no picking, *Not chosen yet*, and **Pick in viewport…**, which hands the
+  /// rest to the viewport. A `vertex` is never typed here: which facets it names is a claim about the
+  /// stone, and clicking them is how that claim is made.
   ///
   /// The result of the funnel is discarded because a menu reads its state back from the draft — a refusal
   /// leaves the cell reading the stored meet, so there is nothing to revert. Only a text buffer needs the
@@ -372,6 +375,8 @@ struct TierTableRegion: View {
       Button("Not chosen yet") {
         _ = edit("Change Meet") { setting(meet: nil, ofTier: row.tier, in: $0) }
       }
+      Divider()
+      Button("Pick in viewport…") { startPick(row.tier) }
       Divider()
       Button("size") { _ = edit("Change Meet") { setting(meet: .size, ofTier: row.tier, in: $0) } }
       Button("tcp") { _ = edit("Change Meet") { setting(meet: .tcp, ofTier: row.tier, in: $0) } }
@@ -771,6 +776,10 @@ struct StatusStripRegion: View {
   let selectedFacet: String?
   /// The one findings value all three surfaces read, so none of them can disagree about the count.
   let findings: FindingsReadout
+  /// What the pick in progress is waiting for, or `nil` when none is running. **Not behind `#if DEBUG`**:
+  /// a pick is a normal working state, not a diagnostic.
+  let pickPrompt: String?
+  let cancelPick: () -> Void
   #if DEBUG
     /// How many step frames are cached, and how many the list has. The owner's window onto the
     /// precompute.
@@ -804,6 +813,12 @@ struct StatusStripRegion: View {
         FindingsDetail(rows: findings.rows)
       }
       Spacer(minLength: 8)
+      // The one thing on the strip the author is acting on, so it reads primary — and the facet text
+      // beside it is the last facet they clicked, which is the same click.
+      if let pickPrompt {
+        Text(pickPrompt).foregroundStyle(.primary)
+        Button("Cancel", action: cancelPick).buttonStyle(.link)
+      }
       Text(selectedFacet.map { "Facet \($0)" } ?? "No facet selected")
       #if DEBUG
         Text(documentSummary)

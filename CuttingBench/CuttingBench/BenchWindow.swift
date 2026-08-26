@@ -36,14 +36,28 @@ struct BenchWindow: View {
   /// The last traced path. Cleared with the solid, because a path is a claim about one solid and drawing it
   /// over the next one would be a picture of a stone that is not there.
   @State private var probe: ProbeReadout?
+  /// The meet being built by clicking, or `nil` for no pick in progress. The solid and mesh are held
+  /// with it: they are the intermediate solid before the picking tier, built once when the pick starts,
+  /// and every click is tested against that same solid.
+  @State private var pick: MeetPickSession?
+  /// Bumped whenever what the viewport draws changes — the store's own rebuilds and the pick's arrival
+  /// and departure alike. **One counter with one owner**, because `MetalViewport` compares a single `Int`
+  /// and two independent sources would collide.
+  @State private var drawGeneration = 0
+
+  /// A pick and the stone it is being picked against.
+  struct MeetPickSession {
+    var state: MeetPickState
+    var frame: PlaybackFrame
+  }
 
   var body: some View {
     VStack(spacing: 0) {
       VSplitView {
         VStack(spacing: 0) {
           ViewportRegion(
-            mesh: store.mesh,
-            generation: store.generation,
+            mesh: drawnMesh,
+            generation: drawGeneration,
             camera: camera,
             opacity: solidOpacity,
             highlightedPlaneIndex: selectedPlaneIndex,
@@ -70,7 +84,8 @@ struct BenchWindow: View {
           selection: $selectedTier,
           findings: readout,
           draft: document.draft,
-          edit: edit
+          edit: edit,
+          startPick: startPick(_:)
         )
         .frame(minHeight: 180)
       }
@@ -81,6 +96,8 @@ struct BenchWindow: View {
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
           findings: readout,
+          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) },
+          cancelPick: endPick,
           cachedFrames: store.cachedFrameCount,
           stepTotal: store.steps.count,
           draftLine: draftSummary(document.draft),
@@ -92,7 +109,9 @@ struct BenchWindow: View {
           pattern: document.pattern,
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
-          findings: readout)
+          findings: readout,
+          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) },
+          cancelPick: endPick)
       #endif
     }
     .frame(minWidth: 900, minHeight: 600)
@@ -137,7 +156,14 @@ struct BenchWindow: View {
     // The store is driven from here rather than from `body`'s own evaluation, so nothing mutates
     // observable state during a view update.
     .onChange(of: document.pattern, initial: true) { rebuild() }
+    // What the viewport draws follows the store's own rebuilds as well as the pick's arrival and
+    // departure, and one counter carries both.
+    .onChange(of: store.generation) { drawGeneration += 1 }
   }
+
+  /// The solid on screen: the pick's intermediate stone while one is running, and the store's otherwise.
+  private var drawnSolid: BenchSolid { pick?.frame.solid ?? store.solid }
+  private var drawnMesh: SolidMesh { pick?.frame.mesh ?? store.mesh }
 
   /// Recomputed per body pass rather than cached: it is string formatting over at most a few dozen
   /// findings, and a cache would be a second place the count could be wrong.
@@ -218,8 +244,47 @@ struct BenchWindow: View {
     // The path goes with the solid it was traced through. The Probe *mode* stays on: the owner turned it
     // on, and a rebuild is not them turning it off.
     probe = nil
+    // A plane index means nothing across a rebuild, so a pick held across one would be clicking a solid
+    // that no longer exists — the same reason the facet selection goes.
+    pick = nil
+    drawGeneration += 1
     // Last, because it reads the solid the store has just produced.
     findingsStore.rebuild(pattern: document.pattern, solid: store.solid)
+  }
+
+  /// **Pick in viewport…** on one tier's Meet menu. Not an edit: starting a pick changes no draft, so it
+  /// registers no undo entry and passes through no funnel.
+  ///
+  /// The intermediate solid is built once, here, and every click of this pick is tested against it.
+  private func startPick(_ tier: String) {
+    let solid = intermediateBenchSolid(before: tier, draft: document.draft, full: store.full)
+    pick = MeetPickSession(
+      state: MeetPickState(tier: tier),
+      frame: PlaybackFrame(solid: solid, mesh: solidMesh(solid)))
+    drawGeneration += 1
+    // All three describe the solid that was on screen a moment ago.
+    selectedPlaneIndex = nil
+    selectedFacetLabel = nil
+    probe = nil
+  }
+
+  /// The Cancel button, and every path that ends a pick. The same three clears, for the same reason.
+  private func endPick() {
+    pick = nil
+    drawGeneration += 1
+    selectedPlaneIndex = nil
+    selectedFacetLabel = nil
+    probe = nil
+  }
+
+  /// The facet the renderer highlights while a pick runs: the last one clicked, and nothing at `empty`.
+  private func highlightedPlane(of state: MeetPickState) -> Int? {
+    switch state.stage {
+    case .empty: nil
+    case .oneFacet(let plane): plane
+    case .edge(let planes, _): planes.last
+    case .point(let planes, _, _): planes.last
+    }
   }
 
   /// Direct manipulation: the stone follows the pointer, so the camera goes the other way — a drag to
@@ -234,6 +299,34 @@ struct BenchWindow: View {
   /// already agree (D13). A click that misses the solid clears the selection.
   private func pick(at point: CGPoint, in size: CGSize) {
     guard size.width > 0, size.height > 0 else { return }
+
+    if let session = pick {
+      // The solid on screen, which is the one the click hit and the one the pick names facets on.
+      let solid = drawnSolid
+      let hit = meetPickHit(
+        solid,
+        click: (x: Double(point.x), y: Double(point.y)),
+        size: (width: Double(size.width), height: Double(size.height)),
+        camera: camera)
+      switch advancing(session.state, hit: hit, solid: solid, draft: document.draft) {
+      case .advanced(let next):
+        pick?.state = next
+        // The highlight follows the last facet clicked, in the solid on screen — which is the pick's.
+        selectedPlaneIndex = highlightedPlane(of: next)
+        selectedFacetLabel = selectedPlaneIndex.flatMap { solid.origin[$0] }.map(facetLabel)
+      case .complete(let meet):
+        _ = edit("Change Meet") { setting(meet: meet, ofTier: session.state.tier, in: $0) }
+        endPick()
+      case .refused(let refusal):
+        refusals.present(refusal)
+      case .cleared:
+        endPick()
+      }
+      // **Load-bearing**: while a pick is in progress the facet selection and the probe path below do not
+      // run. The click belongs to the pick.
+      return
+    }
+
     let ray = benchRay(
       ndcX: Float(2 * point.x / size.width - 1),
       ndcY: Float(2 * point.y / size.height - 1),

@@ -687,7 +687,7 @@ creates it.
 | T2 | Pure: what a click hit — the edge, or the facet | completed | checkpoint | commit | |
 | T3 | Pure: the click machine, and the refusals it states | completed | continue | — | material alteration ↓ |
 | T4 | Pure: the corner, the third name, and the meet it writes | completed | checkpoint | commit | material alteration ↓ |
-| T5 | Picking in the window, against the intermediate solid | not started | **owner stop** | commit | |
+| T5 | Picking in the window, against the intermediate solid | awaiting owner | **owner stop** | commit | |
 | T6 | The ghost, and the markers on what has been clicked | not started | **owner stop** | commit + push | |
 | T7 | `Easy Octagon`, cut in the app | not started | **owner stop** | commit + push | |
 | T8 | Close out | not started | **owner stop** | commit + push | |
