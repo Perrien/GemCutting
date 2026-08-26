@@ -184,6 +184,8 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case emptyTierLabel
   case indexOutOfRange(tier: String, index: Int, wheel: Int)
   case indicesNotWholeNumbers(typed: String)
+  /// A fold count that does not divide the tier's effective gear, with the counts that gear does reach.
+  case foldsNotADivisor(tier: String, folds: Int, wheel: Int)
   case notANumber(field: String, typed: String)
   case girdleTargetNotPositive(typed: String)
   case tiersWithoutMeet([String])
@@ -213,6 +215,12 @@ public enum DraftRefusal: Error, Equatable, Sendable {
       "Index stop \(index) is outside 0...\(wheel - 1) on \(tier)'s gear of \(wheel)."
     case .indicesNotWholeNumbers(let typed):
       "\"\(typed)\" is not a list of whole index stops."
+    case .foldsNotADivisor(let tier, let folds, let wheel):
+      // The reachable counts are computed rather than spelled, so the sentence cannot drift from what
+      // `setting(folds:ofTier:in:)` actually accepts.
+      "\(folds)-fold does not divide \(tier)'s gear of \(wheel). "
+        + "On \(wheel) the fold counts are "
+        + "\(foldCounts(onWheel: wheel).map(String.init).joined(separator: ", "))."
     case .notANumber(let field, let typed):
       "\"\(typed)\" is not a number for \(field)."
     case .girdleTargetNotPositive:

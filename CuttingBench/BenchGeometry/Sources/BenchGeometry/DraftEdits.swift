@@ -126,34 +126,10 @@ public func setting(indices typed: String, ofTier tier: String, in draft: Patter
   -> Result<PatternDraft, DraftRefusal>
 {
   guard let position = draft.position(ofTier: tier) else { return .success(draft) }
-
-  let pieces = typed.split(whereSeparator: { $0 == "," || $0.isWhitespace })
-  var indices: [Int] = []
-  for piece in pieces {
-    guard let index = Int(piece) else {
-      return .failure(.indicesNotWholeNumbers(typed: typed))
-    }
-    indices.append(index)
+  guard let indices = parsedStops(typed) else {
+    return .failure(.indicesNotWholeNumbers(typed: typed))
   }
-
-  let stops = draft.wheel(of: draft.tiers[position])
-  for index in indices where index < 0 || index >= stops {
-    return .failure(.indexOutOfRange(tier: tier, index: index, wheel: stops))
-  }
-
-  // Only the stops that would go, and in the order the author wrote them: a stop still in the list is
-  // still there to be named, however the list was rearranged around it.
-  let kept = Set(indices)
-  for index in draft.tiers[position].indices where !kept.contains(index) {
-    let dependents = tiersNaming(tier: tier, index: index, in: draft)
-    guard dependents.isEmpty else {
-      return .failure(.stopReferenced(tier: tier, index: index, by: dependents))
-    }
-  }
-
-  var edited = draft
-  edited.tiers[position].indices = indices
-  return .success(edited)
+  return settingStops(indices, atPosition: position, in: draft)
 }
 
 /// Always accepted: a new part moves a named facet rather than removing it, so every reference still
@@ -262,6 +238,50 @@ public func setting(girdleTarget typed: String, in draft: PatternDraft)
 
   edited.girdleTargetFraction = fraction
   return .success(edited)
+}
+
+// MARK: - Writing a stop list
+
+/// The one place a tier's stop list is written: the range check, the reference check, and the assignment.
+///
+/// **Every editor that produces a stop list goes through here** — the Indices cell, the three symmetry
+/// controls and neither gear popup — so a generated list is refused for exactly what a typed one is, in
+/// exactly the same words.
+private func settingStops(_ stops: [Int], atPosition position: Int, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  let tier = draft.tiers[position].tier
+  let gear = draft.wheel(of: draft.tiers[position])
+  for index in stops where index < 0 || index >= gear {
+    return .failure(.indexOutOfRange(tier: tier, index: index, wheel: gear))
+  }
+
+  // Only the stops that would go, and in the order the author wrote them: a stop still in the list is
+  // still there to be named, however the list was rearranged around it.
+  let kept = Set(stops)
+  for index in draft.tiers[position].indices where !kept.contains(index) {
+    let dependents = tiersNaming(tier: tier, index: index, in: draft)
+    guard dependents.isEmpty else {
+      return .failure(.stopReferenced(tier: tier, index: index, by: dependents))
+    }
+  }
+
+  var edited = draft
+  edited.tiers[position].indices = stops
+  return .success(edited)
+}
+
+/// A typed stop list, split on whitespace and commas alike. `nil` for a piece that is not a whole number.
+/// **Order and duplicates are preserved exactly as typed**, which is what the Indices cell needs; the
+/// generator sorts its own output instead.
+private func parsedStops(_ typed: String) -> [Int]? {
+  let pieces = typed.split(whereSeparator: { $0 == "," || $0.isWhitespace })
+  var stops: [Int] = []
+  for piece in pieces {
+    guard let stop = Int(piece) else { return nil }
+    stops.append(stop)
+  }
+  return stops
 }
 
 // MARK: - Reading the order
