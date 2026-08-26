@@ -1,6 +1,7 @@
 # 4 · Cutting Bench Authoring — Part 2: Validation and State
 
-Status: **APPROVED** (2026-08-26) — in execution.
+Status: **PART 2 COMPLETED** (2026-08-26). Not archived — the final part archives this plan, every sibling
+part by name, the exploration and the ticket.
 
 ## Parts
 
@@ -685,8 +686,8 @@ verification. If the `-I` path does not exist, the `swift build` line above crea
 | T3 | The store validates from the cache | completed | **owner stop** | commit | |
 | T4 | The quiet period before the expensive half | completed | **owner stop** | commit | |
 | T5 | Pure: the finish verdict and its refusals | completed | checkpoint | commit | |
-| T6 | The state switch in the inspector | awaiting owner | **owner stop** | commit | |
-| T7 | Close out | not started | **owner stop** | commit + push | |
+| T6 | The state switch in the inspector | completed | **owner stop** | commit | |
+| T7 | Close out | completed | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one rule for parsing the declared facet count**
 
@@ -966,3 +967,7 @@ T4 are built on sand, and the oracle test is what proves it does.
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as
 a ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+**Still empty at close-out.** This part found no adjacent problem it had to leave alone, so it filed no
+ticket. The two tickets part 1 deferred — the read-only sandbox and the in-place autosave — are untouched
+and still open; neither blocked any verification here, because no handle in this part saves anything.
