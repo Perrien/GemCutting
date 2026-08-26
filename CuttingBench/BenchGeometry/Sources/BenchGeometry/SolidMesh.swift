@@ -60,7 +60,6 @@ public struct SolidMesh: Sendable {
 public func solidMesh(_ solid: BenchSolid) -> SolidMesh {
   var triangleVertices: [MeshVertex] = []
   var edgeVertices: [MeshVertex] = []
-  var seenEdges: Set<SIMD2<Int>> = []
 
   for planeIndex in solid.polytope.facets.keys.sorted() {
     guard let ring = solid.polytope.facets[planeIndex], ring.count >= 3 else { continue }
@@ -79,19 +78,15 @@ public func solidMesh(_ solid: BenchSolid) -> SolidMesh {
             planeIndex: Float(planeIndex)))
       }
     }
+  }
 
-    // Each undirected pair of consecutive ring vertices, closing pair included. Keyed as (min, max) so
-    // the pair shared by two facets is emitted once.
-    for i in ring.indices {
-      let a = ring[i]
-      let b = ring[(i + 1) % ring.count]
-      let key = SIMD2(min(a, b), max(a, b))
-      guard seenEdges.insert(key).inserted else { continue }
-      edgeVertices.append(
-        meshVertex(solid.polytope.vertices[a], normal: .zero, role: 0, planeIndex: -1))
-      edgeVertices.append(
-        meshVertex(solid.polytope.vertices[b], normal: .zero, role: 0, planeIndex: -1))
-    }
+  // One enumeration of the solid's edges, shared with the click: a line drawn here and an edge a
+  // click can take are the same thing by construction.
+  for edge in solidEdges(solid) {
+    edgeVertices.append(
+      meshVertex(solid.polytope.vertices[edge.a], normal: .zero, role: 0, planeIndex: -1))
+    edgeVertices.append(
+      meshVertex(solid.polytope.vertices[edge.b], normal: .zero, role: 0, planeIndex: -1))
   }
 
   return SolidMesh(triangleVertices: triangleVertices, edgeVertices: edgeVertices)

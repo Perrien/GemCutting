@@ -593,7 +593,7 @@ CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` and take it clean**,
 | T4 | Seeds, Folds and Mirror, on the row and in the table | completed | **owner stop** | commit | |
 | T5 | The two gear setters | completed | continue | — | |
 | T6 | The Wheel popup, and the header Gear popup | completed | **owner stop** | commit + push | |
-| T7 | Close out | awaiting owner | **owner stop** | commit + push | |
+| T7 | Close out | completed | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one place a tier's stop list is written**
 
