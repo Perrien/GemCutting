@@ -12,9 +12,9 @@ import func FacetKernel.structuralFindings
 /// Owns the findings. The cheap half of validation runs here and now; the expensive half runs off the
 /// main thread and lands through `accept`.
 ///
-/// **While the expensive half is in flight the previous result stays and the line marks it stale.** It is
-/// cleared only when a different document is opened, because another pattern's count is not a stale
-/// answer to this question — it is an answer to a different one.
+/// **While the expensive half is in flight the previous result stays and the line marks it stale.** The
+/// kept result survives every edit to the open document, a rename included, and is cleared only when the
+/// document has no pattern to check at all.
 @Observable @MainActor final class BenchFindingsStore {
   private(set) var structural: [Finding] = []
   /// `nil` means no geometric result for this solid: still running, or never going to run.
@@ -24,8 +24,6 @@ import func FacetKernel.structuralFindings
   /// Bumped per rebuild. A task that finishes after a newer one started is discarded rather than racing.
   private var generation = 0
   private var running: Task<Void, Never>?
-  /// The document the current `geometric` belongs to.
-  private var checkedName: String?
 
   /// `nonisolated`, so a `View`'s `@State` default value can construct it: a `View` struct's own
   /// initialization is not main-actor isolated even though its `body` is. Safe because every stored
@@ -37,11 +35,6 @@ import func FacetKernel.structuralFindings
     running = nil
     generation += 1
     let generation = self.generation
-
-    if pattern?.name != checkedName {
-      geometric = nil
-      checkedName = pattern?.name
-    }
 
     guard let pattern, let solution = solid.solution else {
       structural = []

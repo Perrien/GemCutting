@@ -667,7 +667,7 @@ the `swift build` line above creates it.
 | T3 | The Light card, and the debug refractive-index override | completed | **owner stop** | commit + push | |
 | T4 | The leak mark on the Angle column | completed | **owner stop** | commit | Material alteration: the *Done when* item requiring a grep for `critical` to find nothing could not hold — the two doc comments Approach §5 dictates carry the phrase verbatim. Owner chose to keep the comments and correct the check; the item now asserts no comparison and no `asin`, and the reason is in the plan beside it. |
 | T6 | The probe: the toggle, the click and the path | completed | **owner stop** | commit + push | |
-| T7 | Close out — the plan, the parts and the exploration | awaiting owner | **owner stop** | commit + push | |
+| T7 | Close out — the plan, the parts and the exploration | completed | **owner stop** | commit + push | |
 
 **T1 — Prefactor: the pick hands back its point, snapped to its plane**
 

@@ -426,6 +426,9 @@ struct StatusStripRegion: View {
     /// precompute.
     let cachedFrames: Int
     let stepTotal: Int
+    /// What the draft holds, which is not always what the display solves: a tier with no meet yet is a
+    /// row the author wrote and a tier the stone has never heard of.
+    let draftLine: String
   #endif
   /// Whether the detail is open. View state: a popover closes when you look away and nothing about it is
   /// worth persisting.
@@ -470,6 +473,7 @@ struct StatusStripRegion: View {
       let rough = solid.includesRough ? "rough scaffolding" : "rough dropped"
       let stopped = solid.stoppedAtTier.map { " · stopped at \($0)" } ?? ""
       return "\(document) · \(counts) · \(rough)\(stopped) · frames \(cachedFrames)/\(stepTotal)"
+        + " · \(draftLine)"
     }
   #endif
 }

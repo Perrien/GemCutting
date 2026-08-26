@@ -75,7 +75,8 @@ struct BenchWindow: View {
           selectedFacet: selectedFacetLabel,
           findings: readout,
           cachedFrames: store.cachedFrameCount,
-          stepTotal: store.steps.count)
+          stepTotal: store.steps.count,
+          draftLine: draftSummary(document.draft))
       #else
         StatusStripRegion(
           pattern: document.pattern,
