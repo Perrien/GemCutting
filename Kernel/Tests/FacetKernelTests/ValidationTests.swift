@@ -28,7 +28,7 @@ final class ValidationTests: XCTestCase {
       let report = validate(pattern, solution, declaredFacetCount: sheet.facets)
 
       XCTAssertEqual(report.findings, [], pattern.name)
-      XCTAssertEqual(report.observations, [], pattern.name)
+      XCTAssertEqual(report.notices, [], pattern.name)
     }
   }
 
@@ -129,7 +129,7 @@ final class ValidationTests: XCTestCase {
 
     let report = validate(pattern, solution, declaredFacetCount: nil)
     XCTAssertEqual(report.findings, [.vertexNotOnIntermediateSolid(tier: "C2", named: named)])
-    XCTAssertEqual(report.observations, [])
+    XCTAssertEqual(report.notices, [])
   }
 
   /// The check is against the solid as it stands when the tier is cut, not the finished one. Easy
@@ -164,7 +164,7 @@ final class ValidationTests: XCTestCase {
 
     let report = validate(pattern, solution, declaredFacetCount: nil)
     XCTAssertEqual(report.findings, [.doesNotClose(tier: "C1")])
-    XCTAssertEqual(report.observations, [.tierContributesNoFacets(tier: "G1")])
+    XCTAssertEqual(report.notices, [.tierContributesNoFacets(tier: "G1")])
   }
 
   /// A girdle on its own is an unbounded prism: no triple of vertical planes meets at a point, so there
@@ -186,14 +186,14 @@ final class ValidationTests: XCTestCase {
     XCTAssertEqual(report.findings, [.facetCountMismatch(solved: 37, declared: 36)])
   }
 
-  // MARK: - Observations
+  // MARK: - Notices
 
-  /// A tier cut away entirely is legitimate, so it lands in `observations` and `findings` stays empty.
+  /// A tier cut away entirely is legitimate, so it lands in `notices` and `findings` stays empty.
   ///
   /// Novice Ash-er is a step cut: pulling C2's fraction back to 0% cuts it to the girdle-top corner ring
   /// that C1 stands on, which removes every C1 facet and leaves the girdle untouched. The sheet would
   /// not have counted those facets either, which is why the count agreeing is part of the check.
-  func testTierContributesNoFacetsIsAnObservation() throws {
+  func testTierContributesNoFacetsIsANotice() throws {
     var pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
     let girdle = 0.032260
     let baseline = try solve(pattern, girdleTargetFraction: girdle)
@@ -206,7 +206,7 @@ final class ValidationTests: XCTestCase {
 
     let report = validate(pattern, deepened, declaredFacetCount: nil)
     XCTAssertEqual(report.findings, [])
-    XCTAssertEqual(report.observations, [.tierContributesNoFacets(tier: "C1")])
+    XCTAssertEqual(report.notices, [.tierContributesNoFacets(tier: "C1")])
 
     let c1 = try XCTUnwrap(pattern.tiers.first { $0.tier == "C1" })
     XCTAssertEqual(
@@ -217,14 +217,14 @@ final class ValidationTests: XCTestCase {
   }
 
   /// One index stop cut twice: the two planes coincide, so the second facet is the first one again.
-  func testDuplicatePlanesIsAnObservation() throws {
+  func testDuplicatePlanesIsANotice() throws {
     var pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
     pattern.tiers[2].indices = [6, 6, 18, 30, 42, 54, 66, 78, 90]
     let solution = try solve(pattern, girdleTargetFraction: Self.easyOctagonGirdle)
 
     let report = validate(pattern, solution, declaredFacetCount: nil)
     XCTAssertEqual(report.findings, [])
-    XCTAssertEqual(report.observations, [.duplicatePlanes(tier: "P2", indices: [6])])
+    XCTAssertEqual(report.notices, [.duplicatePlanes(tier: "P2", indices: [6])])
   }
 
   // MARK: - Reporting, not enforcing

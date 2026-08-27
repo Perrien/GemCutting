@@ -3,8 +3,8 @@
 How to write a faceting design so the engine can solve, draw, cut and grade it. Written for the
 faceter doing the authoring, not for the parser.
 
-Decided in [Design Data Model](../../.scratch/faceting-game/issues/03-design-data-model.md);
-rationale in [ADR-0002](../adr/0002-meet-constraints-not-depths.md).
+The rationale is the next section, and it is the whole of the format's reason for existing: a design
+records what each tier **meets**, never how deep it is cut.
 
 ## The one idea behind the format
 
@@ -491,8 +491,8 @@ properly:
 
 - **A condition on the result rather than a position** — "cut so these edges are equal length."
   Solvable, but there's no position to write down.
-  See [ticket 18](../../.scratch/faceting-game/issues/18-outcome-condition-meets.md), which is
-  parked waiting on exactly this example.
+  Captured as the ticket `Feature-Outcome-Condition-Meets`, which is parked waiting on exactly this
+  example.
 - **A fraction with an endpoint you can't name** as either a three-facet vertex or the TCP.
 
 And one open question that may affect how you write things: `should cut the same depth`

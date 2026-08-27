@@ -174,6 +174,35 @@ final class TierTableTests: XCTestCase {
     XCTAssertTrue(table.mirror)
   }
 
+  /// The Mirror cell is drawn disabled where flipping it would regenerate the same stops. Easy Octagon has
+  /// only such tiers on the mirrored side — one seed taken eight-fold, and a one-stop table — while its
+  /// un-mirrored crown can be mirrored and so stays live.
+  func testEasyOctagonsMirrorCellsAreLiveOnlyWhereTheyCanChangeSomething() throws {
+    let rows = try rows(of: AuthoredPatterns.easyOctagon)
+
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "G1" })
+    XCTAssertTrue(girdle.mirror)
+    XCTAssertFalse(girdle.mirrorIsEditable)
+
+    let table = try XCTUnwrap(rows.first { $0.tier == "T" })
+    XCTAssertTrue(table.mirror)
+    XCTAssertFalse(table.mirrorIsEditable)
+
+    let crown = try XCTUnwrap(rows.first { $0.tier == "C2" })
+    XCTAssertFalse(crown.mirror)
+    XCTAssertTrue(crown.mirrorIsEditable)
+  }
+
+  /// Mirrored and still live, because the rectangle's girdle needs its reflection to hold all six stops.
+  /// The row reads it against the tier's *effective* gear, as the rest of the symmetry columns do.
+  func testRandsGirdleKeepsALiveMirrorCell() throws {
+    let rows = try rows(of: AuthoredPatterns.rands)
+    let girdle = try XCTUnwrap(rows.first { $0.tier == "2" })
+
+    XCTAssertTrue(girdle.mirror)
+    XCTAssertTrue(girdle.mirrorIsEditable)
+  }
+
   /// Space-separated, matching the Indices cell's own separator, so the two read as one statement across
   /// the row. A rectangle's girdle takes two seeds to state.
   func testRandsGirdleReadsItsTwoSeedsSpaceSeparated() throws {

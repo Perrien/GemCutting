@@ -134,6 +134,16 @@ public func setting(indices typed: String, ofTier tier: String, in draft: Patter
 
 /// Always accepted: a new part moves a named facet rather than removing it, so every reference still
 /// resolves.
+///
+/// **Choosing girdle or table sets the angle with it — 90 and 0.** Those two parts are cut at one angle by
+/// definition: the mast angle is measured from the table plane, so a table stands at 0 and a girdle at 90,
+/// and every girdle and table tier in all four authored patterns is cut that way. Crown and pavilion are
+/// left alone, because their ranges genuinely overlap and there is nothing to guess from the part.
+///
+/// **It overwrites an angle already typed rather than filling in only a blank one.** A tier the author has
+/// just declared a girdle is a girdle; filling only where the angle still reads 0 would leave a 43°
+/// pavilion switched to girdle sitting silently at 43°, which is the confusion this exists to remove. One
+/// named edit covers both fields, so undo puts the part and the angle back together.
 public func setting(part: Part, ofTier tier: String, in draft: PatternDraft)
   -> Result<PatternDraft, DraftRefusal>
 {
@@ -141,7 +151,22 @@ public func setting(part: Part, ofTier tier: String, in draft: PatternDraft)
 
   var edited = draft
   edited.tiers[position].part = part
+  if let angle = definingAngle(of: part) {
+    edited.tiers[position].angle = angle
+  }
   return .success(edited)
+}
+
+/// The single angle a part is cut at, or `nil` where the angle is the author's to choose.
+///
+/// Girdle and table have one each and crown and pavilion have none — a crown tier and a pavilion tier can
+/// sit at the same angle, which is exactly why a pattern has to state the part rather than infer it.
+public func definingAngle(of part: Part) -> Double? {
+  switch part {
+  case .table: 0
+  case .gdl: 90
+  case .crown, .pav: nil
+  }
 }
 
 /// Always accepted. **An empty string is stored as an empty string and never as `nil`**, because absent

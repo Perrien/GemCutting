@@ -9,7 +9,7 @@ import Foundation
 // diagnostic and not the app.
 //
 // Exit code 0 when the pattern comes back with no findings, 1 when a finished pattern does not.
-// Observations never affect it: a tier cut away entirely is legitimate, and only a reader can tell that
+// Notices never affect it: a tier cut away entirely is legitimate, and only a reader can tell that
 // from a mis-authored depth. A pattern still in progress prints its findings as informational and exits
 // 0, since it is not claiming to be valid yet. A pattern the solver refuses exits 1 whatever its state —
 // there is nothing to report but the fault. Usage, file and decoding failures exit 2 and print on
@@ -88,9 +88,9 @@ func printed(_ finding: Finding) -> String {
   "\(finding)"
 }
 
-/// Observations print as prose. They are addressed to whoever is reading, not to a differ.
-func printed(_ observation: Observation) -> String {
-  switch observation {
+/// Notices print as prose. They are addressed to whoever is reading, not to a differ.
+func printed(_ notice: Notice) -> String {
+  switch notice {
   case .tierContributesNoFacets(let tier):
     "tier \(tier) contributes no facets"
   case .duplicatePlanes(let tier, let indices):
@@ -143,19 +143,23 @@ func fixed(_ value: Double, _ places: Int) -> String {
 
 // MARK: - JSON
 
-/// The machine-readable form: metrics, findings and observations, and nothing else.
+/// The machine-readable form: metrics, findings and notices, and nothing else.
 ///
 /// Doubles are written to nine places so a golden fixture compares on the geometry rather than on the
 /// last bit of a `Double`. Nine is well past every tolerance this kernel is checked to.
+///
+/// **The `observations` key keeps its name although the library's type is now `Notice`.** The three
+/// authored patterns' golden fixtures are saved copies of this object and are external ground truth that
+/// is never edited, so the wire name is frozen and the Swift name is mapped onto it here.
 struct JSONReport: Encodable {
   let metrics: JSONMetrics?
   let findings: [String]
-  let observations: [String]
+  let notices: [String]
 
   private enum CodingKeys: String, CodingKey {
     case metrics
     case findings
-    case observations
+    case notices = "observations"
   }
 
   /// All three keys are always written, `metrics` as `null` when the solver refused the pattern. A reader
@@ -164,7 +168,7 @@ struct JSONReport: Encodable {
     var container = encoder.container(keyedBy: CodingKeys.self)
     try container.encode(metrics, forKey: .metrics)
     try container.encode(findings, forKey: .findings)
-    try container.encode(observations, forKey: .observations)
+    try container.encode(notices, forKey: .notices)
   }
 }
 
@@ -242,7 +246,7 @@ do {
 } catch let error as SolverError {
   // The solve refuses to guess, so there is no solid and no metrics — only the fault.
   if options.json {
-    emit(JSONReport(metrics: nil, findings: [printed(error)], observations: []))
+    emit(JSONReport(metrics: nil, findings: [printed(error)], notices: []))
   } else {
     out(pattern.name)
     printChannel("finding", [printed(error)])
@@ -258,14 +262,14 @@ let measured = metrics(solution)
 let resolvedGirdleTarget = options.girdle ?? pattern.effectiveGirdleTargetFraction
 
 let findings = report.findings.map(printed)
-let observations = report.observations.map(printed)
+let notices = report.notices.map(printed)
 
 if options.json {
   emit(
     JSONReport(
       metrics: JSONMetrics(measured),
       findings: findings,
-      observations: observations
+      notices: notices
     ))
 } else {
   out(pattern.name)
@@ -317,11 +321,12 @@ if options.json {
   out("")
 
   printChannel("finding", findings)
-  printChannel("observation", observations)
+  // The printed word stays "observation" for the same reason the JSON key does: the golden fixtures.
+  printChannel("observation", notices)
 }
 
-// A finished pattern is claiming to be valid, so its findings are fatal. An unfinished one is not, and an
-// observation never is.
+// A finished pattern is claiming to be valid, so its findings are fatal. An unfinished one is not, and a
+// notice never is.
 exit(findings.isEmpty || pattern.state == .inProgress ? 0 : 1)
 
 extension String {

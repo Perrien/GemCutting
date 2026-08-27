@@ -112,3 +112,29 @@ public func derivedSymmetry(stops: [Int], wheel: Int) -> TierSymmetry {
 private func reduced(_ stop: Int, wheel: Int) -> Int {
   ((stop % wheel) + wheel) % wheel
 }
+
+/// Whether flipping a tier's mirroring would change its stops at all — that is, whether the Mirror
+/// control has anything to do.
+///
+/// **Mirroring is a question asked of the stop list, not a stored field**, so unchecking it regenerates
+/// the tier from its own seeds without the reflection. On a set that is already mirror-symmetric by
+/// rotation alone — every 8-fold tier seeded at 0, which is most of them — that regenerates the very same
+/// stops, the derived answer comes back `true`, and the control springs straight back looking broken.
+/// There is nothing the author can do with it, so it is offered disabled instead of as an edit that
+/// undoes itself.
+///
+/// Both directions are asked the one question rather than special-cased, which is also what makes the
+/// empty tier fall out correctly: no seeds generate nothing whichever way the flag is set, so the control
+/// is inert there too.
+///
+/// **Takes the derived symmetry rather than the stops**, so a caller that has already derived it — the
+/// tier table's row build, the only caller — does not pay for a second derivation. The stops themselves
+/// are not needed: `derivedSymmetry` guarantees the seeds expand back to exactly the list they came from.
+public func mirrorIsEditable(_ symmetry: TierSymmetry, wheel: Int) -> Bool {
+  guard wheel > 0, !symmetry.seeds.isEmpty else { return false }
+  let asIs = expandedStops(
+    seeds: symmetry.seeds, folds: symmetry.folds, mirror: symmetry.mirror, wheel: wheel)
+  let flipped = expandedStops(
+    seeds: symmetry.seeds, folds: symmetry.folds, mirror: !symmetry.mirror, wheel: wheel)
+  return asIs != flipped
+}

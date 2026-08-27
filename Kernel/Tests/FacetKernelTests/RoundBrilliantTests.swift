@@ -104,7 +104,7 @@ final class RoundBrilliantTests: XCTestCase {
     let report = validate(try pattern(), solution, declaredFacetCount: 73)
 
     XCTAssertEqual(report.findings, [])
-    XCTAssertEqual(report.observations, [])
+    XCTAssertEqual(report.notices, [])
   }
 
   /// The pattern this anchor rests on is the sheet as transcribed: seven tiers on a 96 wheel, finished, at

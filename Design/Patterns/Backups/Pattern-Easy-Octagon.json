@@ -1,0 +1,75 @@
+{
+  "formatVersion": 1,
+  "name": "Easy Octagon",
+  "state": "finished",
+  "wheel": 96,
+  "ri": 1.54,
+  "girdleTargetFraction": 0.033700,
+  "designer": "USFG Competitions. No individual designer named on the source sheet.",
+  "notes": "Declared on the sheet, as cross-checks not source of truth: 37 facets, 4-fold symmetry. Sheet states no material, size or girdle tolerance - material inferred as quartz from RI 1.540, and the girdle meet therefore falls back to the 3-5% rule; the source diagram measures 3.37% of width. Source: 'GemCad Diagrams - 53 designs.pdf' p44, 'Faceting Diagrams/USFG Competitions/Easy Octagon.gem'. Angles and indices transcribed from the sheet; meets derived from its crown, pavilion and profile diagrams.",
+  "tiers": [
+    {
+      "tier": "G1",
+      "part": "gdl",
+      "angle": 90.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "size" }
+    },
+    {
+      "tier": "P1",
+      "part": "pav",
+      "angle": 47.60,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "tcp" }
+    },
+    {
+      "tier": "P2",
+      "part": "pav",
+      "angle": 43.00,
+      "indices": [6, 18, 30, 42, 54, 66, 78, 90],
+      "meet": {
+        "kind": "vertex",
+        "facets": [
+          { "tier": "G1", "index": 0 },
+          { "tier": "G1", "index": 12 },
+          { "tier": "P1", "index": 0 }
+        ]
+      }
+    },
+    {
+      "tier": "C1",
+      "part": "crown",
+      "angle": 42.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "girdle" }
+    },
+    {
+      "tier": "C2",
+      "part": "crown",
+      "angle": 29.00,
+      "indices": [18, 42, 66, 90],
+      "meet": {
+        "kind": "vertex",
+        "facets": [
+          { "tier": "G1", "index": 12 },
+          { "tier": "G1", "index": 24 },
+          { "tier": "C1", "index": 12 }
+        ]
+      }
+    },
+    {
+      "tier": "T",
+      "part": "table",
+      "angle": 0.00,
+      "indices": [0],
+      "meet": {
+        "kind": "vertex",
+        "facets": [
+          { "tier": "C1", "index": 0 },
+          { "tier": "C1", "index": 12 },
+          { "tier": "C2", "index": 18 }
+        ]
+      }
+    }
+  ]
+}

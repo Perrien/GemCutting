@@ -1,10 +1,6 @@
 import BenchGeometry
+import FacetKernel
 import Observation
-
-// Scoped, not a whole-module import: `FacetKernel` exports a public enum named `Observation`, and a
-// type in scope shadows the module of the same name — which is the module `@Observable` expands its
-// references against. Importing only `Pattern` leaves `Observation` meaning the framework.
-import struct FacetKernel.Pattern
 
 /// The bare prism and its mesh, built once for the whole process: every window starts here, before any
 /// document is open. A `let` of a `Sendable` type, so a `nonisolated init` can read it.

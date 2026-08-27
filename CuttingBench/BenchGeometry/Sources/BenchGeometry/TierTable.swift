@@ -33,6 +33,10 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
   public var folds: String
   /// Whether reflecting the stops about index 0 maps the set onto itself.
   public var mirror: Bool
+  /// Whether the Mirror control can do anything on this tier. `false` where the stops are mirror-symmetric
+  /// by rotation alone, so regenerating without the reflection produces the very same stops and the answer
+  /// comes straight back — the cell is drawn disabled rather than as an edit that undoes itself.
+  public var mirrorIsEditable: Bool
   public var meet: String
   public var wheel: String
   /// Whether the tier declares no wheel of its own, so the header's gear is what applies. The cell shows
@@ -65,6 +69,7 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     seeds: String,
     folds: String,
     mirror: Bool,
+    mirrorIsEditable: Bool,
     meet: String,
     wheel: String,
     wheelIsInherited: Bool,
@@ -82,6 +87,7 @@ public struct TierTableRow: Identifiable, Equatable, Sendable {
     self.seeds = seeds
     self.folds = folds
     self.mirror = mirror
+    self.mirrorIsEditable = mirrorIsEditable
     self.meet = meet
     self.wheel = wheel
     self.wheelIsInherited = wheelIsInherited
@@ -144,6 +150,9 @@ public func tierTableRows(
       seeds: symmetry.seeds.map(String.init).joined(separator: " "),
       folds: String(symmetry.folds),
       mirror: symmetry.mirror,
+      // Read from the symmetry already derived above rather than from the stops, so the extra question
+      // costs two expansions and not a second derivation.
+      mirrorIsEditable: mirrorIsEditable(symmetry, wheel: draft.wheel(of: spec)),
       // `—` is the cell for a tier whose depth has not been decided yet, and it is also what the Meet
       // menu's own label reads.
       meet: spec.meet.map(meetText) ?? "—",

@@ -1,5 +1,11 @@
 # Autosave In Place Rewrites The File That Was Opened
 
+> **Stale claim — trust the code.** This ticket says *"the read-only sandbox is the only thing
+> preventing it today."* That is no longer true: file access was changed to read/write on 2026-08-27, so
+> nothing in the app prevents an edit to an opened pattern from writing back to it. Closed as won't-fix
+> — the behaviour is accepted, and untouched copies of the four patterns are kept outside the app
+> instead.
+
 Status: untriaged
 Filed: 2026-08-26
 

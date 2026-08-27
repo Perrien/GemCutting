@@ -1,6 +1,6 @@
 # 4 · Cutting Bench Authoring — Part 5: Fraction Meets
 
-Status: **APPROVED** (2026-08-27).
+Status: **APPROVED** (2026-08-27). **Completed and archived 2026-08-27** — every task owner-verified.
 
 ## Parts
 
@@ -584,7 +584,7 @@ creates it.
 | T4 | Anchoring a point in the viewport | completed | **owner stop** | commit | material alteration ↓ |
 | T5 | The percentage, editable in the meet cell | completed | **owner stop** | commit + push | |
 | T6 | `Kiev Triangle`, confirmed | completed | **owner stop** | commit | |
-| T7 | Close out | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
+| T7 | Close out | completed | **owner stop** | commit + push | material alteration ↓ |
 
 **T1 — Prefactor: where along the edge the click fell**
 

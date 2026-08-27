@@ -26,7 +26,13 @@ public enum Finding: Sendable, Equatable {
 }
 
 /// Something worth the author's attention that is not, by itself, wrong.
-public enum Observation: Sendable, Equatable {
+///
+/// **Named `Notice` rather than `Observation` because a type shadows the module of the same name.** The
+/// `Observation` framework is what the `@Observable` macro expands its references against, so a public
+/// `Observation` here broke any file that imported this library whole and used that macro — with an
+/// error pointing at the macro rather than at the collision. "Observation" is also this project's word
+/// for an untriaged ticket, which is a different thing again.
+public enum Notice: Sendable, Equatable {
   /// Every facet of this tier is cut away by a later one. Legitimate — a tier cut only to establish an
   /// intermediate point another tier then cuts to — and the declared facet count agrees, because the
   /// sheet never counted them either. It is also exactly what a mis-authored depth looks like, which is
@@ -37,20 +43,20 @@ public enum Observation: Sendable, Equatable {
   case duplicatePlanes(tier: String, indices: [Int])
 }
 
-/// What validation found: errors in `findings`, everything informational in `observations`.
+/// What validation found: errors in `findings`, everything informational in `notices`.
 public struct Report: Sendable {
   public var findings: [Finding]
-  public var observations: [Observation]
+  public var notices: [Notice]
 
-  public init(findings: [Finding], observations: [Observation]) {
+  public init(findings: [Finding], notices: [Notice]) {
     self.findings = findings
-    self.observations = observations
+    self.notices = notices
   }
 }
 
 /// Checks a pattern against the solid it solved to. Reports; never throws, never mutates.
 ///
-/// Two channels: `findings` are errors, `observations` are informational and gate nothing. A pattern
+/// Two channels: `findings` are errors, `notices` are informational and gate nothing. A pattern
 /// still being authored may carry findings — only a finished one must come back with none, which is the
 /// caller's rule to enforce and not this function's.
 ///
@@ -60,7 +66,7 @@ public struct Report: Sendable {
 /// as written and reporting one's geometry would be fiction.
 public func validate(_ pattern: Pattern, _ solution: Solution, declaredFacetCount: Int?) -> Report {
   let structural = structuralFindings(pattern)
-  guard structural.isEmpty else { return Report(findings: structural, observations: []) }
+  guard structural.isEmpty else { return Report(findings: structural, notices: []) }
 
   var findings: [Finding] = []
   for solved in solution.tiers {
@@ -68,7 +74,7 @@ public func validate(_ pattern: Pattern, _ solution: Solution, declaredFacetCoun
   }
   findings.append(contentsOf: solidFindings(solution, declaredFacetCount: declaredFacetCount))
 
-  return Report(findings: findings, observations: observations(solution))
+  return Report(findings: findings, notices: notices(solution))
 }
 
 /// The solid as it stands when `tier` is about to be cut: every plane of every earlier tier, and none
@@ -245,7 +251,7 @@ private func placedPlanes(before tier: String, of solution: Solution) -> [String
 /// Whether the facet polygons form a closed surface: every edge belongs to exactly two of them.
 ///
 /// Coincident planes are one facet counted twice, so identical polygons are collapsed first — a
-/// duplicated plane is an observation, not an open solid.
+/// duplicated plane is a notice, not an open solid.
 private func closureFinding(_ solution: Solution) -> Finding? {
   let polytope = solution.polytope
   guard polytope.vertices.count >= 4, polytope.facets.count >= 4 else {
@@ -282,14 +288,14 @@ private func edges(of polygon: [Int]) -> [Edge] {
   polygon.indices.map { Edge(polygon[$0], polygon[($0 + 1) % polygon.count]) }
 }
 
-// MARK: - Observations
+// MARK: - Notices
 
-private func observations(_ solution: Solution) -> [Observation] {
-  var observations: [Observation] = []
+private func notices(_ solution: Solution) -> [Notice] {
+  var notices: [Notice] = []
 
   let surviving = Set(solution.polytope.facets.keys.compactMap { solution.planeOwner[$0]?.tier })
   for tier in solution.tiers where !surviving.contains(tier.tier) {
-    observations.append(.tierContributesNoFacets(tier: tier.tier))
+    notices.append(.tierContributesNoFacets(tier: tier.tier))
   }
 
   var duplicated: [String: [Int]] = [:]
@@ -302,10 +308,10 @@ private func observations(_ solution: Solution) -> [Observation] {
   }
   for tier in solution.tiers {
     guard let indices = duplicated[tier.tier] else { continue }
-    observations.append(.duplicatePlanes(tier: tier.tier, indices: indices.sorted()))
+    notices.append(.duplicatePlanes(tier: tier.tier, indices: indices.sorted()))
   }
 
-  return observations
+  return notices
 }
 
 private func isSamePlane(_ a: Plane, _ b: Plane) -> Bool {

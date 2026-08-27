@@ -510,7 +510,7 @@ public func meetPickPrompt(_ state: MeetPickState, solid: BenchSolid) -> String 
   case .point(let planes, let candidates, _):
     return opening
       + planes.map { name(solid, $0) }.joined(separator: " · ")
-      + " · click one of \(candidates.count) facets through the point"
+      + " · click a third facet through the point — \(offered(solid, candidates))"
   case .anchored(let planes, _, let ends, let percent):
     let along =
       "\(percentText(percent))% along \(name(solid, planes[0])) – \(name(solid, planes[1]))"
@@ -522,8 +522,22 @@ public func meetPickPrompt(_ state: MeetPickState, solid: BenchSolid) -> String 
       return opening + along + " · complete"
     }
     return opening + along
-      + " · click one of \(candidates.count) facets through the \(k == 0 ? "from" : "to") end"
+      + " · click a facet through the \(k == 0 ? "from" : "to") end"
+      + " — \(offered(solid, candidates))"
   }
+}
+
+/// The facets on offer, named, as `A`, `A or B`, `A, B or C`.
+///
+/// **Naming them is the whole message.** The overlay marks each candidate at its facet's centroid, which
+/// can sit far from the clicked corner or outside the frame altogether, so a count alone leaves the
+/// author hunting for markers they may not be able to see. The list is not truncated: a corner offers
+/// only the cut facets passing through it, minus those already clicked, and a label is short.
+private func offered(_ solid: BenchSolid, _ candidates: [Int]) -> String {
+  let names = candidates.map { name(solid, $0) }
+  guard let last = names.last else { return "no facet" }
+  guard names.count > 1 else { return last }
+  return names.dropLast().joined(separator: ", ") + " or " + last
 }
 
 /// One thing the overlay draws over the viewport.

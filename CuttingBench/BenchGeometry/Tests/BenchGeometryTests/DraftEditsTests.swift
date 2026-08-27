@@ -490,6 +490,57 @@ final class DraftEditsTests: XCTestCase {
     XCTAssertEqual(try tier("P2", of: edited).part, .crown)
   }
 
+  /// A crown or a pavilion tier keeps whatever angle it had: the two ranges overlap, so the part says
+  /// nothing about the angle.
+  func testChangingToCrownOrPavilionLeavesTheAngleAlone() throws {
+    let draft = try octagon()
+    let before = try tier("P2", of: draft).angle
+
+    for part in [Part.crown, .pav] {
+      let edited = try XCTUnwrap(try setting(part: part, ofTier: "P2", in: draft).get())
+      XCTAssertEqual(try tier("P2", of: edited).angle, before, "\(part.rawValue)")
+    }
+  }
+
+  /// Declaring a tier a girdle or a table sets its angle too — 90 and 0, the one angle each is cut at.
+  /// Read off a pavilion tier at 43°, so the assertion is about the new value and not about a tier that
+  /// happened to be there already.
+  func testChangingToGirdleOrTableSetsTheAngleWithIt() throws {
+    let draft = try octagon()
+    XCTAssertEqual(try tier("P2", of: draft).angle, 43)
+
+    let girdle = try XCTUnwrap(try setting(part: .gdl, ofTier: "P2", in: draft).get())
+    XCTAssertEqual(try tier("P2", of: girdle).part, .gdl)
+    XCTAssertEqual(try tier("P2", of: girdle).angle, 90)
+
+    let table = try XCTUnwrap(try setting(part: .table, ofTier: "P2", in: draft).get())
+    XCTAssertEqual(try tier("P2", of: table).part, .table)
+    XCTAssertEqual(try tier("P2", of: table).angle, 0)
+  }
+
+  /// The two parts that have one, and the two that do not.
+  func testOnlyGirdleAndTableHaveADefiningAngle() {
+    XCTAssertEqual(definingAngle(of: .gdl), 90)
+    XCTAssertEqual(definingAngle(of: .table), 0)
+    XCTAssertNil(definingAngle(of: .crown))
+    XCTAssertNil(definingAngle(of: .pav))
+  }
+
+  /// Every girdle and table tier of every authored pattern already sits at its part's defining angle, which
+  /// is what makes filling it in a convenience rather than a change of meaning.
+  ///
+  /// **A failure here means the assumption is wrong, never that the pattern is.** The authored patterns are
+  /// ground truth; a girdle transcribed at anything but 90 would mean the fill has to stop overwriting.
+  func testTheCorpusAgreesWithTheDefiningAngles() throws {
+    for name in AuthoredPatterns.all {
+      let pattern = try AuthoredPatterns.load(name)
+      for spec in pattern.tiers {
+        guard let expected = definingAngle(of: spec.part) else { continue }
+        XCTAssertEqual(spec.angle, expected, "\(name) \(spec.tier)")
+      }
+    }
+  }
+
   // MARK: - The instructions
 
   func testEmptyInstructionsAreStoredAsEmptyAndNeverAsAbsent() throws {

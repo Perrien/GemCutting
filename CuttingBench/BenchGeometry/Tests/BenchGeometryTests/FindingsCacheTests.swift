@@ -40,7 +40,7 @@ final class FindingsCacheTests: XCTestCase {
     try fill(&cache, original)
 
     var edited = original
-    edited.tiers[edited.tiers.count - 1].instructions = "level table"
+    edited.tiers[edited.tiers.count - 1].angle += 1
 
     let needed = cache.retain(edited)
     XCTAssertEqual(needed, ["T"])
@@ -125,17 +125,71 @@ final class FindingsCacheTests: XCTestCase {
     wheel.tiers[at].wheel = 64
     var meet = pattern
     meet.tiers[at].meet = .tcp
-    var instructions = pattern
-    instructions.tiers[at].instructions = "slow"
     var label = pattern
     label.tiers[at].tier = "P2b"
 
     for (field, moved) in [
       ("angle", angle), ("indices", indices), ("part", part), ("wheel", wheel), ("meet", meet),
-      ("instructions", instructions), ("tier", label),
+      ("tier", label),
     ] {
       XCTAssertEqual(survivingTierPrefix(from: pattern, to: moved), at, field)
     }
+  }
+
+  /// A tier's `instructions` is free text for the cutter that neither the solve nor the checks read, so
+  /// editing it keeps every tier — including the edited one's own result, and those of the tiers after
+  /// it. Editing the *first* tier's note is the case that used to cost a near-full revalidation, so every
+  /// authored pattern is checked at every one of its tiers, the twelve-tier one included.
+  func testEditingATiersInstructionsKeepsEveryTier() throws {
+    for name in AuthoredPatterns.all {
+      let pattern = try AuthoredPatterns.load(name)
+      let all = pattern.tiers.count
+
+      for at in pattern.tiers.indices {
+        var typed = pattern
+        typed.tiers[at].instructions = "go slowly here"
+        XCTAssertEqual(
+          survivingTierPrefix(from: pattern, to: typed), all, "\(name) tier \(at) written")
+
+        var cleared = typed
+        cleared.tiers[at].instructions = nil
+        XCTAssertEqual(
+          survivingTierPrefix(from: typed, to: cleared), all, "\(name) tier \(at) cleared")
+
+        var emptied = typed
+        emptied.tiers[at].instructions = ""
+        XCTAssertEqual(
+          survivingTierPrefix(from: typed, to: emptied), all, "\(name) tier \(at) emptied")
+      }
+    }
+  }
+
+  /// The note is ignored, and nothing else is: a tier whose note *and* angle both changed still keeps
+  /// only the tiers before it.
+  func testANoteEditAlongsideAGeometricOneStillDropsTheTier() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let at = 2
+
+    var both = pattern
+    both.tiers[at].instructions = "go slowly here"
+    both.tiers[at].angle += 1
+
+    XCTAssertEqual(survivingTierPrefix(from: pattern, to: both), at)
+  }
+
+  /// End to end through the cache: typing a note asks for no tier to be rechecked at all, and the result
+  /// the cache was already holding stays whole. This is the behaviour the author actually feels.
+  func testANoteEditAsksForNoTierAndLeavesTheResultComplete() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    var cache = TierFindingsCache()
+    try fill(&cache, pattern)
+    let before = try XCTUnwrap(cache.complete)
+
+    var typed = pattern
+    typed.tiers[0].instructions = "level the girdle"
+
+    XCTAssertEqual(cache.retain(typed), [])
+    XCTAssertEqual(cache.complete, before)
   }
 
   // MARK: - What each structural edit costs

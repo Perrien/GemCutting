@@ -10,13 +10,15 @@ public let geometricQuietPeriod: Duration = .milliseconds(250)
 /// per-tier results that survive the edit.
 ///
 /// **Tier *k*'s named-point result depends on the specs of tiers 0…*k* and on nothing after them**, so
-/// the answer is the first position at which the two tier lists differ. The solve has the same prefix
-/// property: it places tiers in file order and stops at the first failure, so nothing later can change
-/// whether an earlier tier placed.
+/// the answer is the first position at which the two tier lists differ *in anything the solve or the
+/// checks read*. The solve has the same prefix property: it places tiers in file order and stops at the
+/// first failure, so nothing later can change whether an earlier tier placed.
 ///
 /// A header field that can move geometry keeps nothing: the gear enters every plane normal and the
 /// girdle target enters every girdle meet's depth. `ri`, `state`, `name`, `designer`, `notes` and
-/// `formatVersion` reach neither the solve nor validation, so they keep everything.
+/// `formatVersion` reach neither the solve nor validation, so they keep everything. A tier's
+/// `instructions` is the same kind of field one level down, and `tierMovesGeometry` is where that is
+/// spelled out.
 public func survivingTierPrefix(from previous: Pattern?, to next: Pattern) -> Int {
   guard let previous,
     previous.wheel == next.wheel,
@@ -24,10 +26,31 @@ public func survivingTierPrefix(from previous: Pattern?, to next: Pattern) -> In
   else { return 0 }
 
   var n = 0
-  while n < previous.tiers.count, n < next.tiers.count, previous.tiers[n] == next.tiers[n] {
+  while n < previous.tiers.count, n < next.tiers.count,
+    !tierMovesGeometry(from: previous.tiers[n], to: next.tiers[n])
+  {
     n += 1
   }
   return n
+}
+
+/// Whether the difference between two versions of one tier is one the solve or the checks can see.
+///
+/// **`instructions` is free text for whoever cuts the tier — never interpreted, never generated.** It
+/// reaches neither the solve nor validation, so typing in it must not discard that tier's checked
+/// result, nor the results of every tier after it. On a large pattern, editing the first tier's note
+/// otherwise costs a near-full revalidation for a change that moves nothing.
+///
+/// **Blanking the field and comparing the whole spec, rather than listing the fields that do matter**,
+/// so that a field added to `TierSpec` later counts as a change until someone deliberately exempts it.
+/// A comparison written out field by field would silently ignore the new one, and silently keeping a
+/// stale result is the far worse failure.
+private func tierMovesGeometry(from previous: TierSpec, to next: TierSpec) -> Bool {
+  var before = previous
+  var after = next
+  before.instructions = nil
+  after.instructions = nil
+  return before != after
 }
 
 /// The expensive half of validation, kept per tier between rebuilds (D1).

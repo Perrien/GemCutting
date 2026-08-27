@@ -469,7 +469,10 @@ final class MeetPickTests: XCTestCase {
       meetPickPrompt(
         pick("P2", .point(planes: [first, second], candidates: [3, 4, 5], corner: edge.a)),
         solid: solid),
-      "Picking P2's meet · \(a) · \(b) · click one of 3 facets through the point")
+      "Picking P2's meet · \(a) · \(b) · click a third facet through the point — "
+        + "\(facetLabel(try XCTUnwrap(solid.origin[3]))), "
+        + "\(facetLabel(try XCTUnwrap(solid.origin[4]))) or "
+        + "\(facetLabel(try XCTUnwrap(solid.origin[5])))")
   }
 
   // MARK: - The markers
@@ -857,8 +860,14 @@ final class MeetPickTests: XCTestCase {
     let solid = twoAwaitingEnds()
     let a = facetLabel(.cut(FacetRef(tier: "G1", index: 0)))
     let b = facetLabel(.cut(FacetRef(tier: "G1", index: 1)))
+    let fromEnd =
+      "\(facetLabel(.cut(FacetRef(tier: "G1", index: 2)))) or "
+      + facetLabel(.cut(FacetRef(tier: "G1", index: 3)))
+    let toEnd =
+      "\(facetLabel(.cut(FacetRef(tier: "G1", index: 4)))) or "
+      + facetLabel(.cut(FacetRef(tier: "G1", index: 5)))
 
-    // `from` first: two candidates through the outer corner.
+    // `from` first: two candidates through the outer corner, named.
     XCTAssertEqual(
       meetPickPrompt(
         pick(
@@ -871,9 +880,10 @@ final class MeetPickTests: XCTestCase {
             ],
             percent: 24.862)),
         solid: solid),
-      "Picking P2's meet · 24.86% along \(a) – \(b) · click one of 2 facets through the from end")
+      "Picking P2's meet · 24.86% along \(a) – \(b) · click a facet through the from end — \(fromEnd)"
+    )
 
-    // Then `to`, once `from` is named — and the count is that end's own.
+    // Then `to`, once `from` is named — and the facets named are that end's own.
     XCTAssertEqual(
       meetPickPrompt(
         pick(
@@ -884,7 +894,7 @@ final class MeetPickTests: XCTestCase {
             ends: [.named(.tcp), .awaiting(corner: 1, candidates: [4, 5])],
             percent: 50)),
         solid: solid),
-      "Picking P2's meet · 50.00% along \(a) – \(b) · click one of 2 facets through the to end")
+      "Picking P2's meet · 50.00% along \(a) – \(b) · click a facet through the to end — \(toEnd)")
 
     // Both named is unreachable — the pick has completed — and says so rather than indexing into nothing.
     XCTAssertEqual(

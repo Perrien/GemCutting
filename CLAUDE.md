@@ -5,6 +5,41 @@ faceting patterns.
 
 ---
 
+## Talking to the owner — plain words, and nothing to go look up
+
+**This governs every message the owner reads, and it is not optional.** It outranks any habit of
+citing sources, and it is not satisfied by adding an explanation next to a code — the code goes.
+
+**Say what the thing is and what it does, in ordinary English.** A sentence the owner can only
+understand by opening a file, a ticket or a source line has failed. Every message must stand on its
+own.
+
+**Never send the owner somewhere else to find the meaning.** These are all banned in conversation:
+
+- **File paths and line numbers.** Not *"confirmed at `design-authoring-format.md:6-7`"*. Say *"the
+  format document links to two files that were deleted, and to a rationale document that does not
+  exist."*
+- **Function, type and variable names used as the explanation.** Not *"`survivingTierPrefix` compares
+  whole `TierSpec` values"*. Say *"the code that decides how much cached work survives an edit
+  compares each tier as a single lump, so any change to any part of it throws the whole tier away."*
+  Naming the function *in addition* is fine only when the owner asked where the code is.
+- **Numbered decisions, ADR numbers, gate and test names.** Say the rule itself: *"the rule that the
+  rough block is added by the app, not the solver."*
+- **Jargon and shorthand of my own making.** Domain words that are in `Design/Glossary.md` are the
+  shared vocabulary and are fine. Anything else gets said in plain words, or gets defined in the same
+  breath.
+
+**A ticket's name is a handle, not an explanation.** Naming the ticket is right — it's how the owner
+finds it — but the name always travels with a plain sentence saying what the problem actually is.
+
+**Give the conclusion, not the derivation.** What the change is, what it costs, and what is uncertain.
+Not the search that found it, not the reasoning chain, not the alternatives being declined.
+
+**The one exception is when the owner asks where.** *"Where is that handled?"* wants a path. That is
+the only time a path belongs in a reply.
+
+---
+
 ## Document map — who wins on what
 
 Per topic, not a ranking. A document can be the authority on one thing and irrelevant to another.
@@ -90,9 +125,13 @@ This is why a ticket can be promoted from file to folder, and why anything can b
 breaking a single reference. A stored path fails the other way: it rots silently, pointing at nothing
 while still looking valid. Loud failure over quiet failure is the entire reason for the rule.
 
-**Code is the opposite** — cite it by `path:line` *with the fragment it points at*, e.g.
-`ScopeView.tsx:339` (`const holdingRef = useRef(false)`), so a stale anchor announces itself. Two
-different rules for two different things; both are hard.
+**Code is the opposite — in tracked documents and code comments** — cite it by `path:line` *with the
+fragment it points at*, e.g. `ScopeView.tsx:339` (`const holdingRef = useRef(false)`), so a stale
+anchor announces itself. Two different rules for two different things; both are hard.
+
+**None of this reaches conversation.** Paths, line numbers and symbol names belong in the written
+record, where a future reader needs to find the exact code. Talking to the owner, plain words —
+see *Talking to the owner* above.
 
 ---
 

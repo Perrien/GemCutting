@@ -42,3 +42,11 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
 - 2026-08-27 · 4-Cutting-Bench-Authoring · executed
 - 2026-08-27 · Chore-Validation-Rebuilds-The-Solid-Once-Per-Tier · executed — closed by
   4-Cutting-Bench-Authoring-5-Fraction-Meets
+- 2026-08-27 · Chore-Stale-Links-In-The-Format-Document · executed
+- 2026-08-27 · Bug-The-Awaiting-Facets-Prompt-Does-Not-Name-Them · executed
+- 2026-08-27 · Chore-Instructions-Edit-Invalidates-A-Tiers-Cached-Check · executed
+- 2026-08-27 · Chore-Observation-Type-Shadows-Its-Module · executed
+- 2026-08-27 · Bug-Save-Panel-Crashes-On-A-Read-Only-Sandbox · executed
+- 2026-08-27 · Bug-Autosave-In-Place-Rewrites-The-File-That-Was-Opened · won't fix — saving in place is
+  accepted and untouched copies of the four patterns are kept outside the app
+- 2026-08-27 · Bug-Mirror-Reads-As-An-Editable-Checkbox-But-Is-Derived · executed

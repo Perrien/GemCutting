@@ -295,6 +295,10 @@ struct TierTableRegion: View {
         // Discarded rather than reverted, as the Part popup's result is: the binding's getter reads the
         // row, which is rebuilt from the draft, so a refused change leaves the toggle showing the stored
         // value with no revert code.
+        //
+        // Disabled where flipping it would regenerate the same stops — a set mirror-symmetric by rotation
+        // alone, which most 8-fold tiers seeded at 0 are. There the answer springs straight back, so an
+        // enabled checkbox would be offering an edit that undoes itself.
         Toggle(
           "",
           isOn: Binding(
@@ -304,6 +308,7 @@ struct TierTableRegion: View {
             })
         )
         .labelsHidden()
+        .disabled(!row.mirrorIsEditable)
       }
       TableColumn("Indices") { row in
         EditableCell(stored: row.indices) { typed in

@@ -1,0 +1,109 @@
+{
+  "formatVersion": 1,
+  "name": "Novice Ash-er",
+  "state": "finished",
+  "wheel": 96,
+  "ri": 1.54,
+  "girdleTargetFraction": 0.032260,
+  "designer": "2013 USFG SSC. No individual designer named on the source sheet.",
+  "notes": "Declared on the sheet, as cross-checks not source of truth: 49 facets, 8-fold mirror symmetry. Step cut on both sides - crown is two concentric bands plus an octagonal table, pavilion is two bands plus eight triangles to a point culet. Sheet states no material, size or girdle tolerance; the source diagram measures the girdle at 3.23% of width. Tier order differs from the sheet, which lists the crown first (C1 C2 T G P1 P2 P3): the girdle must precede P2 because a fraction needs two named vertices and P1 alone leaves only its axial point, and pavilion-before-crown avoids cutting the crown to a temporary point and then removing it, which wastes material. NOT EXPRESSIBLE: the crown and pavilion middle band boundaries sit at the same radius in the source diagram (both at plate y=666.0), i.e. the steps line up in plan view. That is a condition on the result, not a position, so the two fraction rows record the positions that satisfy it and lose the intent. The percentages are diagram-derived; tidy values (25/25/33.3) were tested and miss the drawing by 0.2-0.6%, outside its precision. Source: 'GemCad Diagrams - 53 designs.pdf' p34, 'Faceting Diagrams/USFG Competitions/2013SSCNovice.gem'. Angles and indices transcribed from the sheet; meets derived from its crown, pavilion and profile diagrams.",
+  "tiers": [
+    {
+      "tier": "G",
+      "part": "gdl",
+      "angle": 90.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "size" }
+    },
+    {
+      "tier": "P1",
+      "part": "pav",
+      "angle": 50.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "tcp" }
+    },
+    {
+      "tier": "P2",
+      "part": "pav",
+      "angle": 46.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": {
+        "kind": "fraction",
+        "from": {
+          "kind": "vertex",
+          "facets": [
+            { "tier": "G", "index": 12 },
+            { "tier": "G", "index": 24 },
+            { "tier": "P1", "index": 24 }
+          ]
+        },
+        "percent": 24.862,
+        "to": { "kind": "tcp" }
+      }
+    },
+    {
+      "tier": "P3",
+      "part": "pav",
+      "angle": 42.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": {
+        "kind": "fraction",
+        "from": {
+          "kind": "vertex",
+          "facets": [
+            { "tier": "P1", "index": 12 },
+            { "tier": "P1", "index": 24 },
+            { "tier": "P2", "index": 12 }
+          ]
+        },
+        "percent": 33.812,
+        "to": { "kind": "tcp" }
+      }
+    },
+    {
+      "tier": "C1",
+      "part": "crown",
+      "angle": 30.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": { "kind": "girdle" }
+    },
+    {
+      "tier": "C2",
+      "part": "crown",
+      "angle": 25.00,
+      "indices": [0, 12, 24, 36, 48, 60, 72, 84],
+      "meet": {
+        "kind": "fraction",
+        "from": {
+          "kind": "vertex",
+          "facets": [
+            { "tier": "G", "index": 12 },
+            { "tier": "G", "index": 24 },
+            { "tier": "C1", "index": 24 }
+          ]
+        },
+        "percent": 24.832,
+        "to": { "kind": "tcp" }
+      }
+    },
+    {
+      "tier": "T",
+      "part": "table",
+      "angle": 0.00,
+      "indices": [0],
+      "meet": {
+        "kind": "fraction",
+        "from": {
+          "kind": "vertex",
+          "facets": [
+            { "tier": "C1", "index": 12 },
+            { "tier": "C1", "index": 24 },
+            { "tier": "C2", "index": 12 }
+          ]
+        },
+        "percent": 33.063,
+        "to": { "kind": "tcp" }
+      }
+    }
+  ]
+}

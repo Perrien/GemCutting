@@ -92,6 +92,70 @@ final class TierSymmetryTests: XCTestCase {
       TierSymmetry(seeds: [0, 8], folds: 2, mirror: true))
   }
 
+  // MARK: - Whether the Mirror control has anything to do
+
+  /// The case the disabled state exists for: one seed at 0 taken eight-fold is mirror-symmetric by
+  /// rotation alone, so regenerating it without the reflection produces the very same eight stops and the
+  /// derived answer comes straight back `true`.
+  func testMirroringIsNotEditableWhenRotationAloneAlreadyMirrorsTheSet() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let girdle = try XCTUnwrap(pattern.tiers.first { $0.tier == "G1" })
+    let symmetry = derivedSymmetry(stops: girdle.indices, wheel: 96)
+
+    XCTAssertTrue(symmetry.mirror)
+    XCTAssertFalse(mirrorIsEditable(symmetry, wheel: 96))
+    // The reason, stated directly: dropping the reflection changes nothing.
+    XCTAssertEqual(
+      expandedStops(seeds: symmetry.seeds, folds: symmetry.folds, mirror: false, wheel: 96),
+      girdle.indices)
+  }
+
+  /// A single stop reflects onto itself, so a table is mirrored and the control is inert there too.
+  func testMirroringIsNotEditableForASingleStop() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let table = try XCTUnwrap(pattern.tiers.first { $0.tier == "T" })
+    let symmetry = derivedSymmetry(stops: table.indices, wheel: 96)
+
+    XCTAssertTrue(symmetry.mirror)
+    XCTAssertFalse(mirrorIsEditable(symmetry, wheel: 96))
+  }
+
+  /// Turning mirroring *on* always does something, because the expansion adds each seed's reflection and a
+  /// set that already held them would have derived as mirrored to begin with.
+  func testMirroringIsEditableOnASetThatIsNotMirrored() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let crown = try XCTUnwrap(pattern.tiers.first { $0.tier == "C2" })
+    let symmetry = derivedSymmetry(stops: crown.indices, wheel: 96)
+
+    XCTAssertFalse(symmetry.mirror)
+    XCTAssertTrue(mirrorIsEditable(symmetry, wheel: 96))
+  }
+
+  /// Mirrored *and* editable, which is the case that proves the rule is not just "mirrored means
+  /// disabled": a rectangle's girdle needs the reflection, so dropping it loses two of the six stops.
+  func testMirroringIsEditableWhereTheReflectionIsCarryingStops() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.rands)
+    let girdle = try XCTUnwrap(pattern.tiers.first { $0.tier == "2" })
+    let symmetry = derivedSymmetry(stops: girdle.indices, wheel: 96)
+
+    XCTAssertTrue(symmetry.mirror)
+    XCTAssertTrue(mirrorIsEditable(symmetry, wheel: 96))
+    XCTAssertEqual(
+      expandedStops(seeds: symmetry.seeds, folds: symmetry.folds, mirror: false, wheel: 96),
+      [0, 8, 48, 56], "dropping the reflection loses 40 and 88")
+  }
+
+  /// No stops generate nothing whichever way the flag is set, so the control is inert. Falls out of asking
+  /// the one question rather than being special-cased.
+  func testMirroringIsNotEditableForATierWithNoStops() {
+    XCTAssertFalse(mirrorIsEditable(derivedSymmetry(stops: [], wheel: 96), wheel: 96))
+  }
+
+  /// A gear of zero has no arithmetic to do, and the control cannot act on it either.
+  func testMirroringIsNotEditableOnANonPositiveGear() {
+    XCTAssertFalse(mirrorIsEditable(TierSymmetry(seeds: [0], folds: 1, mirror: true), wheel: 0))
+  }
+
   /// Sixteen stops six apart, from one seed — the list this part exists to stop the author typing.
   func testTheRoundBrilliantsBreaksReadAsOneSeedSixteenFoldMirrored() throws {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.roundBrilliant)
