@@ -582,7 +582,7 @@ creates it.
 | T2 | Pure: the anchored point, its two ends, and the meet they write | completed | continue | — | material alteration ↓ |
 | T3 | Pure: the prompt, the markers, and the typed percentage | completed | checkpoint | commit | material alteration ↓ |
 | T4 | Anchoring a point in the viewport | completed | **owner stop** | commit | material alteration ↓ |
-| T5 | The percentage, editable in the meet cell | not started | **owner stop** | commit + push | |
+| T5 | The percentage, editable in the meet cell | completed | **owner stop** | commit + push | |
 | T6 | `Kiev Triangle`, confirmed | not started | **owner stop** | commit | |
 | T7 | Close out | not started | **owner stop** | commit + push | |
 

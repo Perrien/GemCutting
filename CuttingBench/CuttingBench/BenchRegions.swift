@@ -161,6 +161,9 @@ struct TierTableRegion: View {
   /// Starts a pick on one tier. **Not `edit`**: starting a pick changes no draft, so it is not a
   /// `DraftChange` and must not register an undo entry.
   let startPick: (String) -> Void
+  /// One tier's anchored percentage, as the tier label and the typed text. Beside `edit` because that is
+  /// where every other cell's commit comes from, and it goes through the same funnel.
+  let commitPercent: (String, String) -> Bool
 
   var body: some View {
     VStack(spacing: 0) {
@@ -356,6 +359,11 @@ struct TierTableRegion: View {
   /// **Deliberately not inside the menu's label.** SwiftUI renders only the first element of a composed
   /// `Menu` label, which left the cell reading `M` with `G1@0 · G1@12 · P1@0` nowhere on screen — and
   /// saying what a meet is, is most of what this column is for.
+  ///
+  /// **The anchored dot is a field rather than a chip**, because its percentage is the one thing in a meet
+  /// that is a number the author sets rather than a facet they clicked. Three decimals because that is the
+  /// corpus's own precision — `Novice Ash-er` stores `24.862` — and the field shows what it will store, so
+  /// committing the text as shown changes nothing.
   @ViewBuilder
   private func meetContent(_ row: TierTableRow) -> some View {
     if row.meetPoints.isEmpty {
@@ -365,7 +373,13 @@ struct TierTableRegion: View {
       HStack(spacing: 8) {
         ForEach(row.meetPoints) { dot in
           HStack(spacing: 3) {
-            MeetDotChip(label: dot.label, colour: meetDotColor(dot.role, warning: warning))
+            if let percent = dot.percent {
+              EditableCell(stored: String(format: "%.3f", percent)) { typed in
+                commitPercent(row.tier, typed)
+              }
+            } else {
+              MeetDotChip(label: dot.label, colour: meetDotColor(dot.role, warning: warning))
+            }
             if !dot.facets.isEmpty { cell(dot.facets, row) }
           }
         }

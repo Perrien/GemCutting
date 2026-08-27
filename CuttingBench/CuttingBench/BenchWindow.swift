@@ -88,7 +88,10 @@ struct BenchWindow: View {
           findings: readout,
           draft: document.draft,
           edit: edit,
-          startPick: startPick(_:)
+          startPick: startPick(_:),
+          commitPercent: { tier, typed in
+            edit("Change Meet") { setting(percent: typed, ofTier: tier, in: $0) }
+          }
         )
         .frame(minHeight: 180)
       }
