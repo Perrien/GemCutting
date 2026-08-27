@@ -32,3 +32,13 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
   granularity carries the position into the new list rather than returning the stone to its finished self
 - 2026-08-25 · 3-Cutting-Bench-Pattern-Display-5-Light · executed
 - 2026-08-25 · 3-Cutting-Bench-Pattern-Display · executed
+- 2026-08-27 · 4-Cutting-Bench-Authoring-1-Draft-And-Tier-Editing · executed
+- 2026-08-27 · 4-Cutting-Bench-Authoring-2-Validation-And-State · executed
+- 2026-08-27 · 4-Cutting-Bench-Authoring-3-Symmetry-And-Wheel · executed
+- 2026-08-27 · 4-Cutting-Bench-Authoring-4-Meet-Picking · superseded by
+  4-Cutting-Bench-Authoring-5-Fraction-Meets — an edge click now snaps to a corner or anchors a point,
+  and never selects the edge stage
+- 2026-08-27 · 4-Cutting-Bench-Authoring-5-Fraction-Meets · executed
+- 2026-08-27 · 4-Cutting-Bench-Authoring · executed
+- 2026-08-27 · Chore-Validation-Rebuilds-The-Solid-Once-Per-Tier · executed — closed by
+  4-Cutting-Bench-Authoring-5-Fraction-Meets

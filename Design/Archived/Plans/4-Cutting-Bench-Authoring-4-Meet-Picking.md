@@ -3,6 +3,14 @@
 Status: **part 4 completed** (2026-08-27). Not archived: `4-Cutting-Bench-Authoring-5-Fraction-Meets`
 archives this plan, every sibling part, the exploration and the folded-in ticket.
 
+**Archived 2026-08-27 — trust the code, not this plan's edge-click rule.** D10 below says a click on an
+edge *selects it and marks its endpoints, whatever stage the pick is at*, and the *Done when* item
+matching it expects `.advanced` at `.edge` from every stage. Part 5 replaced that: an edge click now
+snaps to that end's corner when it lands in the outer fifth of the edge, and anchors a point part-way
+along it otherwise, so **no edge click reaches the `.edge` stage at all**. That stage is still reached,
+by two facet clicks sharing an edge, and everything this plan says about it from there — the third facet
+through one end, the candidate rule, the rough refusals — still describes what shipped.
+
 ## Parts
 
 **For the owner and the next authoring session — not for the executor.** Nothing in this plan's tasks

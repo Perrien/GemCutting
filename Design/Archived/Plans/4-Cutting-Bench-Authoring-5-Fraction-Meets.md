@@ -584,7 +584,7 @@ creates it.
 | T4 | Anchoring a point in the viewport | completed | **owner stop** | commit | material alteration ↓ |
 | T5 | The percentage, editable in the meet cell | completed | **owner stop** | commit + push | |
 | T6 | `Kiev Triangle`, confirmed | completed | **owner stop** | commit | |
-| T7 | Close out | not started | **owner stop** | commit + push | |
+| T7 | Close out | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
 
 **T1 — Prefactor: where along the edge the click fell**
 
@@ -905,6 +905,16 @@ executor can describe and the owner can make in a few seconds.
   questions of the kernel; the plan's own material-alteration note already says the arm is unreachable, and
   the ticket `Decision-A-Picked-Corner-Can-Never-Be-Written-As-TCP` carries it forward. Nothing in any of
   the five plans asserts behaviour the code does not have.
+- **Material alteration — that last claim is wrong for part 4, and the owner settled it on 2026-08-27.**
+  Part 4's D10 says *a click on an edge selects it and marks its endpoints, whatever stage the pick is at*,
+  with a *Done when* item expecting `.advanced` at `.edge` from every stage. **This part replaced that
+  rule**: an edge click now snaps to a corner or anchors a point, and no edge click reaches the `.edge`
+  stage. That is exactly the contradiction the archive routine's third step is for, so **part 4 takes a
+  banner naming the rule and its catalog line reads `superseded by` this plan**, in the same form the
+  catalog already uses for `3-Cutting-Bench-Pattern-Display-1-Solid-And-Tier-Table`. The other six lines
+  are `executed` as written above, and parts 1, 2 and 3 were each checked against the code rather than
+  assumed: part 1 declares `EditableCell`'s two later members itself, and neither part 2 nor part 3 says
+  anything this part changed.
 - **Do not archive the exploration `5-Cutting-Bench-Angle-Tuning`** — it is a sibling exploration and the
   source for a plan not yet written. And do not archive
   `Decision-A-Picked-Corner-Can-Never-Be-Written-As-TCP` or
