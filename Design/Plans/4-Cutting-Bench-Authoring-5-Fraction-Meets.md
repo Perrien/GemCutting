@@ -583,7 +583,7 @@ creates it.
 | T3 | Pure: the prompt, the markers, and the typed percentage | completed | checkpoint | commit | material alteration ↓ |
 | T4 | Anchoring a point in the viewport | completed | **owner stop** | commit | material alteration ↓ |
 | T5 | The percentage, editable in the meet cell | completed | **owner stop** | commit + push | |
-| T6 | `Kiev Triangle`, confirmed | not started | **owner stop** | commit | |
+| T6 | `Kiev Triangle`, confirmed | completed | **owner stop** | commit | |
 | T7 | Close out | not started | **owner stop** | commit + push | |
 
 **T1 — Prefactor: where along the edge the click fell**
@@ -977,3 +977,8 @@ ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protoc
   top edge of the frame at the default camera. Found at T4's owner stop, where it stopped the negative half
   of the check being completed twice over. **Shipped part 4 behaviour and no part of this plan's scope**, so
   filed rather than fixed.
+- `Chore-Instructions-Edit-Invalidates-A-Tiers-Cached-Check` — `survivingTierPrefix` compares whole
+  `TierSpec` values, so editing a tier's `instructions` drops that tier's cached result and every later one,
+  even though the string reaches neither the solve nor validation. Found at T6's owner stop, where an
+  instructions edit was taken for the header-field check and the count rose by one exactly as a per-tier
+  spec edit should. **Shipped part 2 behaviour**, so filed rather than fixed.
