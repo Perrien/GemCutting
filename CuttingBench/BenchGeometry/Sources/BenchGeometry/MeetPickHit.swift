@@ -33,6 +33,13 @@ public enum MeetPickHit: Equatable, Sendable {
 /// Edges are considered before facets, and the nearest qualifying edge wins. An edge with either corner
 /// behind the camera is skipped — `benchScreenPoint` gives it no screen position, and a segment with one
 /// end at infinity has no honest screen distance.
+///
+/// **An edge loses the click when a second visible edge sharing none of its corners is also within the
+/// radius.** That is the exact statement of "the facet under the pointer is thinner than the grab", and
+/// without it a thin band is unclickable: a girdle 3.4% of the width is about 8 points tall on screen at
+/// the default camera, so the grab reaches in from both of its edges and swallows the facet whole. Two
+/// edges that *do* share a corner are the ordinary situation near a corner of any facet, and that still
+/// grabs the nearer one — which is what an edge's own ends have to keep answering to.
 public func meetPickHit(
   _ solid: BenchSolid,
   click: (x: Double, y: Double),
@@ -44,7 +51,7 @@ public func meetPickHit(
   let aspect = Float(size.width / size.height)
   let eye = benchCameraPosition(camera, aspect: aspect)
 
-  var nearest: (distance: Double, edge: SolidEdge)?
+  var within: [(distance: Double, edge: SolidEdge)] = []
   for edge in solidEdges(solid) {
     guard isVisible(edge, in: solid, eye: eye) else { continue }
     guard let from = screenPoint(solid.polytope.vertices[edge.a], aspect, camera, size),
@@ -52,10 +59,16 @@ public func meetPickHit(
     else { continue }
     let distance = distanceToSegment(click, from, to)
     guard distance <= grabRadiusPoints else { continue }
-    if nearest == nil || distance < nearest!.distance { nearest = (distance, edge) }
+    within.append((distance, edge))
   }
-  if let nearest {
-    return .edge(planes: nearest.edge.planes, corners: [nearest.edge.a, nearest.edge.b])
+
+  if let nearest = within.min(by: { $0.distance < $1.distance }) {
+    let ambiguous = within.contains { other in
+      other.edge != nearest.edge && !shareACorner(other.edge, nearest.edge)
+    }
+    if !ambiguous {
+      return .edge(planes: nearest.edge.planes, corners: [nearest.edge.a, nearest.edge.b])
+    }
   }
 
   // The facet branch is `pickFacet` unchanged, so a pick can still never name a facet the renderer did
@@ -93,6 +106,12 @@ public func facetCentroid(_ solid: BenchSolid, plane: Int) -> SIMD3<Float>? {
   }
   let mean = sum / Double(ring.count)
   return SIMD3<Float>(Float(mean.x), Float(mean.y), Float(mean.z))
+}
+
+/// Whether two edges meet at a corner. Two that do are neighbours around one facet; two that do not, both
+/// within the grab radius of one click, mean the facet between them is thinner than the grab.
+private func shareACorner(_ first: SolidEdge, _ second: SolidEdge) -> Bool {
+  first.a == second.a || first.a == second.b || first.b == second.a || first.b == second.b
 }
 
 /// One corner in view points with **y up**, or `nil` when it is behind the camera.

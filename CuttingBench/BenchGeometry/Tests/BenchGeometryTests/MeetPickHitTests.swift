@@ -66,6 +66,46 @@ final class MeetPickHitTests: XCTestCase {
       .edge(planes: target.edge.planes, corners: [target.edge.a, target.edge.b]))
   }
 
+  // MARK: - A facet thinner than the grab radius still takes its own clicks
+
+  /// **The case that made `Easy Octagon` unauthorable.** A girdle 3.4% of the width is about 8 points tall
+  /// on screen at the default camera, so the 8-point grab reaches in from the band's top *and* bottom
+  /// edges and no click could ever land on the girdle facet itself — which both `P2` and `C2` name.
+  func testEveryGirdleFacetOfEasyOctagonTakesAClickAtItsOwnCentre() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let solid = benchSolid(for: pattern)
+
+    var tested = 0
+    for plane in solid.cutFacetIndices {
+      guard case .cut(let ref) = solid.origin[plane], ref.tier == "G1" else { continue }
+      let centre = try XCTUnwrap(facetCentroid(solid, plane: plane))
+      guard facesCamera(solid, plane: plane), let click = viewPoint(centre) else { continue }
+
+      XCTAssertEqual(
+        meetPickHit(solid, click: click, size: size, camera: camera),
+        .facet(plane: plane),
+        "the girdle facet \(ref.tier)@\(ref.index) did not take a click at its own centre")
+      tested += 1
+    }
+    XCTAssertGreaterThan(tested, 0, "no girdle facet of Easy Octagon faces the default camera")
+  }
+
+  /// The other half of the same rule: two edges that share a corner are the ordinary situation at the end
+  /// of any edge, and the nearer of them still takes the click — which is what a deliberate grab near an
+  /// edge's own end depends on.
+  func testAGrabNearAnEdgesEndStillTakesThatEdge() throws {
+    let solid = benchSolid(for: nil)
+    let target = try wellSeparatedSilhouetteEdge(solid)
+    let a = try XCTUnwrap(viewPoint(world(solid, target.edge.a)))
+    let b = try XCTUnwrap(viewPoint(world(solid, target.edge.b)))
+
+    // A tenth of the way along, which is inside the end zone part 5 will measure from.
+    let near = (x: a.x + (b.x - a.x) / 10, y: a.y + (b.y - a.y) / 10)
+    XCTAssertEqual(
+      meetPickHit(solid, click: near, size: size, camera: camera),
+      .edge(planes: target.edge.planes, corners: [target.edge.a, target.edge.b]))
+  }
+
   // MARK: - Only a visible edge can take a click
 
   func testAnEdgeRoundTheBackIsNeverReturnedEvenWhenClickedExactlyOnIt() throws {

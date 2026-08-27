@@ -1,6 +1,7 @@
 # 4 · Cutting Bench Authoring — Part 4: Meet Picking
 
-Status: **APPROVED** (2026-08-26) — in execution.
+Status: **part 4 completed** (2026-08-27). Not archived: `4-Cutting-Bench-Authoring-5-Fraction-Meets`
+archives this plan, every sibling part, the exploration and the folded-in ticket.
 
 ## Parts
 
@@ -688,9 +689,9 @@ creates it.
 | T3 | Pure: the click machine, and the refusals it states | completed | continue | — | material alteration ↓ |
 | T4 | Pure: the corner, the third name, and the meet it writes | completed | checkpoint | commit | material alteration ↓ |
 | T5 | Picking in the window, against the intermediate solid | completed | **owner stop** | commit | |
-| T6 | The ghost, and the markers on what has been clicked | awaiting owner | **owner stop** | commit + push | material alteration ↓ |
-| T7 | `Easy Octagon`, cut in the app | not started | **owner stop** | commit + push | |
-| T8 | Close out | not started | **owner stop** | commit + push | |
+| T6 | The ghost, and the markers on what has been clicked | completed | **owner stop** | commit + push | material alteration ↓ |
+| T7 | `Easy Octagon`, cut in the app | completed | **owner stop** | commit + push | material alteration ↓ |
+| T8 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **T1 — Prefactor: one enumeration of the solid's edges**
 
@@ -1024,6 +1025,37 @@ cannot compare equal.
 - **Do not:** edit `Design/Patterns/Pattern-Easy-Octagon.json`, or loosen either comparison, for any reason
   — it is external ground truth and a disagreement is a stop, never an edit to the fixture; hand-write any
   part of the produced file; save into `Design/Patterns/`.
+- **Material alteration.** The first run found **one defect that made the bar unreachable**, fixed here as
+  T7's own continuation, and **one adjacent problem, ticketed rather than fixed**.
+  - **The 8-point edge grab swallowed the girdle band whole, so no girdle facet could take a click** — and
+    `P2`, `C2` and the file's own `T` all name one. `Easy Octagon`'s girdle is 3.37% of the width, which at
+    the default camera in a 900×600 viewport is a band **8.7 points tall**, so the grab reached in from the
+    band's top and bottom edges and every click in it resolved as `edge G1 · <n> – P1 · <n>`; because D10
+    makes an edge click replace the selection at any stage, no pick naming a girdle facet could ever reach
+    a third click. **D6's rule now carries one more clause, chosen by the owner:** an edge loses the click
+    when a second visible edge *sharing none of its corners* is also within the radius, which is the exact
+    statement of "the facet under the pointer is thinner than the grab" and needs no per-camera number. Two
+    edges that *do* share a corner still grab the nearer one, so a deliberate grab near an edge's own end —
+    which part 5's end zones depend on — is untouched. The radius stays **8 points**. Pinned by
+    `testEveryGirdleFacetOfEasyOctagonTakesAClickAtItsOwnCentre`, which fails on the old rule with exactly
+    the pair the owner saw, and `testAGrabNearAnEdgesEndStillTakesThatEdge`.
+  - **Mirror reads `on` for the first four tiers and cannot be turned off, and that is not this part's
+    defect.** Mirroring is derived from the stop list, and `0 12 … 84` on gear 96 *is* its own reflection,
+    so the box is an honest readout of a set that cannot be made less symmetric by unmirroring it. **The
+    stop lists this task asks for are unaffected** — leave Mirror alone and every tier generates exactly the
+    list in the table. Filed as `Bug-Mirror-Reads-As-An-Editable-Checkbox-But-Is-Derived`; the *Seeds ·
+    Folds · Mirror* column above should be read as `0 · 8 · leave it`.
+  - **The run was accepted with D26's decoded-equality half not demonstrated** — the owner's call, recorded
+    here rather than resolved. The saved file's solved geometry is **byte-identical** to the authored
+    pattern's and both exit `0`, so that half of the bar is met outright. The decoded comparison printed
+    `DIFFERENT` on three points, every one of them in what was entered and none in what the app wrote:
+    `notes` carried four line breaks and is identical once whitespace is collapsed; `C2`'s two girdle names
+    are in the reverse click order; and `T` names `C2@90` where the file names `C2@18`, which is the mirror
+    corner across the `C1@0`–`C1@12` edge. The triple is stored in click order and never sorted (§3), and
+    both corners are true statements about the same stone — which is why the solve agrees to the byte. The
+    owner assessed the feature as working and called it verified. **Neither comparison was loosened and
+    `Design/Patterns/Pattern-Easy-Octagon.json` was not touched**; what is unproven is that a run following
+    the sequence above reproduces the file field-for-field.
 - **Verification handle** — `permanent`:
   - **Where:** the inspector's Pattern card, its **State** switch, plus the two comparisons above.
   - **Positive:** with all six tiers complete, flipping State to `finished` is **accepted** — the switch
@@ -1124,3 +1156,6 @@ ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protoc
 - **A picked corner can never be written as `tcp`** (found in T4). The axial point on a side exists only
   once that side's datum is claimed, so D16's `tcp` arm is unreachable and every pick writes the `vertex`
   triple. Ticket: `Decision-A-Picked-Corner-Can-Never-Be-Written-As-TCP`.
+- **Mirror reads as an editable checkbox but is derived from the stops** (found in T7). On a set that is
+  already its own reflection the box cannot be unchecked, which reads as broken. Ticket:
+  `Bug-Mirror-Reads-As-An-Editable-Checkbox-But-Is-Derived`.
