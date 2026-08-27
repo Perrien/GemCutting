@@ -181,10 +181,13 @@ final class MeetPickTests: XCTestCase {
 
   // MARK: - An edge takes the click at every stage
 
-  func testAnEdgeClickSelectsItFromEveryStageAndClearsAnyHighlight() throws {
-    let fixture = try easyOctagon()
+  /// **An edge click is taken from every stage**, and what it now produces is part 5's answer — a point
+  /// anchored along the edge — never the pick left where it was. The `.edge` *stage* is still reached, but
+  /// by two facet clicks, which `testASecondFacetSharingAnEdgeSelectsThatEdge` covers.
+  func testAnEdgeClickAnchorsAPointFromEveryStage() throws {
+    let fixture = try noviceAsher()
     let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
-    let edge = try someCutEdge(solid)
+    let edge = try anchorableEdge(solid, ofTier: "P2", draft: fixture.draft)
     let other = try XCTUnwrap(solid.cutFacetIndices.last)
 
     for stage in [
@@ -193,13 +196,17 @@ final class MeetPickTests: XCTestCase {
       .edge(planes: edge.planes, corners: [edge.a, edge.b]),
       .point(planes: edge.planes, candidates: [other], corner: edge.a),
     ] {
-      XCTAssertEqual(
-        advancing(
+      guard
+        case .advanced(let next) = advancing(
           pick("P2", stage),
-          hit: .edge(planes: edge.planes, corners: [edge.a, edge.b]),
+          hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: 0.5),
           solid: solid,
           draft: fixture.draft),
-        .advanced(pick("P2", .edge(planes: edge.planes, corners: [edge.a, edge.b]))))
+        case .anchored(let planes, _, _, let percent) = next.stage
+      else { return XCTFail("an edge click from \(stage) did not anchor a point") }
+
+      XCTAssertEqual(planes, edge.planes)
+      XCTAssertEqual(percent, 50, accuracy: 1e-9)
     }
   }
 
@@ -216,7 +223,7 @@ final class MeetPickTests: XCTestCase {
 
     switch advancing(
       pick("P2", .empty),
-      hit: .edge(planes: roughEdge.planes, corners: [roughEdge.a, roughEdge.b]),
+      hit: .edge(planes: roughEdge.planes, corners: [roughEdge.a, roughEdge.b], along: 0.5),
       solid: solid,
       draft: fixture.draft)
     {
@@ -508,6 +515,463 @@ final class MeetPickTests: XCTestCase {
       .map(\.id))
   }
 
+  // MARK: - A point anchored part-way along an edge
+
+  /// **The corpus round-trip.** For every authored fraction: find the edge running from the point its
+  /// `from` resolves to down to the side's axial point, click along it at the stored percentage, name the
+  /// awaiting end, and get back the same fraction the file stores — **the same percentage, the same `to`,
+  /// and a `from` at the same point** (D21). Not the same *spelling*: a corner has more than one legal
+  /// triple, the corpus uses the two facets above the edge and the pick uses the edge's own two, and both
+  /// resolve to one place.
+  func testEveryAuthoredFractionIsReproducedByClickingAlongItsEdge() throws {
+    var perPattern: [String: Int] = [:]
+
+    for name in AuthoredPatterns.all {
+      let pattern = try AuthoredPatterns.load(name)
+      let draft = PatternDraft(pattern)
+      let full = benchSolid(for: pattern)
+
+      for spec in pattern.tiers {
+        guard case .fraction(let from, let percent, let to) = spec.meet else { continue }
+        let solid = intermediateBenchSolid(before: spec.tier, draft: draft, full: full)
+
+        let outer = try XCTUnwrap(
+          corner(of: solid, at: try resolved(from, part: spec.part, in: solid)),
+          "\(name): \(spec.tier)'s `from` is not a corner of the solid before it")
+        let axial = try XCTUnwrap(
+          axialPoint(onTheSideOf: spec.part, cutBy: solid.tiers),
+          "\(name): \(spec.tier)'s side has no axial point")
+        let inner = try XCTUnwrap(
+          corner(of: solid, at: axial), "\(name): no corner of the solid is at the axial point")
+
+        let edge = try XCTUnwrap(
+          solidEdges(solid).first {
+            ($0.a == outer && $0.b == inner) || ($0.a == inner && $0.b == outer)
+          },
+          "\(name): no edge runs from \(spec.tier)'s outer corner to the axial point")
+
+        // The click, at the percentage the file stores — measured from the outer end, so the parameter
+        // depends on which of the edge's own corners that turned out to be.
+        let ordered = fractionEndOrder(corners: [edge.a, edge.b], solid: solid)
+        XCTAssertEqual(ordered.first, outer, "\(name): \(spec.tier)'s outer end is not `from`")
+        let along = ordered[0] == edge.a ? percent / 100 : 1 - percent / 100
+
+        var outcome = advancing(
+          MeetPickState(tier: spec.tier),
+          hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: along),
+          solid: solid,
+          draft: draft)
+
+        // The corpus's outer corner always offers two candidates, so one further click names it (D13).
+        if case .advanced(let next) = outcome {
+          guard case .anchored(_, _, let ends, _) = next.stage,
+            case .awaiting(_, let candidates) = ends[0]
+          else { return XCTFail("\(name): \(spec.tier) anchored with nothing awaiting") }
+          XCTAssertEqual(
+            ends[1], .named(to), "\(name): \(spec.tier)'s inner end is not the file's `to`")
+          outcome = advancing(next, hit: .facet(plane: candidates[0]), solid: solid, draft: draft)
+        }
+
+        guard case .complete(.fraction(let wrote, let percentWrote, let toWrote)) = outcome else {
+          return XCTFail("\(name): \(spec.tier) did not complete as a fraction — \(outcome)")
+        }
+        XCTAssertEqual(percentWrote, percent, accuracy: 0.001)
+        XCTAssertEqual(toWrote, to)
+
+        // The endpoint itself, which is the property the format cares about.
+        let wanted = try resolved(from, part: spec.part, in: solid)
+        let got = try resolved(wrote, part: spec.part, in: solid)
+        XCTAssertEqual(
+          distance(wanted, got), 0, accuracy: 1e-6,
+          "\(name): \(spec.tier)'s `from` (\(meetText(wrote))) is not where the file's is")
+
+        perPattern[name, default: 0] += 1
+      }
+    }
+
+    // Not vacuous, and `Novice Ash-er` carries every fraction in the corpus.
+    XCTAssertEqual(perPattern[AuthoredPatterns.noviceAsher], 4)
+  }
+
+  // MARK: - Which end starts the measurement
+
+  func testTheEndFurtherFromTheAxisIsFrom() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+
+    let ordered = fractionEndOrder(corners: [edge.a, edge.b], solid: solid)
+    XCTAssertEqual(ordered.count, 2)
+    XCTAssertGreaterThan(radius(solid, ordered[0]), radius(solid, ordered[1]))
+
+    // The same two corners the other way round give the same answer: the order is the geometry's, not the
+    // argument's.
+    XCTAssertEqual(fractionEndOrder(corners: [edge.b, edge.a], solid: solid), ordered)
+  }
+
+  func testAtEqualRadiusTheEndNearerTheGirdlePlaneIsFrom() {
+    // Same radius, so the tie-break decides: the smaller `abs(z)` is `from`.
+    let solid = twoCorners((x: 1, y: 0, z: -0.5), (x: 0, y: 1, z: 0.2))
+    XCTAssertEqual(fractionEndOrder(corners: [0, 1], solid: solid), [1, 0])
+    XCTAssertEqual(fractionEndOrder(corners: [1, 0], solid: solid), [1, 0])
+  }
+
+  // MARK: - The end zones
+
+  func testAClickInAnEndZoneIsAPlainVertexAndNeverAFractionAtZeroOrAHundred() {
+    // An edge with exactly one candidate at each end, so an end-zone click completes rather than waiting
+    // for a third facet — which is `resolving`'s own rule, reached unchanged (D6).
+    let solid = edgeWithOneCandidateAtEachEnd()
+    let draft = draftOfOneTier()
+
+    for (along, third) in [(0.05, 2), (0.95, 3)] {
+      let outcome = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: [0, 1], corners: [0, 1], along: along),
+        solid: solid,
+        draft: draft)
+
+      // The plain vertex at that corner, in the edge's own order plus the corner's own third name.
+      XCTAssertEqual(
+        outcome,
+        .complete(
+          .vertex(facets: [
+            FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+            FacetRef(tier: "G1", index: third),
+          ])),
+        "a click at \(along) did not snap to that end's corner")
+
+      // Never a fraction, and so never a percentage of 0 or 100.
+      if case .complete(.fraction) = outcome { XCTFail("an end-zone click wrote a fraction") }
+    }
+
+    // Just inside the zone the point is anchored instead, which is what makes the boundary the zone's.
+    // With one candidate at each end both are filled in without a click, so this is the case where the
+    // anchoring click is also the completing one (D13).
+    guard
+      case .complete(.fraction(let from, let percent, let to)) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.11),
+        solid: solid,
+        draft: draft)
+    else { return XCTFail("a click at 0.11 did not anchor a point") }
+    XCTAssertEqual(percent, 11, accuracy: 1e-9)
+    XCTAssertEqual(
+      from,
+      .vertex(facets: [
+        FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+        FacetRef(tier: "G1", index: 2),
+      ]))
+    XCTAssertEqual(
+      to,
+      .vertex(facets: [
+        FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+        FacetRef(tier: "G1", index: 3),
+      ]))
+  }
+
+  // MARK: - The inner end at the axial point
+
+  /// **The one-`tcp`-per-side rule governs a top-level datum claim, not a fraction endpoint** (D10). The
+  /// sharpest statement of it: on `Novice Ash-er`'s own draft, whose `P1` is already `tcp`, the very same
+  /// corner is spelled `tcp` as a fraction's inner end and refused as a whole meet.
+  func testTheInnerEndAtTheAxialPointIsTCPEvenWhenTheSidesDatumIsTaken() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+    let ordered = fractionEndOrder(corners: [edge.a, edge.b], solid: solid)
+    let culet = ordered[1]
+
+    // The draft already carries `P1: tcp`, so the datum is spoken for.
+    XCTAssertEqual(fixture.draft.tiers.first { $0.tier == "P1" }?.meet, .tcp)
+
+    XCTAssertEqual(
+      fractionEnd(
+        atCorner: culet, named: edge.planes, ofTier: "P2", solid: solid, draft: fixture.draft),
+      .success(.named(.tcp)))
+
+    // The same corner as a whole meet is the `vertex` triple, because there the rule *is* asked.
+    let third = try XCTUnwrap(
+      candidatePlanes(atCorner: culet, named: edge.planes, solid: solid).first)
+    let asAWholeMeet = meetPicked(
+      planes: edge.planes + [third],
+      atCorner: culet,
+      ofTier: "P2",
+      solid: solid,
+      draft: fixture.draft)
+    guard case .success(.vertex) = asAWholeMeet else {
+      return XCTFail("the same corner as a whole meet gave \(asAWholeMeet)")
+    }
+  }
+
+  // MARK: - How many candidates an end has
+
+  func testAnEndWithOneCandidateIsFilledInWithoutAClick() {
+    let solid = fourPlanesAtOneCorner(roughFrom: 3)
+    XCTAssertEqual(
+      fractionEnd(
+        atCorner: 0, named: [0, 1], ofTier: "P2", solid: solid, draft: draftOfOneTier()),
+      .success(
+        .named(
+          .vertex(facets: [
+            FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+            FacetRef(tier: "G1", index: 2),
+          ]))))
+  }
+
+  func testAnEndOnlyTheRoughCanNameIsRefusedAndLeavesTheStateUntouched() {
+    let solid = fourPlanesAtOneCorner(roughFrom: 2)
+    XCTAssertEqual(
+      fractionEnd(
+        atCorner: 0, named: [0, 1], ofTier: "P2", solid: solid, draft: draftOfOneTier()),
+      .failure(.roughDerivedPoint(tier: "P2")))
+
+    // And the whole click is refused, with the pick left exactly as it was — `refused` carries no state.
+    XCTAssertEqual(
+      advancing(
+        pick("P2", .empty),
+        hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.5),
+        solid: solid,
+        draft: draftOfOneTier()),
+      .refused(.roughDerivedPoint(tier: "P2")))
+  }
+
+  func testAnEndWithSeveralCandidatesWaitsWhileTheOtherIsAlreadyNamed() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+
+    guard
+      case .advanced(let next) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: 0.4),
+        solid: solid,
+        draft: fixture.draft),
+      case .anchored(_, _, let ends, _) = next.stage
+    else { return XCTFail("the click did not anchor") }
+
+    guard case .awaiting(_, let candidates) = ends[0] else {
+      return XCTFail("the outer end is not awaiting: \(ends[0])")
+    }
+    XCTAssertGreaterThan(candidates.count, 1)
+    XCTAssertEqual(ends[1], .named(.tcp))
+  }
+
+  // MARK: - From the anchored stage
+
+  func testFromAnchoredACandidateCompletesAndAnythingElseDropsTheAnchor() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+
+    guard
+      case .advanced(let anchored) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: 0.4),
+        solid: solid,
+        draft: fixture.draft),
+      case .anchored(_, _, let ends, _) = anchored.stage,
+      case .awaiting(_, let candidates) = ends[0]
+    else { return XCTFail("the click did not anchor with an awaiting end") }
+
+    // A candidate resolves that end, and with the other already named the pick completes.
+    guard
+      case .complete(.fraction(let from, let percent, let to)) = advancing(
+        anchored, hit: .facet(plane: candidates[0]), solid: solid, draft: fixture.draft)
+    else { return XCTFail("a candidate click did not complete the fraction") }
+    XCTAssertEqual(from, .vertex(facets: try refs(edge.planes + [candidates[0]], in: solid)))
+    XCTAssertEqual(percent, 40, accuracy: 1e-9)
+    XCTAssertEqual(to, .tcp)
+
+    // Anything else drops the anchor and highlights that facet, and a miss ends the pick.
+    let elsewhere = try XCTUnwrap(
+      solid.cutFacetIndices.first { !candidates.contains($0) && !edge.planes.contains($0) })
+    XCTAssertEqual(
+      advancing(anchored, hit: .facet(plane: elsewhere), solid: solid, draft: fixture.draft),
+      .advanced(pick("P2", .oneFacet(plane: elsewhere))))
+    XCTAssertEqual(
+      advancing(anchored, hit: nil, solid: solid, draft: fixture.draft), .cleared)
+  }
+
+  func testWithBothEndsAwaitingFromIsNamedFirstAndThenTo() {
+    let solid = twoAwaitingEnds()
+    let draft = draftOfOneTier()
+
+    guard
+      case .advanced(let anchored) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.25),
+        solid: solid,
+        draft: draft),
+      case .anchored(_, let corners, let ends, let percent) = anchored.stage
+    else { return XCTFail("the click did not anchor") }
+
+    // Corner 0 is the further from the axis, so it is `from` and the parameter reads straight through.
+    XCTAssertEqual(corners, [0, 1])
+    XCTAssertEqual(percent, 25, accuracy: 1e-9)
+    guard case .awaiting(let firstCorner, let firstCandidates) = ends[0],
+      case .awaiting = ends[1]
+    else { return XCTFail("both ends should be awaiting: \(ends)") }
+    XCTAssertEqual(firstCorner, 0)
+
+    // The first click names `from` only — `to` is still awaiting, and the pick has not completed.
+    guard
+      case .advanced(let half) = advancing(
+        anchored, hit: .facet(plane: firstCandidates[0]), solid: solid, draft: draft),
+      case .anchored(_, _, let halfEnds, _) = half.stage
+    else { return XCTFail("the first candidate click did not advance") }
+    guard case .named = halfEnds[0], case .awaiting(_, let secondCandidates) = halfEnds[1] else {
+      return XCTFail("after the first click the ends read \(halfEnds)")
+    }
+
+    // The second names `to`, and that completes it.
+    guard
+      case .complete(.fraction(let from, let wrote, let to)) = advancing(
+        half, hit: .facet(plane: secondCandidates[0]), solid: solid, draft: draft)
+    else { return XCTFail("the second candidate click did not complete the fraction") }
+    XCTAssertEqual(wrote, 25, accuracy: 1e-9)
+    // Both ends are the edge's two planes plus their own third, so they share two names and differ in one.
+    guard case .vertex(let fromRefs) = from, case .vertex(let toRefs) = to else {
+      return XCTFail("an end is not a vertex triple")
+    }
+    XCTAssertEqual(fromRefs.prefix(2), toRefs.prefix(2))
+    XCTAssertNotEqual(fromRefs[2], toRefs[2])
+  }
+
+  func testAFractionWithAnEndStillAwaitingIsRefused() {
+    XCTAssertEqual(
+      meetFractionPicked(
+        ends: [.named(.tcp), .awaiting(corner: 3, candidates: [1, 2])],
+        percent: 50,
+        ofTier: "P2"),
+      .failure(.pickedFacetsDoNotMeet(tier: "P2")))
+    XCTAssertEqual(
+      meetFractionPicked(ends: [.named(.tcp)], percent: 50, ofTier: "P2"),
+      .failure(.pickedFacetsDoNotMeet(tier: "P2")))
+  }
+
+  // MARK: - The anchored stage's own prompt and markers
+
+  func testThePromptForAnAnchoredPointNamesTheEndItIsAskingAbout() {
+    let solid = twoAwaitingEnds()
+    let a = facetLabel(.cut(FacetRef(tier: "G1", index: 0)))
+    let b = facetLabel(.cut(FacetRef(tier: "G1", index: 1)))
+
+    // `from` first: two candidates through the outer corner.
+    XCTAssertEqual(
+      meetPickPrompt(
+        pick(
+          "P2",
+          .anchored(
+            planes: [0, 1],
+            corners: [0, 1],
+            ends: [
+              .awaiting(corner: 0, candidates: [2, 3]), .awaiting(corner: 1, candidates: [4, 5]),
+            ],
+            percent: 24.862)),
+        solid: solid),
+      "Picking P2's meet · 24.86% along \(a) – \(b) · click one of 2 facets through the from end")
+
+    // Then `to`, once `from` is named — and the count is that end's own.
+    XCTAssertEqual(
+      meetPickPrompt(
+        pick(
+          "P2",
+          .anchored(
+            planes: [0, 1],
+            corners: [0, 1],
+            ends: [.named(.tcp), .awaiting(corner: 1, candidates: [4, 5])],
+            percent: 50)),
+        solid: solid),
+      "Picking P2's meet · 50.00% along \(a) – \(b) · click one of 2 facets through the to end")
+
+    // Both named is unreachable — the pick has completed — and says so rather than indexing into nothing.
+    XCTAssertEqual(
+      meetPickPrompt(
+        pick(
+          "P2",
+          .anchored(
+            planes: [0, 1], corners: [0, 1], ends: [.named(.tcp), .named(.tcp)], percent: 50)),
+        solid: solid),
+      "Picking P2's meet · 50.00% along \(a) – \(b) · complete")
+  }
+
+  func testTheAnchoredMarkersAreTheEdgeItsEndsThePointAndOneEndsCandidates() throws {
+    let solid = twoAwaitingEnds()
+    let markers = meetPickMarkers(
+      pick(
+        "P2",
+        .anchored(
+          planes: [0, 1],
+          corners: [0, 1],
+          ends: [
+            .awaiting(corner: 0, candidates: [2, 3]), .awaiting(corner: 1, candidates: [4, 5]),
+          ],
+          percent: 25)),
+      solid: solid)
+
+    // Two named facets, two rings, the point, and **only the awaiting end being asked about** (D12).
+    XCTAssertEqual(
+      markers.map(\.kind),
+      [.named(1), .named(2), .corner, .corner, .anchor(25), .candidate, .candidate])
+    let anchor = try XCTUnwrap(markers.first { $0.kind == .anchor(25) })
+    XCTAssertEqual(anchor.label, "25.00%")
+
+    // The point sits at the percentage's own position between `from` and `to`, which is the arithmetic the
+    // solver performs on the finished meet.
+    let from = SIMD3<Float>(1, 0, 0.3)
+    let to = SIMD3<Float>(0.2, 0, 0.1)
+    XCTAssertEqual(simd_distance(anchor.world, from + 0.25 * (to - from)), 0, accuracy: 1e-6)
+
+    // Identities are stable across two calls, so a `ForEach` keeps them.
+    XCTAssertEqual(
+      markers.map(\.id),
+      ["named-0", "named-1", "corner-0", "corner-1", "anchor", "candidate-2", "candidate-3"])
+
+    // With `from` named, only `to`'s candidates are marked — never both ends at once.
+    let half = meetPickMarkers(
+      pick(
+        "P2",
+        .anchored(
+          planes: [0, 1],
+          corners: [0, 1],
+          ends: [.named(.tcp), .awaiting(corner: 1, candidates: [4, 5])],
+          percent: 25)),
+      solid: solid)
+    XCTAssertEqual(half.filter { $0.kind == .candidate }.map(\.id), ["candidate-4", "candidate-5"])
+  }
+
+  /// Every marker of a real anchored pick sits on the solid it is drawn over — the point included, which is
+  /// on the edge and so on the surface.
+  func testEveryAnchoredMarkerSitsOnTheSolid() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+
+    guard
+      case .advanced(let anchored) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: 0.24862),
+        solid: solid,
+        draft: fixture.draft)
+    else { return XCTFail("the click did not anchor") }
+
+    let markers = meetPickMarkers(anchored, solid: solid)
+    XCTAssertTrue(
+      markers.contains {
+        if case .anchor = $0.kind { return true }
+        return false
+      })
+    for marker in markers {
+      for plane in solid.planes {
+        let signed =
+          plane.n.x * Double(marker.world.x) + plane.n.y * Double(marker.world.y)
+          + plane.n.z * Double(marker.world.z) - plane.d
+        XCTAssertLessThanOrEqual(signed, 1e-6, "\(marker.id) is outside the solid")
+      }
+    }
+  }
+
   // MARK: - Helpers
 
   private func pick(_ tier: String, _ stage: MeetPickStage) -> MeetPickState {
@@ -519,6 +983,103 @@ final class MeetPickTests: XCTestCase {
   private func easyOctagon() throws -> (draft: PatternDraft, full: BenchSolid) {
     let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
     return (PatternDraft(pattern), benchSolid(for: pattern))
+  }
+
+  private func noviceAsher() throws -> (draft: PatternDraft, full: BenchSolid) {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.noviceAsher)
+    return (PatternDraft(pattern), benchSolid(for: pattern))
+  }
+
+  /// The edge running from a corner down to the side's axial point — **the shape every fraction in the
+  /// corpus is anchored along**, and the only edge whose inner end is spelled `tcp`.
+  private func edgeToTheAxialPoint(
+    _ solid: BenchSolid, onTheSideOf part: Part
+  ) throws -> SolidEdge {
+    let axial = try XCTUnwrap(
+      axialPoint(onTheSideOf: part, cutBy: solid.tiers), "this side has no axial point")
+    let tip = try XCTUnwrap(
+      corner(of: solid, at: axial), "no corner of this solid sits at the axial point")
+    let cut = Set(solid.cutFacetIndices)
+    return try XCTUnwrap(
+      solidEdges(solid).first {
+        ($0.a == tip || $0.b == tip) && $0.planes.allSatisfy(cut.contains)
+      },
+      "no cut-cut edge of this solid reaches the axial point")
+  }
+
+  /// An edge both of whose facets are cut and both of whose ends can be spelled, so a click along it
+  /// anchors rather than refusing. Found by measurement rather than named, so no case makes a claim about
+  /// which edge of a pattern that happens to be.
+  private func anchorableEdge(
+    _ solid: BenchSolid, ofTier tier: String, draft: PatternDraft
+  ) throws -> SolidEdge {
+    let cut = Set(solid.cutFacetIndices)
+    return try XCTUnwrap(
+      solidEdges(solid).first { edge in
+        guard edge.planes.allSatisfy(cut.contains) else { return false }
+        return [edge.a, edge.b].allSatisfy { corner in
+          if case .success = fractionEnd(
+            atCorner: corner, named: edge.planes, ofTier: tier, solid: solid, draft: draft)
+          {
+            return true
+          }
+          return false
+        }
+      },
+      "no edge of this solid has two cut facets and two spellable ends")
+  }
+
+  /// Where a meet's endpoint sits on this solid: the axial point for a `tcp`, and the three named planes'
+  /// own intersection for a triple. The kernel's own solves, never a second copy.
+  private func resolved(
+    _ endpoint: Meet, part: Part, in solid: BenchSolid
+  ) throws -> (x: Double, y: Double, z: Double) {
+    switch endpoint {
+    case .tcp:
+      return try XCTUnwrap(axialPoint(onTheSideOf: part, cutBy: solid.tiers))
+    case .vertex(let refs):
+      let named = try refs.map { try plane(of: $0, in: solid) }
+      return try XCTUnwrap(
+        triplePoint(solid.planes[named[0]], solid.planes[named[1]], solid.planes[named[2]]))
+    case .size, .girdle, .fraction:
+      throw NotAnEndpoint()
+    }
+  }
+
+  /// The corner of this solid at a point, or `nil` when none is.
+  private func corner(
+    of solid: BenchSolid, at point: (x: Double, y: Double, z: Double)
+  ) -> Int? {
+    solid.polytope.vertices.indices.first { distance(solid.polytope.vertices[$0], point) <= 1e-6 }
+  }
+
+  private func distance(
+    _ a: (x: Double, y: Double, z: Double), _ b: (x: Double, y: Double, z: Double)
+  ) -> Double {
+    ((a.x - b.x) * (a.x - b.x) + (a.y - b.y) * (a.y - b.y) + (a.z - b.z) * (a.z - b.z)).squareRoot()
+  }
+
+  private func radius(_ solid: BenchSolid, _ corner: Int) -> Double {
+    let point = solid.polytope.vertices[corner]
+    return (point.x * point.x + point.y * point.y).squareRoot()
+  }
+
+  private func refs(_ planes: [Int], in solid: BenchSolid) throws -> [FacetRef] {
+    try planes.map { plane in
+      guard case .cut(let ref) = solid.origin[plane] else { throw NotAnEndpoint() }
+      return ref
+    }
+  }
+
+  /// Two corners and nothing else, for the ordering rules that are about position alone.
+  private func twoCorners(
+    _ first: (x: Double, y: Double, z: Double), _ second: (x: Double, y: Double, z: Double)
+  ) -> BenchSolid {
+    BenchSolid(
+      planes: [],
+      origin: [:],
+      polytope: Polytope(vertices: [first, second], facets: [:]),
+      includesRough: false)
   }
 
   /// An edge both of whose facets are cut, so selecting it is not a rough refusal.
@@ -650,6 +1211,59 @@ final class MeetPickTests: XCTestCase {
       includesRough: true)
   }
 
+  /// One edge with **exactly one** candidate at each end, so an end-zone click completes rather than
+  /// waiting. Planes 0 and 1 share the edge; plane 2 passes through its outer corner only and plane 3
+  /// through its inner corner only, and each triple's own intersection is that corner — which is what
+  /// `meetPicked` checks before writing anything.
+  private func edgeWithOneCandidateAtEachEnd() -> BenchSolid {
+    let outer = (x: 1.0, y: 0.0, z: 0.3)
+    let inner = (x: 0.2, y: 0.0, z: 0.1)
+    // Two planes containing the whole segment: both normals are perpendicular to `inner - outer`.
+    let length = (0.8 * 0.8 + 0.2 * 0.2).squareRoot()
+    let planes = [
+      Plane(n: (x: 0, y: 1, z: 0), d: 0),
+      Plane(n: (x: 0.2 / length, y: 0, z: -0.8 / length), d: (0.2 * 1 - 0.8 * 0.3) / length),
+      // One plane through each end, cutting the segment at that end.
+      Plane(n: (x: 1, y: 0, z: 0), d: outer.x),
+      Plane(n: (x: 1, y: 0, z: 0), d: inner.x),
+    ]
+    let vertices = [outer, inner, (x: 0.0, y: 4.0, z: 0.0), (x: 0.0, y: 5.0, z: 0.0)]
+    let facets: [Int: [Int]] = [0: [0, 1, 2], 1: [0, 1, 3], 2: [0, 2, 3], 3: [1, 2, 3]]
+    var origin: [Int: FacetOrigin] = [:]
+    for index in 0..<4 { origin[index] = .cut(FacetRef(tier: "G1", index: index)) }
+
+    return BenchSolid(
+      planes: planes,
+      origin: origin,
+      polytope: Polytope(vertices: vertices, facets: facets),
+      includesRough: false)
+  }
+
+  /// An edge whose **both** ends have several candidates: planes 0 and 1 share it, planes 2 and 3 pass
+  /// through its outer corner and 4 and 5 through its inner one. Corner 0 is the further from the axis, so
+  /// it is `from`. Every plane is cut, and the solid has no tiers, so no end is the axial point.
+  private func twoAwaitingEnds() -> BenchSolid {
+    let vertices: [(x: Double, y: Double, z: Double)] = [
+      (x: 1, y: 0, z: 0.3),  // 0 — the outer corner, radius 1
+      (x: 0.2, y: 0, z: 0.1),  // 1 — the inner corner, radius 0.2
+      (x: 0, y: 5, z: 0), (x: 0, y: 6, z: 0), (x: 0, y: 7, z: 0),
+    ]
+    // The edge's own two facets carry both corners; the other four carry one each.
+    let facets: [Int: [Int]] = [
+      0: [0, 1, 2], 1: [0, 1, 3],
+      2: [0, 2, 3], 3: [0, 3, 4],
+      4: [1, 2, 3], 5: [1, 3, 4],
+    ]
+    var origin: [Int: FacetOrigin] = [:]
+    for index in 0..<6 { origin[index] = .cut(FacetRef(tier: "G1", index: index)) }
+
+    return BenchSolid(
+      planes: (0..<6).map { Plane(n: (x: 1, y: 0, z: 0), d: Double($0)) },
+      origin: origin,
+      polytope: Polytope(vertices: vertices, facets: facets),
+      includesRough: false)
+  }
+
   /// Three planes whose normals are dependent — they share an axis and pin no point.
   private func threeParallelishPlanes() -> BenchSolid {
     let diagonal = 1.0 / 2.0.squareRoot()
@@ -671,3 +1285,6 @@ final class MeetPickTests: XCTestCase {
       includesRough: false)
   }
 }
+
+/// A meet the format does not allow as a fraction's endpoint, which no fixture in this file produces.
+private struct NotAnEndpoint: Error {}

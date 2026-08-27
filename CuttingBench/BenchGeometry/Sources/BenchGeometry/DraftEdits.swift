@@ -170,6 +170,40 @@ public func setting(meet: Meet?, ofTier tier: String, in draft: PatternDraft)
   return .success(edited)
 }
 
+/// The anchored percentage of a tier whose meet is a `fraction`, typed by the author.
+///
+/// **`0` or `100` collapses the meet to a plain `vertex`** at the endpoint the percentage names — `from`
+/// at 0, `to` at 100 — so the meet form follows from the value rather than from how it was entered,
+/// exactly as snapping into an end zone does. An endpoint that is `tcp` collapses to `tcp`.
+///
+/// Refused for text that is not a number (`notANumber`), and for a number outside `0...100`
+/// (`percentNotInRange`). A tier whose meet is not a `fraction` is returned unchanged rather than
+/// refused: nothing in the UI offers the field there, so it is unreachable rather than wrong.
+public func setting(percent typed: String, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+  guard case .fraction(let from, _, let to) = draft.tiers[position].meet else {
+    return .success(draft)
+  }
+  guard let percent = Double(typed.trimmingCharacters(in: .whitespacesAndNewlines)) else {
+    return .failure(.notANumber(field: "percentage", typed: typed))
+  }
+  guard percent >= 0, percent <= 100 else {
+    return .failure(.percentNotInRange(tier: tier, typed: typed))
+  }
+
+  var edited = draft
+  // The same field every other setter writes, so a percentage edit is one undo entry and rides part 2's
+  // validation exactly as an angle edit does.
+  switch percent {
+  case 0: edited.tiers[position].meet = from
+  case 100: edited.tiers[position].meet = to
+  default: edited.tiers[position].meet = .fraction(from: from, percent: percent, to: to)
+  }
+  return .success(edited)
+}
+
 // MARK: - Symmetry, which is generated and never stored
 
 /// The stop list the typed seeds generate, at the folds and mirroring the tier's **current** stops derive.

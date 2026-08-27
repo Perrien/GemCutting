@@ -42,9 +42,8 @@ final class MeetPickHitTests: XCTestCase {
     let solid = benchSolid(for: nil)
     let target = try wellSeparatedSilhouetteEdge(solid)
 
-    XCTAssertEqual(
-      meetPickHit(solid, click: target.midpoint, size: size, camera: camera),
-      .edge(planes: target.edge.planes, corners: [target.edge.a, target.edge.b]))
+    assertEdge(
+      meetPickHit(solid, click: target.midpoint, size: size, camera: camera), target.edge)
   }
 
   func testTwentyPointsOffTheEdgeTakesTheFacetAndFourPointsStillTakesTheEdge() throws {
@@ -57,13 +56,50 @@ final class MeetPickHitTests: XCTestCase {
     case let other: XCTFail("20 points off the edge resolved as \(String(describing: other))")
     }
 
-    XCTAssertEqual(
+    assertEdge(
       meetPickHit(
         solid,
         click: offset(target.midpoint, target.inward, 4),
         size: size,
         camera: camera),
-      .edge(planes: target.edge.planes, corners: [target.edge.a, target.edge.b]))
+      target.edge)
+  }
+
+  // MARK: - Where along the edge the click fell
+
+  /// The parameter is of the **model-space** segment `a → b`, so a click on the projection of the point a
+  /// tenth of the way along reads a tenth — foreshortening and all.
+  func testAClickPartWayAlongAnEdgeReportsWhereAlongItFell() throws {
+    let solid = benchSolid(for: nil)
+    let target = try wellSeparatedSilhouetteEdge(solid)
+
+    for expected in [0.1, 0.5, 0.9] {
+      let click = try XCTUnwrap(viewPointAlong(solid, target.edge, expected))
+      let along = try XCTUnwrap(
+        assertEdge(meetPickHit(solid, click: click, size: size, camera: camera), target.edge))
+      XCTAssertEqual(
+        along, expected, accuracy: 0.02,
+        "a click \(expected) of the way along read \(along)")
+    }
+  }
+
+  func testEveryEdgeOfTheBarePrismHitAtItsMidpointReportsAParameterInRange() throws {
+    let solid = benchSolid(for: nil)
+
+    var tested = 0
+    for edge in solidEdges(solid) {
+      guard let click = viewPointAlong(solid, edge, 0.5) else { continue }
+      // Whichever edge takes the click — a midpoint can fall nearer a neighbour, and an ambiguous one
+      // falls through to the facet — the parameter it reports is of its own segment and must be in range.
+      guard
+        case .edge(_, _, let along) = meetPickHit(
+          solid, click: click, size: size, camera: camera)
+      else { continue }
+      XCTAssertGreaterThanOrEqual(along, 0)
+      XCTAssertLessThanOrEqual(along, 1)
+      tested += 1
+    }
+    XCTAssertGreaterThan(tested, 0, "no edge of the bare prism took a click at its own midpoint")
   }
 
   // MARK: - A facet thinner than the grab radius still takes its own clicks
@@ -101,9 +137,7 @@ final class MeetPickHitTests: XCTestCase {
 
     // A tenth of the way along, which is inside the end zone part 5 will measure from.
     let near = (x: a.x + (b.x - a.x) / 10, y: a.y + (b.y - a.y) / 10)
-    XCTAssertEqual(
-      meetPickHit(solid, click: near, size: size, camera: camera),
-      .edge(planes: target.edge.planes, corners: [target.edge.a, target.edge.b]))
+    assertEdge(meetPickHit(solid, click: near, size: size, camera: camera), target.edge)
   }
 
   // MARK: - Only a visible edge can take a click
@@ -117,7 +151,7 @@ final class MeetPickHitTests: XCTestCase {
     XCTAssertFalse(isVisible(hidden, in: solid, eye: eye))
 
     let click = try XCTUnwrap(midpoint(solid, hidden))
-    if case .edge(let planes, _) = meetPickHit(solid, click: click, size: size, camera: camera) {
+    if case .edge(let planes, _, _) = meetPickHit(solid, click: click, size: size, camera: camera) {
       XCTAssertNotEqual(planes, hidden.planes)
     }
   }
@@ -158,6 +192,22 @@ final class MeetPickHitTests: XCTestCase {
 
   // MARK: - Helpers
 
+  /// That a hit resolved to this edge, with **the same planes and the same corners** every case asserted
+  /// before `along` existed. The parameter is returned rather than asserted, so a case that does not care
+  /// where along the edge the click fell still makes exactly the claim it used to.
+  @discardableResult
+  private func assertEdge(
+    _ hit: MeetPickHit?, _ edge: SolidEdge, line: UInt = #line
+  ) -> Double? {
+    guard case .edge(let planes, let corners, let along) = hit else {
+      XCTFail("expected the edge, got \(String(describing: hit))", line: line)
+      return nil
+    }
+    XCTAssertEqual(planes, edge.planes, line: line)
+    XCTAssertEqual(corners, [edge.a, edge.b], line: line)
+    return along
+  }
+
   /// A facet the eye is outside the half-space of.
   private func facesCamera(_ solid: BenchSolid, plane: Int) -> Bool {
     let p = solid.planes[plane]
@@ -181,6 +231,17 @@ final class MeetPickHitTests: XCTestCase {
       return nil
     }
     return (x: (a.x + b.x) / 2, y: (a.y + b.y) / 2)
+  }
+
+  /// The click that lands on the point a fraction `t` of the way along the edge's **model-space** segment
+  /// — the model point, projected, and not a fraction of the projected segment. Which is the position
+  /// `along` is the parameter of.
+  private func viewPointAlong(
+    _ solid: BenchSolid, _ edge: SolidEdge, _ t: Double
+  ) -> (x: Double, y: Double)? {
+    let a = world(solid, edge.a)
+    let b = world(solid, edge.b)
+    return viewPoint(a + (b - a) * Float(t))
   }
 
   private func offset(

@@ -20,16 +20,21 @@ public struct MeetPointDot: Identifiable, Equatable, Sendable {
   /// `nil` when the point cannot be resolved: a named facet was never placed, or the three planes pin
   /// no point. The chip still shows; the viewport draws nothing.
   public var world: SIMD3<Float>?
+  /// The anchored point's percentage as a number, and `nil` for every other role. The label carries it
+  /// formatted for reading; this carries it for editing, so the cell never parses its own display text.
+  public var percent: Double?
   /// Stable across a rebuild, so a `ForEach` keeps its identity: the tier label and the role.
   public var id: String
 
   public init(
-    label: String, role: MeetPointRole, facets: String, world: SIMD3<Float>?, id: String
+    label: String, role: MeetPointRole, facets: String, world: SIMD3<Float>?,
+    percent: Double? = nil, id: String
   ) {
     self.label = label
     self.role = role
     self.facets = facets
     self.world = world
+    self.percent = percent
     self.id = id
   }
 }
@@ -93,6 +98,7 @@ public func meetPointDots(ofTier tier: String, pattern: Pattern?, solid: BenchSo
         // It names no facets, so it carries its percentage instead.
         facets: "",
         world: anchored,
+        percent: percent,
         id: "\(tier)-anchored"),
       MeetPointDot(label: "B", role: .endpointB, facets: meetText(to), world: end, id: "\(tier)-B"),
     ]

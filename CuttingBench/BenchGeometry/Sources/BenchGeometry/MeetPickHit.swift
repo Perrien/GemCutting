@@ -8,6 +8,10 @@ public enum MeetPickTuning {
   /// How close, in screen points, a click has to fall to a visible edge for the edge to take it
   /// instead of the facet under the pointer.
   public static let edgeGrabRadiusPoints: Double = 8
+  /// How much of an edge's own length, at each end, snaps a click to that end's corner instead of
+  /// anchoring a point part-way along it. A build constant with no UI and no preference, tuned by
+  /// editing the number.
+  public static let endZoneFraction: Double = 0.10
   /// How near the picked corner has to be to the side's axial point to be written as `tcp`.
   /// Model-space distance on a solid normalised to a half-width of 1.
   public static let axialTolerance: Double = 1e-6
@@ -18,8 +22,13 @@ public enum MeetPickTuning {
 /// What a click in the viewport resolved to. `nil` from `meetPickHit` is a click that missed the solid.
 public enum MeetPickHit: Equatable, Sendable {
   case facet(plane: Int)
-  /// A visible edge within the grab radius: the two facets sharing it, and its two corners.
-  case edge(planes: [Int], corners: [Int])
+  /// A visible edge within the grab radius: the two facets sharing it, its two corners, and **where
+  /// along it the click fell** — the parameter of the closest point on the model-space segment
+  /// `corners[0] → corners[1]`, in `0...1`.
+  ///
+  /// **Model space, not screen space**, because the end zones are a fraction of the edge's own length:
+  /// a screen-space parameter would make them grow and shrink with foreshortening.
+  case edge(planes: [Int], corners: [Int], along: Double)
 }
 
 /// An edge when the click falls within `grabRadiusPoints` of a **visible** one, otherwise the front-most
@@ -50,6 +59,13 @@ public func meetPickHit(
   guard size.width > 0, size.height > 0 else { return nil }
   let aspect = Float(size.width / size.height)
   let eye = benchCameraPosition(camera, aspect: aspect)
+  // Built once: the edge branch measures where along the edge the ray passes closest, and the facet
+  // branch casts the same ray at the slabs.
+  let ray = benchRay(
+    ndcX: Float(2 * click.x / size.width - 1),
+    ndcY: Float(2 * click.y / size.height - 1),
+    aspect: aspect,
+    camera: camera)
 
   var within: [(distance: Double, edge: SolidEdge)] = []
   for edge in solidEdges(solid) {
@@ -67,19 +83,51 @@ public func meetPickHit(
       other.edge != nearest.edge && !shareACorner(other.edge, nearest.edge)
     }
     if !ambiguous {
-      return .edge(planes: nearest.edge.planes, corners: [nearest.edge.a, nearest.edge.b])
+      return .edge(
+        planes: nearest.edge.planes,
+        corners: [nearest.edge.a, nearest.edge.b],
+        along: alongSegment(
+          ray: ray,
+          from: solid.polytope.vertices[nearest.edge.a],
+          to: solid.polytope.vertices[nearest.edge.b]))
     }
   }
 
   // The facet branch is `pickFacet` unchanged, so a pick can still never name a facet the renderer did
   // not draw.
-  let ray = benchRay(
-    ndcX: Float(2 * click.x / size.width - 1),
-    ndcY: Float(2 * click.y / size.height - 1),
-    aspect: aspect,
-    camera: camera)
   guard let hit = pickFacet(solid, origin: ray.origin, direction: ray.direction) else { return nil }
   return .facet(plane: hit.planeIndex)
+}
+
+/// Where along a model-space segment a click ray passes closest, as a parameter in `0...1`.
+///
+/// The standard closest-point-between-two-lines solve, clamped to the segment. **Clamped and never
+/// rejected**: a ray that passes closest beyond an end still answers with that end, which is the same
+/// end the click was within the grab radius of.
+///
+/// A degenerate segment — both corners at one point — and a ray parallel to the segment both fall out
+/// as `0`, which names a real corner and so is always safe to return.
+private func alongSegment(
+  ray: (origin: SIMD3<Float>, direction: SIMD3<Float>),
+  from: (x: Double, y: Double, z: Double),
+  to: (x: Double, y: Double, z: Double)
+) -> Double {
+  let a = SIMD3<Double>(from.x, from.y, from.z)
+  let b = SIMD3<Double>(to.x, to.y, to.z)
+  let segment = b - a
+  let origin = SIMD3<Double>(Double(ray.origin.x), Double(ray.origin.y), Double(ray.origin.z))
+  let direction = SIMD3<Double>(
+    Double(ray.direction.x), Double(ray.direction.y), Double(ray.direction.z))
+
+  let ss = simd_dot(segment, segment)
+  let dd = simd_dot(direction, direction)
+  let sd = simd_dot(segment, direction)
+  let denominator = ss * dd - sd * sd
+  guard ss > 0, dd > 0, denominator != 0 else { return 0 }
+
+  let w = a - origin
+  let t = (sd * simd_dot(w, direction) - dd * simd_dot(w, segment)) / denominator
+  return min(1, max(0, t))
 }
 
 /// Whether this edge can be clicked at all: at least one of its facets faces the camera. Exact for the

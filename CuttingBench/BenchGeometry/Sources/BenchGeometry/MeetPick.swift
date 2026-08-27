@@ -2,6 +2,16 @@ import FacetKernel
 import Foundation
 import simd
 
+/// One end of an anchored point: the meet that names it, or the corner still awaiting a click.
+///
+/// `named` is a `vertex` triple, or `tcp` for an end standing at the side's axial point. `awaiting`
+/// carries the cut planes still available to be its third name, which is what the overlay marks and
+/// what the next click is matched against.
+public enum MeetPickEnd: Equatable, Sendable {
+  case named(Meet)
+  case awaiting(corner: Int, candidates: [Int])
+}
+
 /// How far the clicks have got. **The corner is a polytope vertex index, never a re-derived
 /// position.**
 public enum MeetPickStage: Equatable, Sendable {
@@ -12,6 +22,14 @@ public enum MeetPickStage: Equatable, Sendable {
   /// A corner, the facets naming it so far, and the cut planes still through it awaiting a third
   /// click.
   case point(planes: [Int], candidates: [Int], corner: Int)
+  /// A point anchored part-way along an edge: the edge's two facets, its two corners and its two ends
+  /// **both already ordered `from` then `to`**, and the percentage measured from `from`.
+  ///
+  /// The ordering is settled here, once, so no later step re-derives which end is `from`. `corners` is
+  /// in that same order — **not the edge's own ascending order** — so the anchored point is
+  /// `corners[0] + percent/100 × (corners[1] - corners[0])`, which is the arithmetic the solver
+  /// performs on the finished meet.
+  case anchored(planes: [Int], corners: [Int], ends: [MeetPickEnd], percent: Double)
 }
 
 /// A meet being built by clicking. `tier` is the row the Meet menu started it from.
@@ -52,7 +70,7 @@ public func advancing(
   guard let hit else { return .cleared }
 
   switch hit {
-  case .edge(let planes, let corners):
+  case .edge(let planes, let corners, let along):
     // A rough plane can never be one of the three names, and selecting an edge commits two of them at
     // once, so the refusal is the same one a click on that facet would state.
     for plane in planes {
@@ -60,8 +78,22 @@ public func advancing(
         return .refused(.roughFacetNotNameable(name: name))
       }
     }
-    // Whatever stage the pick was at, and any highlight gone.
-    return advanced(state, .edge(planes: planes, corners: corners))
+    // An edge with anything other than two corners is not one `meetPickHit` reports; selecting it is
+    // still the honest answer, and it is the answer part 4 gave every edge click.
+    guard corners.count == 2 else {
+      return advanced(state, .edge(planes: planes, corners: corners))
+    }
+    // **A click in an end zone is a plain vertex at that corner**, completed through part 4's own
+    // corner path, so the candidate rule, the rough refusal and the `tcp` question have one
+    // implementation. What snapping changes is which corner, never how a corner is spelled.
+    if along < MeetPickTuning.endZoneFraction {
+      return resolving(state, planes: planes, atCorner: corners[0], solid: solid, draft: draft)
+    }
+    if along > 1 - MeetPickTuning.endZoneFraction {
+      return resolving(state, planes: planes, atCorner: corners[1], solid: solid, draft: draft)
+    }
+    return anchoring(
+      state, planes: planes, corners: corners, along: along, solid: solid, draft: draft)
 
   case .facet(let plane):
     if let name = roughName(solid, plane: plane) {
@@ -117,6 +149,20 @@ private func advancing(
     }
     // Anything else drops the point and highlights that facet.
     return advanced(state, .oneFacet(plane: plane))
+
+  case .anchored(let planes, let corners, let ends, let percent):
+    // Only the end being named is live: `from` first, then `to`.
+    if let k = ends.firstIndex(where: isAwaiting),
+      case .awaiting(let corner, let candidates) = ends[k],
+      candidates.contains(plane)
+    {
+      return naming(
+        state, planes: planes, corners: corners, ends: ends, at: k, corner: corner, plane: plane,
+        percent: percent, solid: solid, draft: draft)
+    }
+    // Anything else drops the anchor and highlights that facet, the same answer every other stage gives
+    // a click that means nothing to it.
+    return advanced(state, .oneFacet(plane: plane))
   }
 }
 
@@ -157,6 +203,206 @@ private func completing(
   case .success(let meet): return .complete(meet)
   case .failure(let refusal): return .refused(refusal)
   }
+}
+
+// MARK: - A point anchored part-way along an edge
+
+/// The edge's two corners ordered **`from` then `to`**: the one further from the axis first.
+///
+/// Distance from the axis is `sqrt(x² + y²)`, the axis being `z`. **Ties go to the endpoint nearer the
+/// girdle plane** — the smaller `abs(z)` — and a remaining tie to the corner whose cut planes, as
+/// ascending `(tier, index)` pairs, sort first. That last rule is unreachable on any solid in
+/// `Design/Patterns/` and exists so the answer is total and stable rather than dependent on vertex order.
+///
+/// The percentage then reads outside-in, the way the corpus phrases it, and grows monotonically as the
+/// point slides, so nothing flips under the pointer.
+public func fractionEndOrder(corners: [Int], solid: BenchSolid) -> [Int] {
+  corners.sorted { first, second in
+    let a = axisPosition(solid, first)
+    let b = axisPosition(solid, second)
+    if a.radius != b.radius { return a.radius > b.radius }
+    if a.height != b.height { return a.height < b.height }
+    return cornerSpelling(solid, first).lexicographicallyPrecedes(cornerSpelling(solid, second)) {
+      ($0.tier, $0.index) < ($1.tier, $1.index)
+    }
+  }
+}
+
+/// One end of an anchored point, as the meet that names it or the corner still awaiting a click.
+///
+/// `tcp` when the corner stands at the axial point on this tier's own side, asked of
+/// `axialPoint(onTheSideOf:cutBy:)` over the intermediate solid's own tiers and accepted within
+/// `MeetPickTuning.axialTolerance`. **The one-`tcp`-per-side rule is deliberately not asked** — that rule
+/// governs a top-level datum claim, and a `tcp` standing as a fraction endpoint is not one, which is why
+/// every fraction in the corpus reads `to: tcp`.
+///
+/// Otherwise the cut planes through the corner, minus the two the edge already names, decide it:
+/// **none** → `.roughDerivedPoint`, **one** → `.named` with that triple filled in, **more** →
+/// `.awaiting` with all of them.
+public func fractionEnd(
+  atCorner corner: Int,
+  named planes: [Int],
+  ofTier tier: String,
+  solid: BenchSolid,
+  draft: PatternDraft
+) -> Result<MeetPickEnd, DraftRefusal> {
+  guard solid.polytope.vertices.indices.contains(corner) else {
+    return .failure(.pickedFacetsDoNotMeet(tier: tier))
+  }
+  let point = solid.polytope.vertices[corner]
+  if let part = draft.tiers.first(where: { $0.tier == tier })?.part,
+    let axial = axialPoint(onTheSideOf: part, cutBy: solid.tiers),
+    distance(axial, point) <= MeetPickTuning.axialTolerance
+  {
+    return .success(.named(.tcp))
+  }
+
+  let candidates = candidatePlanes(atCorner: corner, named: planes, solid: solid)
+  switch candidates.count {
+  case 0:
+    // The end cannot be spelled without naming the rough.
+    return .failure(.roughDerivedPoint(tier: tier))
+  case 1:
+    // Not a choice, so it is not a click.
+    return spelling(solid, planes: planes, third: candidates[0], ofTier: tier)
+      .map(MeetPickEnd.named)
+  default:
+    return .success(.awaiting(corner: corner, candidates: candidates))
+  }
+}
+
+/// The meet an anchored point writes, once both its ends are named.
+///
+/// `.fraction(from: ends[0], percent: percent, to: ends[1])`, with the ends in the order
+/// `fractionEndOrder` fixed and the percentage already measured from `from`. Returns
+/// `.pickedFacetsDoNotMeet` for a pair either of whose ends is still `.awaiting`, which the stage machine
+/// never produces and which is still better refused than written as a meet that pins nothing.
+public func meetFractionPicked(
+  ends: [MeetPickEnd],
+  percent: Double,
+  ofTier tier: String
+) -> Result<Meet, DraftRefusal> {
+  guard ends.count == 2, case .named(let from) = ends[0], case .named(let to) = ends[1] else {
+    return .failure(.pickedFacetsDoNotMeet(tier: tier))
+  }
+  return .success(.fraction(from: from, percent: percent, to: to))
+}
+
+/// A click that landed part-way along an edge: order the ends, spell each one, and either complete or
+/// wait. **The percentage is measured from `from`** — `100 × along` when `from` is `corners[0]` and
+/// `100 × (1 - along)` when it is `corners[1]`.
+///
+/// **Refuses as a whole or not at all.** If either end cannot be spelled the pick is left exactly as it
+/// was and the refusal is stated once: an anchored point whose outer end cannot be spelled is not
+/// half-placeable, and a partially-built fraction is not a state the author can act on.
+private func anchoring(
+  _ state: MeetPickState,
+  planes: [Int],
+  corners: [Int],
+  along: Double,
+  solid: BenchSolid,
+  draft: PatternDraft
+) -> MeetPickOutcome {
+  let ordered = fractionEndOrder(corners: corners, solid: solid)
+  let percent = 100 * (ordered[0] == corners[0] ? along : 1 - along)
+
+  var ends: [MeetPickEnd] = []
+  for corner in ordered {
+    switch fractionEnd(
+      atCorner: corner, named: planes, ofTier: state.tier, solid: solid, draft: draft)
+    {
+    case .success(let end): ends.append(end)
+    case .failure(let refusal): return .refused(refusal)
+    }
+  }
+  return anchored(state, planes: planes, corners: ordered, ends: ends, percent: percent)
+}
+
+/// A click on one of the awaiting end's candidates: that end becomes `.named` with the edge's two planes
+/// plus the clicked one, **in that order** — the two the author expressed as an edge, then the one they
+/// clicked. Completes when no end is left awaiting.
+private func naming(
+  _ state: MeetPickState,
+  planes: [Int],
+  corners: [Int],
+  ends: [MeetPickEnd],
+  at k: Int,
+  corner: Int,
+  plane: Int,
+  percent: Double,
+  solid: BenchSolid,
+  draft: PatternDraft
+) -> MeetPickOutcome {
+  switch spelling(solid, planes: planes, third: plane, ofTier: state.tier) {
+  case .failure(let refusal):
+    return .refused(refusal)
+  case .success(let meet):
+    var next = ends
+    next[k] = .named(meet)
+    return anchored(state, planes: planes, corners: corners, ends: next, percent: percent)
+  }
+}
+
+/// The anchored stage, or the meet it writes once no end is left awaiting. **The fraction completes on
+/// the click that resolves its last end**, which in the common case is the same click that anchored the
+/// point: the outer end has one candidate and the inner end is the axial point, so both resolve without a
+/// further click.
+private func anchored(
+  _ state: MeetPickState,
+  planes: [Int],
+  corners: [Int],
+  ends: [MeetPickEnd],
+  percent: Double
+) -> MeetPickOutcome {
+  guard ends.contains(where: isAwaiting) else {
+    switch meetFractionPicked(ends: ends, percent: percent, ofTier: state.tier) {
+    case .success(let meet): return .complete(meet)
+    case .failure(let refusal): return .refused(refusal)
+    }
+  }
+  return advanced(state, .anchored(planes: planes, corners: corners, ends: ends, percent: percent))
+}
+
+/// A fraction endpoint's own `vertex` triple: the two planes the edge already names, then the third.
+/// Every one of the three must be a cut facet, or the point cannot be spelled without the rough.
+private func spelling(
+  _ solid: BenchSolid, planes: [Int], third: Int, ofTier tier: String
+) -> Result<Meet, DraftRefusal> {
+  var refs: [FacetRef] = []
+  for plane in planes + [third] {
+    guard case .cut(let ref) = solid.origin[plane] else {
+      return .failure(.roughDerivedPoint(tier: tier))
+    }
+    refs.append(ref)
+  }
+  return .success(.vertex(facets: refs))
+}
+
+/// Whether an end is still waiting for the click that names it.
+private func isAwaiting(_ end: MeetPickEnd) -> Bool {
+  if case .awaiting = end { return true }
+  return false
+}
+
+/// How far a corner stands from the axis, and how far from the girdle plane — the two measurements
+/// `fractionEndOrder` reads, in that order.
+private func axisPosition(_ solid: BenchSolid, _ corner: Int) -> (radius: Double, height: Double) {
+  guard solid.polytope.vertices.indices.contains(corner) else { return (0, 0) }
+  let point = solid.polytope.vertices[corner]
+  return ((point.x * point.x + point.y * point.y).squareRoot(), abs(point.z))
+}
+
+/// Every cut facet through a corner as an ascending `(tier, index)` pair — the last tie-break in
+/// `fractionEndOrder`, and never a position.
+private func cornerSpelling(
+  _ solid: BenchSolid, _ corner: Int
+) -> [(tier: String, index: Int)] {
+  candidatePlanes(atCorner: corner, named: [], solid: solid)
+    .compactMap { plane -> (tier: String, index: Int)? in
+      guard case .cut(let ref) = solid.origin[plane] else { return nil }
+      return (ref.tier, ref.index)
+    }
+    .sorted { ($0.tier, $0.index) < ($1.tier, $1.index) }
 }
 
 /// The cut planes still available to name a corner: every plane whose polygon ring carries that corner,
@@ -265,6 +511,18 @@ public func meetPickPrompt(_ state: MeetPickState, solid: BenchSolid) -> String 
     return opening
       + planes.map { name(solid, $0) }.joined(separator: " · ")
       + " · click one of \(candidates.count) facets through the point"
+  case .anchored(let planes, _, let ends, let percent):
+    let along =
+      "\(percentText(percent))% along \(name(solid, planes[0])) – \(name(solid, planes[1]))"
+    // A pick with both ends named has already completed, so the `complete` clause is unreachable — and
+    // saying so is better than indexing into a list with nothing awaiting in it.
+    guard let k = ends.firstIndex(where: isAwaiting),
+      case .awaiting(_, let candidates) = ends[k]
+    else {
+      return opening + along + " · complete"
+    }
+    return opening + along
+      + " · click one of \(candidates.count) facets through the \(k == 0 ? "from" : "to") end"
   }
 }
 
@@ -277,6 +535,8 @@ public struct MeetPickMarker: Identifiable, Equatable, Sendable {
     case candidate
     /// One end of the selected edge.
     case corner
+    /// The point being placed, and the percentage it currently reads.
+    case anchor(Double)
   }
   public var kind: Kind
   /// The facet's name as `facetLabel` gives it, or `end` for a corner.
@@ -306,13 +566,7 @@ public func meetPickMarkers(_ state: MeetPickState, solid: BenchSolid) -> [MeetP
     }
   }
 
-  switch state.stage {
-  case .empty:
-    break
-  case .oneFacet(let plane):
-    named([plane])
-  case .edge(let planes, let corners):
-    named(planes)
+  func rings(_ corners: [Int]) {
     for corner in corners where solid.polytope.vertices.indices.contains(corner) {
       let point = solid.polytope.vertices[corner]
       markers.append(
@@ -322,9 +576,10 @@ public func meetPickMarkers(_ state: MeetPickState, solid: BenchSolid) -> [MeetP
           world: SIMD3<Float>(Float(point.x), Float(point.y), Float(point.z)),
           id: "corner-\(corner)"))
     }
-  case .point(let planes, let candidates, _):
-    named(planes)
-    for plane in candidates {
+  }
+
+  func candidates(_ planes: [Int]) {
+    for plane in planes {
       guard let world = facetCentroid(solid, plane: plane) else { continue }
       markers.append(
         MeetPickMarker(
@@ -332,7 +587,43 @@ public func meetPickMarkers(_ state: MeetPickState, solid: BenchSolid) -> [MeetP
     }
   }
 
+  switch state.stage {
+  case .empty:
+    break
+  case .oneFacet(let plane):
+    named([plane])
+  case .edge(let planes, let corners):
+    named(planes)
+    rings(corners)
+  case .point(let planes, let waiting, _):
+    named(planes)
+    candidates(waiting)
+  case .anchored(let planes, let corners, let ends, let percent):
+    named(planes)
+    rings(corners)
+    // The point itself, at the percentage's own position between the two ends — the arithmetic the
+    // solver performs on the finished meet, and the reason `corners` is stored `from` then `to`.
+    if corners.count == 2, corners.allSatisfy(solid.polytope.vertices.indices.contains) {
+      let from = worldPoint(solid.polytope.vertices[corners[0]])
+      let to = worldPoint(solid.polytope.vertices[corners[1]])
+      markers.append(
+        MeetPickMarker(
+          kind: .anchor(percent),
+          label: "\(percentText(percent))%",
+          world: from + Float(percent / 100) * (to - from),
+          id: "anchor"))
+    }
+    // **Only the end being named**, never both at once: the prompt is asking about one of them.
+    if let k = ends.firstIndex(where: isAwaiting), case .awaiting(_, let waiting) = ends[k] {
+      candidates(waiting)
+    }
+  }
+
   return markers
+}
+
+private func worldPoint(_ point: (x: Double, y: Double, z: Double)) -> SIMD3<Float> {
+  SIMD3<Float>(Float(point.x), Float(point.y), Float(point.z))
 }
 
 /// The stone as it stands before `tier` is cut — the solid a meet for that tier may name facets on, and

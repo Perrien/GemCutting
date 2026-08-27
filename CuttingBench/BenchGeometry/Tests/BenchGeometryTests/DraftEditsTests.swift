@@ -516,6 +516,65 @@ final class DraftEditsTests: XCTestCase {
     XCTAssertEqual(try tier("P2", of: chosen).meet, .girdle)
   }
 
+  // MARK: - The anchored percentage
+
+  func testTypingAPercentageRewritesItAndLeavesBothEndpointsAlone() throws {
+    let draft = try asher()
+    guard case .fraction(let from, let stored, let to) = try tier("P2", of: draft).meet else {
+      return XCTFail("Novice Ash-er's P2 is not a fraction")
+    }
+    XCTAssertEqual(stored, 24.862, accuracy: 1e-9)
+
+    let edited = try XCTUnwrap(try setting(percent: "40", ofTier: "P2", in: draft).get())
+    XCTAssertEqual(try tier("P2", of: edited).meet, .fraction(from: from, percent: 40, to: to))
+
+    // And back to what the file stores, exactly.
+    let restored = try XCTUnwrap(try setting(percent: "24.862", ofTier: "P2", in: edited).get())
+    XCTAssertEqual(try tier("P2", of: restored).meet, try tier("P2", of: draft).meet)
+  }
+
+  /// **The meet form follows from the value**, exactly as snapping into an end zone does: `0` is the meet
+  /// `from` spells and `100` is the meet `to` spells, and neither is a `fraction` at a percentage of zero.
+  func testZeroAndOneHundredCollapseTheMeetToTheEndpointTheyName() throws {
+    let draft = try asher()
+    guard case .fraction(let from, _, let to) = try tier("P2", of: draft).meet else {
+      return XCTFail("Novice Ash-er's P2 is not a fraction")
+    }
+
+    let atZero = try XCTUnwrap(try setting(percent: "0", ofTier: "P2", in: draft).get())
+    XCTAssertEqual(try tier("P2", of: atZero).meet, from)
+    XCTAssertEqual(meetText(try XCTUnwrap(try tier("P2", of: atZero).meet)), "G@12 · G@24 · P1@24")
+
+    // `to` is `tcp` here, so 100 collapses to `tcp` — the endpoint's own form, whatever it is.
+    let atHundred = try XCTUnwrap(try setting(percent: "100", ofTier: "P2", in: draft).get())
+    XCTAssertEqual(try tier("P2", of: atHundred).meet, to)
+    XCTAssertEqual(try tier("P2", of: atHundred).meet, .tcp)
+  }
+
+  func testAPercentageIsRefusedForNotBeingANumberAndForBeingOutOfRange() throws {
+    let draft = try asher()
+
+    XCTAssertEqual(
+      setting(percent: "abc", ofTier: "P2", in: draft),
+      .failure(.notANumber(field: "percentage", typed: "abc")))
+    XCTAssertEqual(
+      setting(percent: "-1", ofTier: "P2", in: draft),
+      .failure(.percentNotInRange(tier: "P2", typed: "-1")))
+    XCTAssertEqual(
+      setting(percent: "101", ofTier: "P2", in: draft),
+      .failure(.percentNotInRange(tier: "P2", typed: "101")))
+    XCTAssertEqual(
+      DraftRefusal.percentNotInRange(tier: "P2", typed: "140").message,
+      "\"140\" is not a percentage between 0 and 100 for P2's meet.")
+  }
+
+  func testATierWhoseMeetIsNotAFractionIsReturnedUnchanged() throws {
+    let draft = try asher()
+    // `P1` is `tcp`, and a label the draft does not carry at all.
+    XCTAssertEqual(try setting(percent: "40", ofTier: "P1", in: draft).get(), draft)
+    XCTAssertEqual(try setting(percent: "40", ofTier: "nonesuch", in: draft).get(), draft)
+  }
+
   // MARK: - Appending a tier
 
   func testAppendingTakesTheFirstUnusedNumberedLabelAndGuessesNothingElse() throws {

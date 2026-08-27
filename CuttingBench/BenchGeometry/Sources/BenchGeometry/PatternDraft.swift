@@ -200,6 +200,8 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case roughDerivedPoint(tier: String)
   /// Three named planes that pin no point.
   case pickedFacetsDoNotMeet(tier: String)
+  /// A typed percentage outside 0...100, which the file format rejects at decode.
+  case percentNotInRange(tier: String, typed: String)
 
   /// The sentence the alert shows and the log line records. One wording, so the two cannot disagree.
   public var message: String {
@@ -258,6 +260,8 @@ public enum DraftRefusal: Error, Equatable, Sendable {
         + "which is a build constant with no design meaning."
     case .pickedFacetsDoNotMeet(let tier):
       "\(tier)'s three named facets do not meet at a point."
+    case .percentNotInRange(let tier, let typed):
+      "\"\(typed)\" is not a percentage between 0 and 100 for \(tier)'s meet."
     }
   }
 

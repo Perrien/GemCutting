@@ -74,6 +74,18 @@ final class MeetPointsTests: XCTestCase {
     for dot in dots {
       XCTAssertNotNil(dot.world, dot.label)
     }
+
+    // **Only the anchored dot carries a number**, so only that dot's cell offers a field to type in — and
+    // it carries the value rather than the formatted label, so the cell never parses its own display text.
+    XCTAssertEqual(dots.map(\.percent), [nil, 24.862, nil])
+  }
+
+  func testAPlainVertexDotCarriesNoPercentage() throws {
+    let pattern = try AuthoredPatterns.load(AuthoredPatterns.easyOctagon)
+    let dots = meetPointDots(ofTier: "P2", pattern: pattern, solid: benchSolid(for: pattern))
+
+    XCTAssertEqual(dots.map(\.label), ["M"])
+    XCTAssertEqual(dots.map(\.percent), [nil])
   }
 
   /// The **B** dot of a `to: tcp` fraction *is* the axial point, and which axial point comes from the
