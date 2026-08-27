@@ -11,7 +11,12 @@ public enum MeetPickTuning {
   /// How much of an edge's own length, at each end, snaps a click to that end's corner instead of
   /// anchoring a point part-way along it. A build constant with no UI and no preference, tuned by
   /// editing the number.
-  public static let endZoneFraction: Double = 0.10
+  ///
+  /// **20%, raised from 10% after the first run.** A pavilion edge on `Novice Ash-er` is 139 to 290
+  /// screen points long at the default camera, so a tenth of it is 14 to 29 points — small enough that
+  /// aiming for a corner was a matter of luck. The corpus still authors: every fraction in it sits
+  /// between 24.8% and 33.9%, so none falls inside a zone.
+  public static let endZoneFraction: Double = 0.20
   /// How near the picked corner has to be to the side's axial point to be written as `tcp`.
   /// Model-space distance on a solid normalised to a half-width of 1.
   public static let axialTolerance: Double = 1e-6

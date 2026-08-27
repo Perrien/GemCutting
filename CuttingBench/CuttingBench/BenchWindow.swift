@@ -294,6 +294,7 @@ struct BenchWindow: View {
     case .oneFacet(let plane): plane
     case .edge(let planes, _): planes.last
     case .point(let planes, _, _): planes.last
+    case .anchored(let planes, _, _, _): planes.last
     }
   }
 

@@ -20,7 +20,7 @@ refers to another part.
    solid with the finished stone as a wireframe ghost, the facet-and-edge click machine, the third click
    where more than three planes pass through the point, the axial-point case, and the rough refusals.
    Shipped the completion bar — `Easy Octagon` cut in the app. **(shipped)**
-5. `4-Cutting-Bench-Authoring-5-Fraction-Meets` — a point anchored part-way along an edge: the 10% end
+5. `4-Cutting-Bench-Authoring-5-Fraction-Meets` — a point anchored part-way along an edge: the 20% end
    zones, the outer endpoint as the start of the measurement, the editable percentage, and 0 or 100
    collapsing to a plain vertex. Closes the folded-in ticket and archives the set. ← this part
 
@@ -129,8 +129,8 @@ So the genuinely new code is small and nearly all pure: where along an edge a cl
 |---|---|
 | D1 | **A picked `fraction` is written into the draft through the funnel every other edit uses** — `setting(meet:ofTier:in:)`, unchanged. The draft is the app's and the file is the kernel's (**ADR-0003**), so a picked fraction is an ordinary edit: one undo entry, one refusal channel. **No new meet setter, and the app never serialises anything.** |
 | D2 | **The pick still runs against the intermediate solid — the stone as it stands before the picking tier — and the click still hits that solid.** Unchanged from part 4: a meet is a cutting-time claim, so the facets and edges that may be named are the ones present when that tier is cut. |
-| D3 | **Where along an edge a click fell is measured in model space, not on the screen.** The parameter is that of the point on the model-space segment `a → b` closest to the click's unprojected ray, clamped to `0...1`. The end zone is a fraction of the edge's **own length**, so a screen-space parameter would make the zone grow and shrink with foreshortening and stop being the stated 10%. |
-| D4 | **The end zones are 10% of the edge's own length at each end, one build constant, and not a preference** — `endZoneFraction = 0.10`, tuned by editing the number exactly as the grab radius is. A hidden setting that changes what a click means is worse than editing a number. |
+| D3 | **Where along an edge a click fell is measured in model space, not on the screen.** The parameter is that of the point on the model-space segment `a → b` closest to the click's unprojected ray, clamped to `0...1`. The end zone is a fraction of the edge's **own length**, so a screen-space parameter would make the zone grow and shrink with foreshortening and stop being the stated fraction. |
+| D4 | **The end zones are a fraction of the edge's own length at each end, one build constant, and not a preference** — `endZoneFraction`, tuned by editing the number exactly as the grab radius is. A hidden setting that changes what a click means is worse than editing a number. **The number is 20%, raised from 10% by the owner on 2026-08-27 after the first run**: a pavilion edge on `Novice Ash-er` is 139 to 290 screen points long at the default camera, so a tenth of it was 14 to 29 points and aiming for a corner was luck. Every fraction in the corpus sits between 24.8% and 33.9%, so a fifth at each end still leaves all of them authorable — 24.8% by under five points, which is the margin this number cannot exceed. |
 | D5 | **A click in an end zone produces a plain `vertex` at that corner, never a `fraction` at 0 or 100.** A percentage that happens to be zero is a coordinate stating what the vertex form states directly (`design-authoring-format.md:266`). |
 | D6 | **An end-zone click completes through part 4's existing corner path**, `resolving(_:planes:atCorner:solid:draft:)`, so the candidate rule, the rough-derived refusal and the `tcp` question have one implementation and not two. What snapping changes is *which corner*, never how a corner is spelled. |
 | D7 | **`from` is the endpoint further from the axis.** Distance from the axis is `sqrt(x² + y²)`, the axis being `z` (`Plane.swift:44`–`:47`). **Ties go to the endpoint nearer the girdle plane, `z = 0`** — the smaller `abs(z)` — and a remaining tie to the endpoint whose resolved triple sorts first by tier label then index. The percentage then reads outside-in, the way the corpus phrases it, and grows monotonically as the point slides, so nothing flips under the pointer. |
@@ -581,7 +581,7 @@ creates it.
 | T1 | Prefactor: where along the edge the click fell | completed | continue | — | material alteration ↓ |
 | T2 | Pure: the anchored point, its two ends, and the meet they write | completed | continue | — | material alteration ↓ |
 | T3 | Pure: the prompt, the markers, and the typed percentage | completed | checkpoint | commit | material alteration ↓ |
-| T4 | Anchoring a point in the viewport | not started | **owner stop** | commit | |
+| T4 | Anchoring a point in the viewport | completed | **owner stop** | commit | material alteration ↓ |
 | T5 | The percentage, editable in the meet cell | not started | **owner stop** | commit + push | |
 | T6 | `Kiev Triangle`, confirmed | not started | **owner stop** | commit | |
 | T7 | Close out | not started | **owner stop** | commit + push | |
@@ -761,6 +761,28 @@ completed fraction lands in the draft through the existing funnel.
     CuttingBench/BenchGeometry/Tests CuttingBench/CuttingBench` is clean.
 - **Do not:** touch `BenchWindow.swift` or `BenchRegions.swift` — T5; add an occlusion test; give the
   anchored chip a second look.
+- **Material alteration.** Two small departures, both forced and neither changing what is drawn.
+  - **`BenchWindow.swift` had to be touched, which this task's *Files* list excludes and T5 owns.**
+    `highlightedPlane(of:)` switches over `MeetPickStage`, so the new case made it non-exhaustive and
+    **neither `swiftc -typecheck` run — both of which this task's *Done when* requires — could pass without
+    it.** The edit is one line, `case .anchored(let planes, _, _, _): planes.last`, which is exactly what
+    the `.edge` and `.point` arms beside it already do.
+  - **The chip reads the marker's own label rather than calling `percentText`.** §9 writes
+    `MeetDotChip(label: "\(percentText(percent))%", …)`, but `percentText` is internal to `BenchGeometry`
+    and T3's *Do not* forbids making it public — so the app cannot call it. `meetPickMarkers` already
+    formats the label with that same function, so the chip shows the identical string and the formatting
+    still lives in one place.
+  - **The negative half of the handle predicted the wrong number of clicks, and has been corrected above.**
+    An end-zone click reaches part 4's corner path as D6 requires, and that path waits when the corner has
+    more than one candidate — which `Novice Ash-er`'s outer corner always does. No code changed: the
+    behaviour is D6 and D11 exactly as written, and the handle's prediction came from the same mistaken
+    geometry D13 did.
+  - **The end zone was raised from 10% to 20% at the owner's instruction after the first run** (D4). Driving
+    the sequence in screen coordinates showed the transitions were sound — every visible pavilion edge of
+    `Novice Ash-er` clicked at 5% along snaps to the girdle corner, offers `G@n` and `G@m`, and completes as
+    `P1@n · P1@m · G@n` when either candidate's chip is clicked — but the edges are only 139 to 290 points
+    long, so a tenth of one was not reliably clickable. The constant, D4, and the three cases that name a
+    boundary moved together; nothing else did.
 - **Verification handle** — `permanent`:
   - **Where:** the viewport and the status strip's middle segment. Open
     `Design/Patterns/Pattern-Novice-Ash-er.json`, select row `P2`, and start **Pick in viewport…** from its
@@ -773,9 +795,14 @@ completed fraction lands in the draft through the existing funnel.
     starts at the outer end. Complete the pick and `P2`'s Meet cell reads three chips — `A`, a percentage,
     `B` — with `B` reading `tcp`. ⌘Z restores the cell.
   - **Negative:** start the pick again and click within the **first tenth** of that same edge, right up by
-    the girdle. No percentage chip appears at all: the pick completes immediately as a plain `vertex`, and
-    the Meet cell reads a single `M` chip with three facet names — **not** a percentage of `0`. Then start
-    once more and click a **rough** prism wall: an alert names it, and the strip's prompt is unchanged.
+    the girdle. **No percentage chip appears at all** — the click snaps to that end's corner and the pick
+    becomes an ordinary corner pick, so the strip reads `· click one of 2 facets through the point`. Click
+    one of them: the Meet cell reads a single `M` chip with three facet names — **not** a percentage of `0`.
+    (Two candidates, not one, so this takes a further click; see D13.) Then start once more and click a
+    **rough** prism wall: an alert names it, and the strip's prompt is unchanged.
+  - **Not a fault:** the stone does not re-cut while a pick is running. The viewport shows the solid as it
+    stands *before* the picking tier, with the finished stone as the ghost (D2), and the tier is re-cut when
+    the meet lands.
   - **Reads:** `meetPickMarkers` and `meetPickPrompt` in
     `CuttingBench/BenchGeometry/Sources/BenchGeometry/MeetPick.swift`, and `anchoring` for the percentage
     itself.
@@ -895,7 +922,7 @@ unreachable from the UI until T4 wires them, and none is worth a commit of its o
 4-cutting-bench-authoring-5 T1-T3: a point anchored along an edge
 
 - meetPickHit reports where along the edge the click fell, in model space, so
-  the 10% end zones are a fraction of the edge's own length
+  the 20% end zones are a fraction of the edge's own length
 - the anchored stage: the outer end is `from`, each end is a vertex triple or
   tcp, and an end-zone click is a plain vertex through part 4's own path
 - a typed percentage commits through the draft funnel, with 0 and 100
@@ -942,3 +969,11 @@ unreachable from the UI until T4 wires them, and none is worth a commit of its o
 
 Empty at authoring. The executor appends adjacent problems it found and must not fix — and files each as a
 ticket in `Design/Tickets/` immediately with `Status: untriaged`, per the protocol.
+
+- `Bug-The-Awaiting-Facets-Prompt-Does-Not-Name-Them` — the `.point` stage's prompt reads *click one of 2
+  facets through the point* without saying which two, so they can only be found by spotting the candidate
+  chips — which sit at facet centroids and so can be far from the clicked corner or off-screen. On
+  `Novice Ash-er`'s `P2` the two are the girdle facets above the corner, whose centres are near or past the
+  top edge of the frame at the default camera. Found at T4's owner stop, where it stopped the negative half
+  of the check being completed twice over. **Shipped part 4 behaviour and no part of this plan's scope**, so
+  filed rather than fixed.

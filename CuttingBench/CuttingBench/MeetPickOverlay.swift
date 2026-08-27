@@ -5,11 +5,11 @@ import SwiftUI
 /// corner is a ring rather than a chip.
 ///
 /// Neither the accent colour, nor orange, nor any of the four meet-dot colours: those are the cut
-/// facets', the highlighted facet's, and a stored meet's points'. One blue for all three kinds, because
+/// facets', the highlighted facet's, and a stored meet's points'. One blue for all four kinds, because
 /// they are all one thing the author is doing now.
 func meetPickMarkerColor(_ kind: MeetPickMarker.Kind) -> Color {
   switch kind {
-  case .named, .candidate, .corner: return .blue
+  case .named, .candidate, .corner, .anchor: return .blue
   }
 }
 
@@ -55,6 +55,10 @@ struct MeetPickOverlay: View {
       // **No text beside it**: the ring's shape is what distinguishes it from a chip, and the word `end`
       // twice on one edge says nothing.
       Circle().strokeBorder(colour, lineWidth: 1.5).frame(width: 9, height: 9)
+    case .anchor:
+      // The point being placed, carrying the number rather than a name — the same chip as a clicked
+      // facet's, so it reads in the same language as everything else on the viewport.
+      MeetDotChip(label: marker.label, colour: colour)
     }
   }
 }

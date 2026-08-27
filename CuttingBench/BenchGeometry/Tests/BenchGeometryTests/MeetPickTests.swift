@@ -624,7 +624,8 @@ final class MeetPickTests: XCTestCase {
     let solid = edgeWithOneCandidateAtEachEnd()
     let draft = draftOfOneTier()
 
-    for (along, third) in [(0.05, 2), (0.95, 3)] {
+    // Both ends of the zone, and its far edge at `0.19`/`0.81` — the whole fifth, not just the tip.
+    for (along, third) in [(0.05, 2), (0.19, 2), (0.81, 3), (0.95, 3)] {
       let outcome = advancing(
         MeetPickState(tier: "P2"),
         hit: .edge(planes: [0, 1], corners: [0, 1], along: along),
@@ -645,17 +646,17 @@ final class MeetPickTests: XCTestCase {
       if case .complete(.fraction) = outcome { XCTFail("an end-zone click wrote a fraction") }
     }
 
-    // Just inside the zone the point is anchored instead, which is what makes the boundary the zone's.
+    // Just outside the zone the point is anchored instead, which is what makes the boundary the zone's.
     // With one candidate at each end both are filled in without a click, so this is the case where the
     // anchoring click is also the completing one (D13).
     guard
       case .complete(.fraction(let from, let percent, let to)) = advancing(
         MeetPickState(tier: "P2"),
-        hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.11),
+        hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.21),
         solid: solid,
         draft: draft)
-    else { return XCTFail("a click at 0.11 did not anchor a point") }
-    XCTAssertEqual(percent, 11, accuracy: 1e-9)
+    else { return XCTFail("a click at 0.21 did not anchor a point") }
+    XCTAssertEqual(percent, 21, accuracy: 1e-9)
     XCTAssertEqual(
       from,
       .vertex(facets: [
