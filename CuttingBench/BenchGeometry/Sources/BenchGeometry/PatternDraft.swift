@@ -209,6 +209,19 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   /// A target at or past the bounds a ratio exists in. **The one value refused for being what it is**,
   /// because outside them the arithmetic yields a not-a-number angle, which cannot be encoded (D6).
   case tuningTargetOutOfRange(tier: String, target: Double)
+  /// A gear a quarter turn cannot be expressed on, naming the tier that carries it — or `nil` for the
+  /// pattern's own gear. Fractional stops are forbidden and rounding one would move a facet (D17).
+  case quarterTurnGearNotDivisible(tier: String?, wheel: Int)
+  /// Two picked points at the same place on the aimed facet's azimuth, so they name no tilt (D24).
+  case derivationPointsCoincide(tier: String, numbers: DerivationNumbers)
+  /// Two picked points implying a plane that faces the wrong way for the tier's declared part, carrying
+  /// the signed angle the arithmetic produced before rejection (D24).
+  case derivedAngleContradictsPart(tier: String, part: Part, angle: Double, numbers: DerivationNumbers)
+  /// A sibling facet of the same tier takes the depth, so the facet the author aimed stops short. **The
+  /// one derivation failure refused rather than reported** (D25): the kernel reports nothing for it,
+  /// because which facet arrives is determined rather than chosen.
+  case siblingFacetTakesTheDepth(
+    tier: String, aimed: Int, arrives: Int, angle: Double, aimedDot: Double, arrivingDot: Double)
 
   /// The sentence the alert shows and the log line records. One wording, so the two cannot disagree.
   public var message: String {
@@ -282,6 +295,24 @@ public enum DraftRefusal: Error, Equatable, Sendable {
       "\(angleText(target))° is outside \(angleText(tuningTargetRange.lowerBound))° to "
         + "\(angleText(tuningTargetRange.upperBound))°, which is the range \(tier)'s side can be "
         + "rescaled through."
+    case .quarterTurnGearNotDivisible(let tier, let wheel):
+      "This pattern cannot be turned a quarter turn: "
+        + (tier.map { "\($0)'s gear of \(wheel)" } ?? "the pattern's gear of \(wheel)")
+        + " does not divide by 4, so a quarter turn would land between stops."
+    case .derivationPointsCoincide(let tier, let numbers):
+      "\(tier)@\(numbers.stop) cannot take its angle from those two points: both sit at the same "
+        + "place on that facet's azimuth — \(numbers.firstText) and \(numbers.secondText) — so they "
+        + "name no tilt. Pick a second point at a different height or distance."
+    case .derivedAngleContradictsPart(let tier, let part, let angle, let numbers):
+      "Those two points put \(tier)@\(numbers.stop) at \(angleText(angle))°, which faces the wrong "
+        + "way for a \(part.rawValue) tier — \(numbers.firstText) and \(numbers.secondText). "
+        + "Pick points a \(part.rawValue) facet could reach."
+    case .siblingFacetTakesTheDepth(
+      let tier, let aimed, let arrives, let angle, let aimedDot, let arrivingDot):
+      "\(tier) cut at \(angleText(angle))° does not arrive at that point on stop \(aimed): "
+        + "stop \(arrives) gets there first, reaching \(coordinateText(arrivingDot)) against "
+        + "\(coordinateText(aimedDot)). Aim the stop that arrives, or pick points on the facet you "
+        + "aimed."
     }
   }
 

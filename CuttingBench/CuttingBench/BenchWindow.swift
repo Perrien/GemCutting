@@ -180,6 +180,9 @@ struct BenchWindow: View {
       }
     }
     .navigationTitle(document.pattern?.name ?? "Untitled")
+    // The menu bar cannot reach the focused document, and the turn needs this window's undo manager as
+    // well as its draft — so the window publishes the action and the command calls it.
+    .focusedSceneValue(\.turnAQuarter, turnAQuarter)
     // The store is driven from here rather than from `body`'s own evaluation, so nothing mutates
     // observable state during a view update.
     .onChange(of: document.pattern, initial: true) { rebuild() }
@@ -257,6 +260,12 @@ struct BenchWindow: View {
       return
     }
     edit("Change State", { setting(state: state, in: $0) })
+  }
+
+  /// **Pattern ▸ Turn a Quarter Turn.** One undoable action, no options and no dialog: there is exactly
+  /// one rotation available, so there is nothing to configure (D19).
+  private func turnAQuarter() {
+    edit("Turn a Quarter Turn") { turningAQuarter($0) }
   }
 
   /// The Tuning card's field. One `DraftChange` for the whole side, so it undoes in one step (D9).

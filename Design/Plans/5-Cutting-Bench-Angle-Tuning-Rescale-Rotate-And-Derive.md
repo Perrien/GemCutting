@@ -737,10 +737,10 @@ creates it.
 | T1 | Prefactor: a completed pick reports where it landed | completed | continue | — | |
 | T2 | Pure: the tangent-ratio rescale and its refusals | completed | checkpoint | commit | |
 | T3 | The Tuning card: the field, the list and the ratio | completed | continue | — | |
-| T4 | Dragging the grip, previewed and self-throttled | awaiting owner | **owner stop** | commit + push | |
-| T5 | Pure: the quarter turn | not started | continue | — | |
-| T6 | The Pattern menu's one command | not started | **owner stop** | commit | |
-| T7 | Pure: the angle from two points, and its three refusals | not started | continue | — | |
+| T4 | Dragging the grip, previewed and self-throttled | completed | **owner stop** | commit + push | |
+| T5 | Pure: the quarter turn | completed | continue | — | |
+| T6 | The Pattern menu's one command | completed | **owner stop** | commit | |
+| T7 | Pure: the angle from two points, and its three refusals | in progress | continue | — | |
 | T8 | Deriving an angle in the viewport | not started | **owner stop** | commit + push | |
 | T9 | Close out | not started | **owner stop** | commit + push | |
 

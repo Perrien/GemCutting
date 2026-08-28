@@ -11,6 +11,7 @@ struct CuttingBenchApp: App {
         Button("Open Pattern…") { openPatternFromPatternsFolder() }
           .keyboardShortcut("o", modifiers: [.command, .shift])
       }
+      PatternCommands()
     }
   }
 }
