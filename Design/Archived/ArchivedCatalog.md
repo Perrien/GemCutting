@@ -50,3 +50,7 @@ entries go at the bottom, and nothing is re-sorted or edited in place.
 - 2026-08-27 · Bug-Autosave-In-Place-Rewrites-The-File-That-Was-Opened · won't fix — saving in place is
   accepted and untouched copies of the four patterns are kept outside the app
 - 2026-08-27 · Bug-Mirror-Reads-As-An-Editable-Checkbox-But-Is-Derived · executed
+- 2026-08-28 · 5-Cutting-Bench-Angle-Tuning-Rescale-Rotate-And-Derive · executed
+- 2026-08-28 · 5-Cutting-Bench-Angle-Tuning · superseded by
+  5-Cutting-Bench-Angle-Tuning-Rescale-Rotate-And-Derive — its end-snap zones and its every-gear-divides-by-4
+  claim are both contradicted by the code

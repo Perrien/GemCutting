@@ -1,5 +1,18 @@
 # 5 · Cutting Bench Angle Tuning — Exploration
 
+> **Archived, and two of its claims are contradicted by the shipped code. Trust the code.**
+>
+> - This document says the meet picker's end-snap zones are a tenth of an edge. **They are a fifth** —
+>   `MeetPickHit.swift:19` (`public static let endZoneFraction: Double = 0.20`), raised because a tenth of
+>   a short edge was a matter of luck.
+> - This document says every permitted index gear divides by 4. **The kernel accepts any positive gear** —
+>   `Pattern.swift:211` (`guard pattern.wheel > 0 else`) — so a decoded file can carry a gear of 90, on
+>   which a quarter turn lands between stops. The eight gears the app *offers* do all divide by 4. The
+>   plan below closed that gap by refusing a quarter turn outright on a gear that does not.
+>
+> Superseded by `5-Cutting-Bench-Angle-Tuning-Rescale-Rotate-And-Derive`, which built all three
+> operations.
+
 Status: **CLOSED 2026-08-23**
 Started: 2026-08-22 · via /a-explore · split from `Cutting-Bench-App` on 2026-08-23
 IDs: **S** = scope · **I** = implementation · **U** = UI/UX

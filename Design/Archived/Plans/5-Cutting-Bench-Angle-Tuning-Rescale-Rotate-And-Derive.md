@@ -741,8 +741,8 @@ creates it.
 | T5 | Pure: the quarter turn | completed | continue | — | |
 | T6 | The Pattern menu's one command | completed | **owner stop** | commit | |
 | T7 | Pure: the angle from two points, and its three refusals | completed | continue | — | |
-| T8 | Deriving an angle in the viewport | awaiting owner | **owner stop** | commit + push | Material alteration: §6's `setting(derived:ofTier:in:)` is required by this task's *Done when* and its verification handle, but `DraftEdits.swift` appears in no task's *Files* list. Built here. |
-| T9 | Close out | not started | **owner stop** | commit + push | |
+| T8 | Deriving an angle in the viewport | completed | **owner stop** | commit + push | Material alteration: §6's `setting(derived:ofTier:in:)` is required by this task's *Done when* and its verification handle, but `DraftEdits.swift` appears in no task's *Files* list. Built here. |
+| T9 | Close out | awaiting owner | **owner stop** | commit + push | |
 
 **Three owner stops before the close-out, and T3 is deliberately not one of them.** T3 puts a card on screen
 but leaves it typed-only, which is half of one operation rather than a thing to sign off; the field and the
