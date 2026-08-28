@@ -216,7 +216,8 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case derivationPointsCoincide(tier: String, numbers: DerivationNumbers)
   /// Two picked points implying a plane that faces the wrong way for the tier's declared part, carrying
   /// the signed angle the arithmetic produced before rejection (D24).
-  case derivedAngleContradictsPart(tier: String, part: Part, angle: Double, numbers: DerivationNumbers)
+  case derivedAngleContradictsPart(
+    tier: String, part: Part, angle: Double, numbers: DerivationNumbers)
   /// A sibling facet of the same tier takes the depth, so the facet the author aimed stops short. **The
   /// one derivation failure refused rather than reported** (D25): the kernel reports nothing for it,
   /// because which facet arrives is determined rather than chosen.

@@ -161,6 +161,9 @@ struct TierTableRegion: View {
   /// Starts a pick on one tier. **Not `edit`**: starting a pick changes no draft, so it is not a
   /// `DraftChange` and must not register an undo entry.
   let startPick: (String) -> Void
+  /// Starts an angle derivation on one tier, aimed at one of its own index stops. **Not `edit`**, for the
+  /// same reason `startPick` is not: aiming changes no draft and must register no undo entry.
+  let startDerivation: (String, Int) -> Void
   /// One tier's anchored percentage, as the tier label and the typed text. Beside `edit` because that is
   /// where every other cell's commit comes from, and it goes through the same funnel.
   let commitPercent: (String, String) -> Bool
@@ -392,6 +395,12 @@ struct TierTableRegion: View {
     }
   }
 
+  /// One tier's own index stops, read from the draft the way the Wheel cell reads it for the gears it
+  /// offers. Empty for a label the draft does not carry.
+  private func stops(_ row: TierTableRow) -> [Int] {
+    draft.tiers.first { $0.tier == row.tier }?.indices ?? []
+  }
+
   /// The three forms that need no picking, *Not chosen yet*, and **Pick in viewport…**, which hands the
   /// rest to the viewport. A `vertex` is never typed here: which facets it names is a claim about the
   /// stone, and clicking them is how that claim is made.
@@ -406,6 +415,14 @@ struct TierTableRegion: View {
       }
       Divider()
       Button("Pick in viewport…") { startPick(row.tier) }
+      // On the Meet menu and not the Angle cell, because the command writes the meet as well as the
+      // angle. **Enumerated and keyed by position**: the format permits a repeated stop, and two
+      // identical ids in one `ForEach` is a bug.
+      Menu("Derive angle from two points…") {
+        ForEach(Array(stops(row).enumerated()), id: \.offset) { _, stop in
+          Button("aim \(row.tier)@\(stop)") { startDerivation(row.tier, stop) }
+        }
+      }
       Divider()
       Button("size") { _ = edit("Change Meet") { setting(meet: .size, ofTier: row.tier, in: $0) } }
       Button("tcp") { _ = edit("Change Meet") { setting(meet: .tcp, ofTier: row.tier, in: $0) } }

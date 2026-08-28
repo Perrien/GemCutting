@@ -44,6 +44,8 @@ struct BenchWindow: View {
   /// document** (D12): the viewport prefers a session's solid over the store's, so a preview needs no new
   /// machinery.
   @State private var tuning: TuningPreview?
+  /// An angle being derived from two clicks, or `nil` for none.
+  @State private var derive: AngleDerivation?
   /// Bumped whenever what the viewport draws changes — the store's own rebuilds and the pick's arrival
   /// and departure alike. **One counter with one owner**, because `MetalViewport` compares a single `Int`
   /// and two independent sources would collide.
@@ -66,6 +68,17 @@ struct BenchWindow: View {
     var lastFinished: ContinuousClock.Instant?
   }
 
+  /// A two-point derivation and the stone its clicks are tested against, which is the intermediate solid
+  /// before the aimed tier — the same solid a meet pick on that tier would use.
+  struct AngleDerivation {
+    var tier: String
+    var aimedStop: Int
+    var frame: PlaybackFrame
+    var state: MeetPickState
+    /// The first of the two ends, once it is taken.
+    var first: DerivationEnd?
+  }
+
   var body: some View {
     VStack(spacing: 0) {
       VSplitView {
@@ -81,7 +94,8 @@ struct BenchWindow: View {
             ringLabels: indexRingLabels(store.solid),
             meetDots: meetDots,
             meetWarning: selectedTier.map { readout.warningTiers.contains($0) } ?? false,
-            pickMarkers: pick.map { meetPickMarkers($0.state, solid: $0.frame.solid) } ?? [],
+            pickMarkers: pick.map { meetPickMarkers($0.state, solid: $0.frame.solid) }
+              ?? derive.map { meetPickMarkers($0.state, solid: $0.frame.solid) } ?? [],
             probe: probe,
             onOrbit: orbit(dx:dy:),
             onPick: pick(at:in:)
@@ -104,6 +118,7 @@ struct BenchWindow: View {
           draft: document.draft,
           edit: edit,
           startPick: startPick(_:),
+          startDerivation: startDerivation(_:aimedStop:),
           commitPercent: { tier, typed in
             edit("Change Meet") { setting(percent: typed, ofTier: tier, in: $0) }
           }
@@ -117,7 +132,12 @@ struct BenchWindow: View {
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
           findings: readout,
-          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) },
+          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) }
+            ?? derive.map {
+              angleDerivationPrompt(
+                tier: $0.tier, aimedStop: $0.aimedStop, pointsTaken: $0.first == nil ? 0 : 1,
+                stage: $0.state.stage, solid: $0.frame.solid)
+            },
           cancelPick: endPick,
           cachedFrames: store.cachedFrameCount,
           stepTotal: store.steps.count,
@@ -131,7 +151,12 @@ struct BenchWindow: View {
           solid: store.solid,
           selectedFacet: selectedFacetLabel,
           findings: readout,
-          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) },
+          pickPrompt: pick.map { meetPickPrompt($0.state, solid: $0.frame.solid) }
+            ?? derive.map {
+              angleDerivationPrompt(
+                tier: $0.tier, aimedStop: $0.aimedStop, pointsTaken: $0.first == nil ? 0 : 1,
+                stage: $0.state.stage, solid: $0.frame.solid)
+            },
           cancelPick: endPick)
       #endif
     }
@@ -194,15 +219,22 @@ struct BenchWindow: View {
   /// The solid on screen: the pick's intermediate stone while one is running, the tuning preview's while
   /// a grip is held, and the store's otherwise. The grip is disabled during a pick (D14), so the order
   /// only fixes what is already exclusive.
-  private var drawnSolid: BenchSolid { pick?.frame.solid ?? tuning?.frame.solid ?? store.solid }
-  private var drawnMesh: SolidMesh { pick?.frame.mesh ?? tuning?.frame.mesh ?? store.mesh }
+  private var drawnSolid: BenchSolid {
+    pick?.frame.solid ?? derive?.frame.solid ?? tuning?.frame.solid ?? store.solid
+  }
+  private var drawnMesh: SolidMesh {
+    pick?.frame.mesh ?? derive?.frame.mesh ?? tuning?.frame.mesh ?? store.mesh
+  }
 
-  /// The finished stone, drawn in edges only over the intermediate solid, and nothing when no pick runs.
-  private var ghostMesh: SolidMesh? { pick == nil ? nil : store.fullMesh }
+  /// The finished stone, drawn in edges only over the intermediate solid, and nothing when neither a pick
+  /// nor a derivation runs. **The tuning preview shows no ghost**: it is the whole stone already.
+  private var ghostMesh: SolidMesh? { pick == nil && derive == nil ? nil : store.fullMesh }
   /// A counter that changes whenever `ghostMesh` does: with the finished stone itself, **and** with the
   /// pick's arrival and departure, which `fullGeneration` cannot see because starting a pick rebuilds no
   /// stone. Doubling leaves the low bit for the pick, so no two states of the pair collide.
-  private var ghostGeneration: Int { 2 * store.fullGeneration + (pick == nil ? 0 : 1) }
+  private var ghostGeneration: Int {
+    2 * store.fullGeneration + (pick == nil && derive == nil ? 0 : 1)
+  }
 
   /// Recomputed per body pass rather than cached: it is string formatting over at most a few dozen
   /// findings, and a cache would be a second place the count could be wrong.
@@ -353,8 +385,10 @@ struct BenchWindow: View {
     // on, and a rebuild is not them turning it off.
     probe = nil
     // A plane index means nothing across a rebuild, so a pick held across one would be clicking a solid
-    // that no longer exists — the same reason the facet selection goes.
+    // that no longer exists — the same reason the facet selection goes. A derivation is tested against
+    // an intermediate solid the same way, so it goes with it.
     pick = nil
+    derive = nil
     // A committed drag lands here too: the commit changes the document, which rebuilds.
     tuning = nil
     drawGeneration += 1
@@ -378,13 +412,72 @@ struct BenchWindow: View {
     probe = nil
   }
 
-  /// The Cancel button, and every path that ends a pick. The same three clears, for the same reason.
+  /// **Derive angle from two points… ▸ aim <tier>@<stop>** on one tier's Meet menu. Not an edit: aiming
+  /// changes no draft, so it registers no undo entry and passes through no funnel — the same rule
+  /// `startPick` states.
+  ///
+  /// The clicks are tested against the intermediate solid before the aimed tier, which is the solid a
+  /// meet pick on that tier would use, built once here.
+  private func startDerivation(_ tier: String, aimedStop: Int) {
+    let solid = intermediateBenchSolid(before: tier, draft: document.draft, full: store.full)
+    // A pick and a derivation are exclusive: each start clears the other, and a tuning preview cannot
+    // survive a viewport that now belongs to the clicks.
+    pick = nil
+    tuning = nil
+    derive = AngleDerivation(
+      tier: tier,
+      aimedStop: aimedStop,
+      frame: PlaybackFrame(solid: solid, mesh: solidMesh(solid)),
+      state: MeetPickState(tier: tier))
+    drawGeneration += 1
+    // All three describe the solid that was on screen a moment ago.
+    selectedPlaneIndex = nil
+    selectedFacetLabel = nil
+    probe = nil
+  }
+
+  /// The Cancel button, and every path that ends a pick — or a derivation, which the same button ends
+  /// because only one of the two is ever running. The same three clears, for the same reason.
   private func endPick() {
     pick = nil
+    derive = nil
     drawGeneration += 1
     selectedPlaneIndex = nil
     selectedFacetLabel = nil
     probe = nil
+  }
+
+  /// One of the two points arriving. The first is held and the stage reset for the second; the second
+  /// derives the angle and writes it together with the meet, in one undoable step.
+  private func completeDerivation(_ session: AngleDerivation, end: DerivationEnd) {
+    guard let first = session.first else {
+      derive?.first = end
+      derive?.state = MeetPickState(tier: session.tier)
+      return
+    }
+    // A tier the draft no longer carries: there is nothing to write to, and nothing is written.
+    guard let tier = document.draft.tiers.first(where: { $0.tier == session.tier }) else {
+      endPick()
+      return
+    }
+    let derived = derivedAngle(
+      ofTier: session.tier,
+      aimedStop: session.aimedStop,
+      wheel: document.draft.wheel(of: tier),
+      part: tier.part,
+      stops: tier.indices,
+      first: first,
+      second: end)
+    switch derived {
+    case .success(let angle):
+      _ = edit("Derive Angle") { setting(derived: angle, ofTier: session.tier, in: $0) }
+      endPick()
+    case .failure(let refusal):
+      refusals.present(refusal)
+      // **The first end is kept** and only the stage resets, so one more click retries the second point
+      // — the same kindness the picker gives a mis-click. Cancel ends the session.
+      derive?.state = MeetPickState(tier: session.tier)
+    }
   }
 
   /// The facet the renderer highlights while a pick runs: the last one clicked, and nothing at `empty`.
@@ -410,6 +503,32 @@ struct BenchWindow: View {
   /// already agree (D13). A click that misses the solid clears the selection.
   private func pick(at point: CGPoint, in size: CGSize) {
     guard size.width > 0, size.height > 0 else { return }
+
+    // **Before the meet pick's branch**, because the two are exclusive and a derivation is the newer
+    // state. A click during a derivation belongs to the derivation.
+    if let session = derive {
+      // The solid on screen, which is the one the click hit and the one the picker names facets on.
+      let solid = drawnSolid
+      let hit = meetPickHit(
+        solid,
+        click: (x: Double(point.x), y: Double(point.y)),
+        size: (width: Double(size.width), height: Double(size.height)),
+        camera: camera)
+      switch advancing(session.state, hit: hit, solid: solid, draft: document.draft) {
+      case .advanced(let next):
+        derive?.state = next
+        // The highlight follows the last facet clicked, in the solid on screen — which is the pick's.
+        selectedPlaneIndex = highlightedPlane(of: next)
+        selectedFacetLabel = selectedPlaneIndex.flatMap { solid.origin[$0] }.map(facetLabel)
+      case .complete(let meet, let point):
+        completeDerivation(session, end: DerivationEnd(meet: meet, point: point))
+      case .refused(let refusal):
+        refusals.present(refusal)
+      case .cleared:
+        endPick()
+      }
+      return
+    }
 
     if let session = pick {
       // The solid on screen, which is the one the click hit and the one the pick names facets on.

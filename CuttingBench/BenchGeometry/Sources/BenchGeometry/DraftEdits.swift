@@ -116,6 +116,18 @@ public func setting(angle typed: String, ofTier tier: String, in draft: PatternD
   return .success(edited)
 }
 
+/// The two-point derivation's one write: the angle and the meet together, so undo puts both back in one
+/// step. Never refused — every way the derivation can fail was answered before this is called.
+public func setting(derived: DerivedTierAngle, ofTier tier: String, in draft: PatternDraft)
+  -> Result<PatternDraft, DraftRefusal>
+{
+  guard let position = draft.position(ofTier: tier) else { return .success(draft) }
+  var edited = draft
+  edited.tiers[position].angle = derived.angle
+  edited.tiers[position].meet = derived.meet
+  return .success(edited)
+}
+
 /// The whole list at once, which is why the commit boundary exists: a half-typed list means nothing to
 /// judge.
 ///

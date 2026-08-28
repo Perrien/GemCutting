@@ -522,19 +522,30 @@ private func isTCPAvailable(
 /// What the status strip says while a pick is in progress — the next click, in words. Never `nil`: a
 /// pick always has a next step.
 public func meetPickPrompt(_ state: MeetPickState, solid: BenchSolid) -> String {
-  let opening = "Picking \(state.tier)'s meet · "
-  switch state.stage {
+  "Picking \(state.tier)'s meet · " + stageSentence(state.stage, solid: solid)
+}
+
+/// What the status strip says while an angle is being derived: the aimed facet, which of the two points
+/// is being picked, then the same stage words a meet pick shows.
+public func angleDerivationPrompt(
+  tier: String, aimedStop: Int, pointsTaken: Int, stage: MeetPickStage, solid: BenchSolid
+) -> String {
+  "Deriving \(tier)@\(aimedStop)'s angle · point \(pointsTaken + 1) of 2 · "
+    + stageSentence(stage, solid: solid)
+}
+
+/// The next click, in words, with no opening — shared by the meet pick's prompt and the derivation's.
+func stageSentence(_ stage: MeetPickStage, solid: BenchSolid) -> String {
+  switch stage {
   case .empty:
-    return opening + "click a facet, or an edge"
+    return "click a facet, or an edge"
   case .oneFacet(let plane):
-    return opening + "\(name(solid, plane)) · click a second facet"
+    return "\(name(solid, plane)) · click a second facet"
   case .edge(let planes, _):
-    return opening
-      + "edge \(name(solid, planes[0])) – \(name(solid, planes[1])) · "
+    return "edge \(name(solid, planes[0])) – \(name(solid, planes[1])) · "
       + "click a third facet through one of its ends"
   case .point(let planes, let candidates, _):
-    return opening
-      + planes.map { name(solid, $0) }.joined(separator: " · ")
+    return planes.map { name(solid, $0) }.joined(separator: " · ")
       + " · click a third facet through the point — \(offered(solid, candidates))"
   case .anchored(let planes, _, let ends, let percent):
     let along =
@@ -544,9 +555,9 @@ public func meetPickPrompt(_ state: MeetPickState, solid: BenchSolid) -> String 
     guard let k = ends.firstIndex(where: isAwaiting),
       case .awaiting(_, let candidates) = ends[k]
     else {
-      return opening + along + " · complete"
+      return along + " · complete"
     }
-    return opening + along
+    return along
       + " · click a facet through the \(k == 0 ? "from" : "to") end"
       + " — \(offered(solid, candidates))"
   }
