@@ -516,12 +516,29 @@ struct InspectorRegion: View {
   /// The `state` switch's setter. The window owns the check behind it, because the check needs the declared
   /// facet count, which is the window's session state.
   let setState: (PatternState) -> Void
+  /// The tier the table has selected, which is the tier a rescale is measured from. `nil` for none.
+  let selectedTier: String?
+  /// The target the tuning drag has reached, or `nil` when no drag is running.
+  let tuningTarget: Double?
+  /// Whether the tuning grip can run — false while a meet pick or playback owns the viewport (D14).
+  let tuningDragEnabled: Bool
+  /// Returns whether the rescale was accepted, so the field can snap back on a refusal.
+  let commitTuning: (String) -> Bool
+  let tuningDragChanged: (Double) -> Void
+  let tuningDragEnded: () -> Void
 
   var body: some View {
     ScrollView {
       VStack(spacing: 12) {
         GroupBox("Pattern") { PatternCard(draft: draft, edit: edit, setState: setState) }
         GroupBox("Notes") { NotesCard(draft: draft, edit: edit) }
+        // Directly above Metrics, because the author tunes and then reads the measurements that moved.
+        GroupBox("Tuning") {
+          TuningCard(
+            draft: draft, selectedTier: selectedTier, liveTarget: tuningTarget,
+            dragEnabled: tuningDragEnabled, commit: commitTuning,
+            dragChanged: tuningDragChanged, dragEnded: tuningDragEnded)
+        }
         GroupBox("Metrics") {
           // Called here rather than cached in the store: measuring is arithmetic over facets the hull has
           // already produced, so a cache would add a second source of truth to save nothing measurable.
@@ -760,6 +777,108 @@ private struct NotesCard: View {
     )
     .lineLimit(3...10)
     .frame(maxWidth: .infinity, alignment: .leading)
+  }
+}
+
+/// Tuning a whole side by tangent ratio: type an angle for one tier, see every angle a commit would
+/// rewrite, then commit it as one undoable step.
+///
+/// **It does not use `EditableCell`** deliberately: that cell's buffer follows the stored value, and here
+/// the list of proposed angles has to follow the *buffer*, so the author sees what a commit would do
+/// before committing (D10).
+private struct TuningCard: View {
+  let draft: PatternDraft
+  let selectedTier: String?
+  /// The target a drag has reached, which overrides the buffer while the grip is held.
+  let liveTarget: Double?
+  let dragEnabled: Bool
+  let commit: (String) -> Bool
+  let dragChanged: (Double) -> Void
+  let dragEnded: () -> Void
+
+  @State private var typed = ""
+  /// The angle the running drag started from. `DragGesture` has no start callback, so the first change
+  /// is the start.
+  @State private var dragBase: Double?
+
+  var body: some View {
+    VStack(alignment: .leading, spacing: 6) {
+      if let tier = selectedTier, let stored = storedAngle(of: tier) {
+        switch tangentRescale(handle: tier, toTyped: shown, in: draft) {
+        case .failure(let refusal):
+          field(stored: stored)
+          Text(refusal.message)
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        case .success(let plan):
+          field(stored: stored)
+          Text("Ratio \(plan.ratioText)")
+            .font(.callout)
+            .monospacedDigit()
+          ForEach(plan.rows) { row in
+            HStack {
+              Text(row.tier)
+              Spacer()
+              Text(row.current)
+              Text("→")
+              Text(row.proposed)
+            }
+            .font(.callout)
+            .monospacedDigit()
+          }
+        }
+      } else {
+        Text("Select a tier in the table to tune its side.")
+          .font(.callout)
+          .foregroundStyle(.secondary)
+      }
+    }
+    .frame(maxWidth: .infinity, alignment: .leading)
+    .onChange(of: storedAngleText, initial: true) { typed = storedAngleText ?? "" }
+    .onChange(of: liveTarget) { _, value in
+      if let value { typed = String(format: "%.2f", value) }
+    }
+  }
+
+  /// The field, the degree sign and the grip. **Losing focus reverts the buffer rather than committing**,
+  /// unlike every table cell: a side-wide rescale must not fire from a stray click elsewhere in the
+  /// window.
+  private func field(stored: Double) -> some View {
+    HStack(spacing: 4) {
+      TextField("Angle", text: $typed)
+        .textFieldStyle(.roundedBorder)
+        .monospacedDigit()
+        .onSubmit { if !commit(typed) { typed = storedAngleText ?? "" } }
+      Text("°")
+      Image(systemName: "arrow.left.and.right")
+        .foregroundStyle(dragEnabled ? Color.primary : Color.secondary)
+        .gesture(
+          DragGesture()
+            .onChanged { gesture in
+              let base = dragBase ?? stored
+              dragBase = base
+              dragChanged(draggedTuningTarget(from: base, byPoints: gesture.translation.width))
+            }
+            .onEnded { _ in
+              dragEnded()
+              dragBase = nil
+            }
+        )
+        .disabled(!dragEnabled)
+    }
+  }
+
+  /// What the card is showing: the drag's target while one runs, and the buffer otherwise.
+  private var shown: String {
+    liveTarget.map { String(format: "%.2f", $0) } ?? typed
+  }
+
+  private func storedAngle(of tier: String) -> Double? {
+    draft.tiers.first { $0.tier == tier }?.angle
+  }
+
+  private var storedAngleText: String? {
+    selectedTier.flatMap(storedAngle(of:)).map { String(format: "%.2f", $0) }
   }
 }
 

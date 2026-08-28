@@ -33,8 +33,8 @@ What this builds on, every anchor read in this session:
   which is `max` of the dot products. That single line is what the third of the two-point refusals checks
   against.
 - **A facet's normal comes from its angle, its stop and its gear, with the part fixing the `z` sign** —
-  `Plane.swift:34` (`public func planeNormal(`). Public, so the app computes normals without a kernel
-  change.
+  `Geometry/Plane.swift:34` (`public func planeNormal(`). Public, so the app computes normals without a
+  kernel change.
 - **Width is the smaller of the two axis extents and length the larger** — `Solver.swift:225`
   (`func labelledBySize(`), whose doc comment states outright that labelling by size is what makes the
   girdle band invariant under a quarter turn. The girdle band is sized from the width at
@@ -117,7 +117,7 @@ Two places where the exploration and the code disagree, and **the code wins**:
 | D23 | **Which point is written exactly and which may slide is settled by kind, not by order.** A corner end — spelled `vertex` or `tcp`, both being points that must be hit — outranks an end anchored part-way along an edge, because a percentage along an edge is a coordinate rather than a design quantity and a small slide there costs nothing. **Where both ends are the same kind, the first picked is written**, since either is then exact to within the same rounding. The end that is written is also the point the third refusal measures against, because it is the point the solver will reach to. |
 | D24 | **The three ways a derivation fails each get their own named diagnostic carrying its own numbers, and they never collapse into one message.** Nothing is written and the tier keeps the angle it had. (1) The two points coincide on the facet's azimuth — same `r` and same `z`, so there is no line to fit; names the tier, the aimed stop and both points' `r` and `z`. (2) The implied tilt contradicts the tier's declared `part` — the tangent comes out negative, meaning a `pav` tier whose points imply an upward-facing plane or the reverse; reports the signed angle the arithmetic produced, before rejection, with the part. (3) A sibling facet of the same tier takes the depth, so the aimed facet stops short; names the aimed stop, the stop that arrives instead, the derived angle and the two dot products. A derivation that failed for an unstated reason is the failure this decision exists to prevent. |
 | D25 | **The third case is refused rather than reported, and that is the one that needs justifying:** the kernel reports nothing for it. Its named-point check asks whether the *named point* is a corner of the intermediate solid — `Validation.swift:20` (`case vertexNotOnIntermediateSolid(tier: String, named: [FacetRef])`) — which it genuinely is; nothing anywhere checks that the facet the author aimed is the one that gets there, because which facet arrives is determined rather than chosen. Allowing it would store a stone the author did not click and then validate clean. |
-| D26 | **A tie is not a failure.** Two facets of the tier within `1e-7` of the same dot product means the point sits on the edge between them and the depth is the same number either way. That is the tolerance the kernel already uses at this scale — `Validation.swift:311` (`private let onSolidTolerance = 1e-7`). The same tolerance decides whether two picked points coincide. |
+| D26 | **A tie is not a failure.** Two facets of the tier within `1e-7` of the same dot product means the point sits on the edge between them and the depth is the same number either way. That is the tolerance the kernel already uses at this scale — `Validation.swift:353` (`private let onSolidTolerance = 1e-7`). The same tolerance decides whether two picked points coincide. |
 | D27 | **The second point is not recorded anywhere and a derived tier carries no mark.** An author who wants the intent kept writes it in that tier's `instructions`, which is that field's purpose. No residual or drift readout is added, because the slide is below what the format writes (D7). |
 | D28 | **A point whose defining planes include a facet of the rough is refused as the discarded second point too**, even though nothing about it would reach the file. The prism is a build constant with no design meaning, so an angle derived against it would bake an arbitrary number into the pattern while looking like a designed one, and nothing in the file would record where it came from. This needs no new code: the picker already refuses it. |
 | D29 | **The picking machinery is reused exactly as it stands** — the same edge grab radius, the same end-snap zones, the same two-facet-to-edge rules, the same refusal of a rough facet. What differs is only what happens on completion: two completions instead of one, the angle computed, one end written as the meet and the other discarded. |
@@ -734,10 +734,10 @@ creates it.
 
 | # | Task | Status | Then | Commit | Note |
 |---|---|---|---|---|---|
-| T1 | Prefactor: a completed pick reports where it landed | not started | continue | — | |
-| T2 | Pure: the tangent-ratio rescale and its refusals | not started | checkpoint | commit | |
-| T3 | The Tuning card: the field, the list and the ratio | not started | continue | — | |
-| T4 | Dragging the grip, previewed and self-throttled | not started | **owner stop** | commit + push | |
+| T1 | Prefactor: a completed pick reports where it landed | completed | continue | — | |
+| T2 | Pure: the tangent-ratio rescale and its refusals | completed | checkpoint | commit | |
+| T3 | The Tuning card: the field, the list and the ratio | completed | continue | — | |
+| T4 | Dragging the grip, previewed and self-throttled | awaiting owner | **owner stop** | commit + push | |
 | T5 | Pure: the quarter turn | not started | continue | — | |
 | T6 | The Pattern menu's one command | not started | **owner stop** | commit | |
 | T7 | Pure: the angle from two points, and its three refusals | not started | continue | — | |

@@ -270,7 +270,7 @@ final class MeetPickTests: XCTestCase {
             state = next
           } else {
             XCTAssertEqual(
-              outcome, .complete(tier.meet),
+              outcome.completedMeet, tier.meet,
               "\(name): \(tier.tier)'s third click did not write the file's own meet")
             exercised += 1
             perPattern[name, default: 0] += 1
@@ -301,8 +301,8 @@ final class MeetPickTests: XCTestCase {
       if case .advanced(let next) = last { state = next }
     }
 
-    XCTAssertEqual(last, .complete(.vertex(facets: reordered)))
-    XCTAssertNotEqual(last, .complete(authored))
+    XCTAssertEqual(last.completedMeet, .vertex(facets: reordered))
+    XCTAssertNotEqual(last.completedMeet, authored)
   }
 
   // MARK: - The candidate set, and the third name it fills in
@@ -314,12 +314,11 @@ final class MeetPickTests: XCTestCase {
     let outcome = advancing(
       pick("P2", .oneFacet(plane: 0)), hit: .facet(plane: 1), solid: solid, draft: draftOfOneTier())
     XCTAssertEqual(
-      outcome,
-      .complete(
-        .vertex(facets: [
-          FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
-          FacetRef(tier: "G1", index: 2),
-        ])))
+      outcome.completedMeet,
+      .vertex(facets: [
+        FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+        FacetRef(tier: "G1", index: 2),
+      ]))
   }
 
   func testACornerOnlyTheRoughCanNameIsRefused() throws {
@@ -575,7 +574,8 @@ final class MeetPickTests: XCTestCase {
           outcome = advancing(next, hit: .facet(plane: candidates[0]), solid: solid, draft: draft)
         }
 
-        guard case .complete(.fraction(let wrote, let percentWrote, let toWrote)) = outcome else {
+        guard case .complete(.fraction(let wrote, let percentWrote, let toWrote), _) = outcome
+        else {
           return XCTFail("\(name): \(spec.tier) did not complete as a fraction — \(outcome)")
         }
         XCTAssertEqual(percentWrote, percent, accuracy: 0.001)
@@ -637,23 +637,22 @@ final class MeetPickTests: XCTestCase {
 
       // The plain vertex at that corner, in the edge's own order plus the corner's own third name.
       XCTAssertEqual(
-        outcome,
-        .complete(
-          .vertex(facets: [
-            FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
-            FacetRef(tier: "G1", index: third),
-          ])),
+        outcome.completedMeet,
+        .vertex(facets: [
+          FacetRef(tier: "G1", index: 0), FacetRef(tier: "G1", index: 1),
+          FacetRef(tier: "G1", index: third),
+        ]),
         "a click at \(along) did not snap to that end's corner")
 
       // Never a fraction, and so never a percentage of 0 or 100.
-      if case .complete(.fraction) = outcome { XCTFail("an end-zone click wrote a fraction") }
+      if case .complete(.fraction, _) = outcome { XCTFail("an end-zone click wrote a fraction") }
     }
 
     // Just outside the zone the point is anchored instead, which is what makes the boundary the zone's.
     // With one candidate at each end both are filled in without a click, so this is the case where the
     // anchoring click is also the completing one (D13).
     guard
-      case .complete(.fraction(let from, let percent, let to)) = advancing(
+      case .complete(.fraction(let from, let percent, let to), _) = advancing(
         MeetPickState(tier: "P2"),
         hit: .edge(planes: [0, 1], corners: [0, 1], along: 0.21),
         solid: solid,
@@ -780,7 +779,7 @@ final class MeetPickTests: XCTestCase {
 
     // A candidate resolves that end, and with the other already named the pick completes.
     guard
-      case .complete(.fraction(let from, let percent, let to)) = advancing(
+      case .complete(.fraction(let from, let percent, let to), _) = advancing(
         anchored, hit: .facet(plane: candidates[0]), solid: solid, draft: fixture.draft)
     else { return XCTFail("a candidate click did not complete the fraction") }
     XCTAssertEqual(from, .vertex(facets: try refs(edge.planes + [candidates[0]], in: solid)))
@@ -830,7 +829,7 @@ final class MeetPickTests: XCTestCase {
 
     // The second names `to`, and that completes it.
     guard
-      case .complete(.fraction(let from, let wrote, let to)) = advancing(
+      case .complete(.fraction(let from, let wrote, let to), _) = advancing(
         half, hit: .facet(plane: secondCandidates[0]), solid: solid, draft: draft)
     else { return XCTFail("the second candidate click did not complete the fraction") }
     XCTAssertEqual(wrote, 25, accuracy: 1e-9)
@@ -981,6 +980,70 @@ final class MeetPickTests: XCTestCase {
         XCTAssertLessThanOrEqual(signed, 1e-6, "\(marker.id) is outside the solid")
       }
     }
+  }
+
+  // MARK: - Where the completed pick landed
+
+  func testACornerCompletionReportsTheCornerItself() throws {
+    let fixture = try easyOctagon()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    guard case .vertex(let facets)? = fixture.draft.tiers.first(where: { $0.tier == "P2" })?.meet
+    else { return XCTFail("P2's meet is not a vertex") }
+    let planes = try facets.map { try plane(of: $0, in: solid) }
+
+    // Two facets of the meet share an edge; the third click completes at whichever of its two corners
+    // that third facet passes through.
+    guard
+      case .advanced(let one) = advancing(
+        MeetPickState(tier: "P2"), hit: .facet(plane: planes[0]), solid: solid,
+        draft: fixture.draft),
+      case .advanced(let two) = advancing(
+        one, hit: .facet(plane: planes[1]), solid: solid, draft: fixture.draft),
+      case .edge(_, let corners) = two.stage
+    else { return XCTFail("two clicks did not reach an edge") }
+    let through = corners.filter { solid.polytope.facets[planes[2]]?.contains($0) ?? false }
+    guard through.count == 1 else {
+      return XCTFail("the third facet passes through \(through.count) of the edge's ends")
+    }
+
+    guard
+      case .complete(_, let landed) = advancing(
+        two, hit: .facet(plane: planes[2]), solid: solid, draft: fixture.draft)
+    else { return XCTFail("the third click did not complete") }
+
+    let vertex = solid.polytope.vertices[through[0]]
+    XCTAssertEqual(landed.x, vertex.x)
+    XCTAssertEqual(landed.y, vertex.y)
+    XCTAssertEqual(landed.z, vertex.z)
+  }
+
+  func testAnAnchoredCompletionReportsThePointAtItsPercentage() throws {
+    let fixture = try noviceAsher()
+    let solid = intermediateBenchSolid(before: "P2", draft: fixture.draft, full: fixture.full)
+    let edge = try edgeToTheAxialPoint(solid, onTheSideOf: .pav)
+
+    guard
+      case .advanced(let anchored) = advancing(
+        MeetPickState(tier: "P2"),
+        hit: .edge(planes: edge.planes, corners: [edge.a, edge.b], along: 0.4),
+        solid: solid,
+        draft: fixture.draft),
+      case .anchored(_, let corners, let ends, let percent) = anchored.stage,
+      case .awaiting(_, let candidates) = ends[0]
+    else { return XCTFail("the click did not anchor with an awaiting end") }
+
+    guard
+      case .complete(_, let landed) = advancing(
+        anchored, hit: .facet(plane: candidates[0]), solid: solid, draft: fixture.draft)
+    else { return XCTFail("a candidate click did not complete the fraction") }
+
+    // `corners` is stored `from` then `to`, so the percentage runs from the first of the two.
+    let from = solid.polytope.vertices[corners[0]]
+    let to = solid.polytope.vertices[corners[1]]
+    let t = percent / 100
+    XCTAssertEqual(landed.x, from.x + t * (to.x - from.x), accuracy: 1e-12)
+    XCTAssertEqual(landed.y, from.y + t * (to.y - from.y), accuracy: 1e-12)
+    XCTAssertEqual(landed.z, from.z + t * (to.z - from.z), accuracy: 1e-12)
   }
 
   // MARK: - Helpers
@@ -1299,3 +1362,12 @@ final class MeetPickTests: XCTestCase {
 
 /// A meet the format does not allow as a fraction's endpoint, which no fixture in this file produces.
 private struct NotAnEndpoint: Error {}
+
+extension MeetPickOutcome {
+  /// The meet a completed pick wrote, or `nil` for any other outcome. The point a completion also
+  /// carries has its own two cases; every other assertion in this file is about the meet alone.
+  fileprivate var completedMeet: Meet? {
+    guard case .complete(let meet, _) = self else { return nil }
+    return meet
+  }
+}

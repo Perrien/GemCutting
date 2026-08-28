@@ -40,6 +40,10 @@ struct BenchWindow: View {
   /// with it: they are the intermediate solid before the picking tier, built once when the pick starts,
   /// and every click is tested against that same solid.
   @State private var pick: MeetPickSession?
+  /// A tangent-ratio drag in flight, and the stone it is previewing. **Nothing here reaches the
+  /// document** (D12): the viewport prefers a session's solid over the store's, so a preview needs no new
+  /// machinery.
+  @State private var tuning: TuningPreview?
   /// Bumped whenever what the viewport draws changes — the store's own rebuilds and the pick's arrival
   /// and departure alike. **One counter with one owner**, because `MetalViewport` compares a single `Int`
   /// and two independent sources would collide.
@@ -49,6 +53,17 @@ struct BenchWindow: View {
   struct MeetPickSession {
     var state: MeetPickState
     var frame: PlaybackFrame
+  }
+
+  /// A rescale being previewed. `lastSolve` and `lastFinished` are the whole of the throttle (D13): no
+  /// further preview starts until at least as long as the last one took has passed, so a gesture can
+  /// never queue solves it will not finish.
+  struct TuningPreview {
+    var handle: String
+    var target: Double
+    var frame: PlaybackFrame
+    var lastSolve: Duration?
+    var lastFinished: ContinuousClock.Instant?
   }
 
   var body: some View {
@@ -135,7 +150,13 @@ struct BenchWindow: View {
         probe: probe,
         draft: document.draft,
         edit: edit,
-        setState: setState(_:)
+        setState: setState(_:),
+        selectedTier: selectedTier,
+        tuningTarget: tuning?.target,
+        tuningDragEnabled: pick == nil && store.granularity == nil,
+        commitTuning: commitTuning,
+        tuningDragChanged: tuningDragChanged(_:),
+        tuningDragEnded: tuningDragEnded
       )
       .inspectorColumnWidth(min: 260, ideal: 300, max: 420)
     }
@@ -167,9 +188,11 @@ struct BenchWindow: View {
     .onChange(of: store.generation) { drawGeneration += 1 }
   }
 
-  /// The solid on screen: the pick's intermediate stone while one is running, and the store's otherwise.
-  private var drawnSolid: BenchSolid { pick?.frame.solid ?? store.solid }
-  private var drawnMesh: SolidMesh { pick?.frame.mesh ?? store.mesh }
+  /// The solid on screen: the pick's intermediate stone while one is running, the tuning preview's while
+  /// a grip is held, and the store's otherwise. The grip is disabled during a pick (D14), so the order
+  /// only fixes what is already exclusive.
+  private var drawnSolid: BenchSolid { pick?.frame.solid ?? tuning?.frame.solid ?? store.solid }
+  private var drawnMesh: SolidMesh { pick?.frame.mesh ?? tuning?.frame.mesh ?? store.mesh }
 
   /// The finished stone, drawn in edges only over the intermediate solid, and nothing when no pick runs.
   private var ghostMesh: SolidMesh? { pick == nil ? nil : store.fullMesh }
@@ -236,6 +259,69 @@ struct BenchWindow: View {
     edit("Change State", { setting(state: state, in: $0) })
   }
 
+  /// The Tuning card's field. One `DraftChange` for the whole side, so it undoes in one step (D9).
+  private func commitTuning(_ typed: String) -> Bool {
+    guard let selectedTier else { return false }
+    return edit("Tune Side") { rescaling(handle: selectedTier, toTyped: typed, in: $0) }
+  }
+
+  /// One step of a tuning drag: hold the target, then preview if the throttle allows it (D13).
+  private func tuningDragChanged(_ target: Double) {
+    guard let handle = selectedTier else { return }
+    if tuning == nil {
+      // The store's own frame to start from, so the viewport does not blink at the first change.
+      tuning = TuningPreview(
+        handle: handle,
+        target: target,
+        frame: PlaybackFrame(solid: store.solid, mesh: store.mesh),
+        lastSolve: nil,
+        lastFinished: nil)
+    }
+    tuning?.target = target
+    previewTuning()
+  }
+
+  /// The drag released: commit the target it reached, then drop the preview. A drag that ended where it
+  /// started commits a draft equal to the current one, which registers no undo entry — that is `apply`'s
+  /// existing rule, not a new one.
+  private func tuningDragEnded() {
+    if let session = tuning {
+      _ = commitTuning(String(format: "%.2f", session.target))
+    }
+    tuning = nil
+    drawGeneration += 1
+  }
+
+  /// The preview solve, or nothing when the last one has not yet earned another (D13).
+  ///
+  /// No timer, no background task and no queue: the throttle is entirely what the previous solve cost.
+  private func previewTuning() {
+    guard let session = tuning else { return }
+    if let finished = session.lastFinished, let cost = session.lastSolve,
+      ContinuousClock.now - finished < cost
+    {
+      return
+    }
+    // A refused target previews nothing and leaves the frame as it is — the card is already showing the
+    // sentence.
+    guard
+      case .success(let previewDraft) = rescaling(
+        handle: session.handle, toAngle: session.target, in: document.draft),
+      let pattern = previewDraft.displayPattern
+    else { return }
+
+    var frame: PlaybackFrame?
+    let cost = ContinuousClock().measure {
+      let solid = benchSolid(for: pattern)
+      frame = PlaybackFrame(solid: solid, mesh: solidMesh(solid))
+    }
+    guard let frame else { return }
+    tuning?.frame = frame
+    tuning?.lastSolve = cost
+    tuning?.lastFinished = ContinuousClock.now
+    drawGeneration += 1
+  }
+
   private func setGranularity(_ granularity: PlaybackGranularity?) {
     store.setGranularity(granularity)
     afterSolidChanged()
@@ -260,6 +346,8 @@ struct BenchWindow: View {
     // A plane index means nothing across a rebuild, so a pick held across one would be clicking a solid
     // that no longer exists — the same reason the facet selection goes.
     pick = nil
+    // A committed drag lands here too: the commit changes the document, which rebuilds.
+    tuning = nil
     drawGeneration += 1
     // Last, because it reads the solid the store has just produced.
     findingsStore.rebuild(pattern: document.pattern, solid: store.solid)
@@ -328,7 +416,7 @@ struct BenchWindow: View {
         // The highlight follows the last facet clicked, in the solid on screen — which is the pick's.
         selectedPlaneIndex = highlightedPlane(of: next)
         selectedFacetLabel = selectedPlaneIndex.flatMap { solid.origin[$0] }.map(facetLabel)
-      case .complete(let meet):
+      case .complete(let meet, _):
         _ = edit("Change Meet") { setting(meet: meet, ofTier: session.state.tier, in: $0) }
         endPick()
       case .refused(let refusal):

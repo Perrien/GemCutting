@@ -50,7 +50,10 @@ public enum MeetPickOutcome: Equatable, Sendable {
   case advanced(MeetPickState)
   /// The meet to write into the draft. The window hands this to `setting(meet:ofTier:in:)` and ends
   /// the pick.
-  case complete(Meet)
+  ///
+  /// `at` is where the completed pick landed in model space, carried for a caller deriving an angle
+  /// from it and ignored by a caller writing a meet.
+  case complete(Meet, at: SIMD3<Double>)
   /// This click is refused; the pick is left exactly as it was.
   case refused(DraftRefusal)
   /// The click missed the solid, and the pick is over.
@@ -200,7 +203,11 @@ private func completing(
   switch meetPicked(
     planes: planes, atCorner: corner, ofTier: state.tier, solid: solid, draft: draft)
   {
-  case .success(let meet): return .complete(meet)
+  case .success(let meet):
+    guard solid.polytope.vertices.indices.contains(corner) else {
+      return .refused(.pickedFacetsDoNotMeet(tier: state.tier))
+    }
+    return .complete(meet, at: modelPoint(solid.polytope.vertices[corner]))
   case .failure(let refusal): return .refused(refusal)
   }
 }
@@ -315,7 +322,9 @@ private func anchoring(
     case .failure(let refusal): return .refused(refusal)
     }
   }
-  return anchored(state, planes: planes, corners: ordered, ends: ends, percent: percent)
+  return anchored(
+    state, planes: planes, corners: ordered, ends: ends, percent: percent,
+    at: anchoredPoint(corners: ordered, percent: percent, solid: solid))
 }
 
 /// A click on one of the awaiting end's candidates: that end becomes `.named` with the edge's two planes
@@ -339,7 +348,9 @@ private func naming(
   case .success(let meet):
     var next = ends
     next[k] = .named(meet)
-    return anchored(state, planes: planes, corners: corners, ends: next, percent: percent)
+    return anchored(
+      state, planes: planes, corners: corners, ends: next, percent: percent,
+      at: anchoredPoint(corners: corners, percent: percent, solid: solid))
   }
 }
 
@@ -352,15 +363,29 @@ private func anchored(
   planes: [Int],
   corners: [Int],
   ends: [MeetPickEnd],
-  percent: Double
+  percent: Double,
+  at point: SIMD3<Double>?
 ) -> MeetPickOutcome {
   guard ends.contains(where: isAwaiting) else {
+    guard let point else { return .refused(.pickedFacetsDoNotMeet(tier: state.tier)) }
     switch meetFractionPicked(ends: ends, percent: percent, ofTier: state.tier) {
-    case .success(let meet): return .complete(meet)
+    case .success(let meet): return .complete(meet, at: point)
     case .failure(let refusal): return .refused(refusal)
     }
   }
   return advanced(state, .anchored(planes: planes, corners: corners, ends: ends, percent: percent))
+}
+
+/// Where an anchored point sits: `corners[0] + percent/100 × (corners[1] - corners[0])`, which is the
+/// arithmetic the solver performs on the finished meet and the reason `corners` is stored `from` then
+/// `to`. `nil` for a pair of corner indices the polytope does not carry.
+func anchoredPoint(corners: [Int], percent: Double, solid: BenchSolid) -> SIMD3<Double>? {
+  guard corners.count == 2, corners.allSatisfy(solid.polytope.vertices.indices.contains) else {
+    return nil
+  }
+  let from = modelPoint(solid.polytope.vertices[corners[0]])
+  let to = modelPoint(solid.polytope.vertices[corners[1]])
+  return from + (percent / 100) * (to - from)
 }
 
 /// A fraction endpoint's own `vertex` triple: the two planes the edge already names, then the third.
@@ -617,14 +642,12 @@ public func meetPickMarkers(_ state: MeetPickState, solid: BenchSolid) -> [MeetP
     rings(corners)
     // The point itself, at the percentage's own position between the two ends — the arithmetic the
     // solver performs on the finished meet, and the reason `corners` is stored `from` then `to`.
-    if corners.count == 2, corners.allSatisfy(solid.polytope.vertices.indices.contains) {
-      let from = worldPoint(solid.polytope.vertices[corners[0]])
-      let to = worldPoint(solid.polytope.vertices[corners[1]])
+    if let point = anchoredPoint(corners: corners, percent: percent, solid: solid) {
       markers.append(
         MeetPickMarker(
           kind: .anchor(percent),
           label: "\(percentText(percent))%",
-          world: from + Float(percent / 100) * (to - from),
+          world: SIMD3<Float>(Float(point.x), Float(point.y), Float(point.z)),
           id: "anchor"))
     }
     // **Only the end being named**, never both at once: the prompt is asking about one of them.
@@ -638,6 +661,12 @@ public func meetPickMarkers(_ state: MeetPickState, solid: BenchSolid) -> [MeetP
 
 private func worldPoint(_ point: (x: Double, y: Double, z: Double)) -> SIMD3<Float> {
   SIMD3<Float>(Float(point.x), Float(point.y), Float(point.z))
+}
+
+/// A polytope corner as a vector, at full precision. `worldPoint` narrows to `Float` for the renderer;
+/// this one is what arithmetic over the picked point is done in.
+private func modelPoint(_ point: (x: Double, y: Double, z: Double)) -> SIMD3<Double> {
+  SIMD3<Double>(point.x, point.y, point.z)
 }
 
 /// The stone as it stands before `tier` is cut — the solid a meet for that tier may name facets on, and

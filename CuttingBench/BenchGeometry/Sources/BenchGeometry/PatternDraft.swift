@@ -202,6 +202,13 @@ public enum DraftRefusal: Error, Equatable, Sendable {
   case pickedFacetsDoNotMeet(tier: String)
   /// A typed percentage outside 0...100, which the file format rejects at decode.
   case percentNotInRange(tier: String, typed: String)
+  /// A girdle tier offered as the tier a rescale measures its ratio from. The outline never moves (D3).
+  case tuningHandleIsTheGirdle(tier: String)
+  /// A handle at `0.00°` or `90.00°`, where the ratio is undefined or infinite (D5).
+  case tuningHandleHasNoTangent(tier: String, angle: Double)
+  /// A target at or past the bounds a ratio exists in. **The one value refused for being what it is**,
+  /// because outside them the arithmetic yields a not-a-number angle, which cannot be encoded (D6).
+  case tuningTargetOutOfRange(tier: String, target: Double)
 
   /// The sentence the alert shows and the log line records. One wording, so the two cannot disagree.
   public var message: String {
@@ -262,6 +269,19 @@ public enum DraftRefusal: Error, Equatable, Sendable {
       "\(tier)'s three named facets do not meet at a point."
     case .percentNotInRange(let tier, let typed):
       "\"\(typed)\" is not a percentage between 0 and 100 for \(tier)'s meet."
+    case .tuningHandleIsTheGirdle(let tier):
+      "\(tier) is a girdle tier: its facets set the outline, and rescaling a side never moves the "
+        + "outline. Tune from a crown or pavilion tier instead."
+    case .tuningHandleHasNoTangent(let tier, let angle):
+      // The bounds are read from the range the planner actually enforces, so the sentence cannot drift
+      // from the targets it accepts.
+      "\(tier) cannot be the tier you tune from: at \(angleText(angle))° there is no ratio to "
+        + "measure. Tune from a tier between \(angleText(tuningTargetRange.lowerBound))° and "
+        + "\(angleText(tuningTargetRange.upperBound))°."
+    case .tuningTargetOutOfRange(let tier, let target):
+      "\(angleText(target))° is outside \(angleText(tuningTargetRange.lowerBound))° to "
+        + "\(angleText(tuningTargetRange.upperBound))°, which is the range \(tier)'s side can be "
+        + "rescaled through."
     }
   }
 
