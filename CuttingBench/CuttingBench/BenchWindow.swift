@@ -8,7 +8,9 @@ import SwiftUI
 /// inspector.
 struct BenchWindow: View {
   @ObservedObject var document: PatternDocument
-  @State private var inspectorShown = true
+  /// Stored rather than session state, so whether the inspector is open survives a relaunch. One
+  /// setting for every bench window: a new document opens the way the last one was arranged.
+  @AppStorage("inspectorShown") private var inspectorShown = true
   @State private var store = BenchSolidStore()
   @State private var findingsStore = BenchFindingsStore()
   /// Where a refused edit is shown and logged. One presenter for the window, so there is exactly one place
@@ -164,6 +166,10 @@ struct BenchWindow: View {
       #endif
     }
     .frame(minWidth: 900, minHeight: 600)
+    // Invisible. Reaches the AppKit window and split views under this hierarchy and turns on their
+    // per-name layout autosaving, which is the whole of how the window remembers its frame and its
+    // dividers (see `BenchLayoutMemory.swift`).
+    .background(LayoutMemory())
     .alert("Edit refused", isPresented: refusals.isPresented) {
       Button("OK") { refusals.dismiss() }
     } message: {
