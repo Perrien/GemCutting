@@ -16,7 +16,10 @@ struct BenchWindow: View {
   @State private var refusals = RefusalPresenter()
   /// The window's own undo manager, which is what makes ⌘Z an edit's inverse rather than the document's.
   @Environment(\.undoManager) private var undoManager
-  @State private var camera = BenchCameraState.threeQuarter
+  /// The camera, held as a reference (see `BenchCameraModel`) precisely so this body never reads
+  /// it: the viewport region is the one reader, which is what keeps a drag from re-evaluating the
+  /// tier table, the inspector and the strip. The handlers below write and read it outside body.
+  @State private var camera = BenchCameraModel()
   /// How opaque the solid is drawn, `0...1`. Not persisted: a document reopens fully opaque (D6).
   @State private var solidOpacity = 1.0
   /// The picked facet, as the plane the renderer highlights and the name the strip reads. Two
@@ -187,12 +190,12 @@ struct BenchWindow: View {
     }
     .toolbar {
       Button {
-        camera = .faceUp
+        camera.state = .faceUp
       } label: {
         Label("Face Up", systemImage: "arrow.down.to.line")
       }
       Button {
-        camera = .faceDown
+        camera.state = .faceDown
       } label: {
         Label("Face Down", systemImage: "arrow.up.to.line")
       }
@@ -495,7 +498,7 @@ struct BenchWindow: View {
   /// the right turns the near side of the stone to the right, which moves the camera left around it
   /// (D4).
   private func orbit(dx: CGFloat, dy: CGFloat) {
-    camera.orbit(dxPoints: Float(-dx), dyPoints: Float(-dy))
+    camera.state.orbit(dxPoints: Float(-dx), dyPoints: Float(-dy))
   }
 
   /// A click, unprojected to a world ray and put to the slab test. **No y flip**: an `NSView` is y-up
@@ -513,7 +516,7 @@ struct BenchWindow: View {
         solid,
         click: (x: Double(point.x), y: Double(point.y)),
         size: (width: Double(size.width), height: Double(size.height)),
-        camera: camera)
+        camera: camera.state)
       switch advancing(session.state, hit: hit, solid: solid, draft: document.draft) {
       case .advanced(let next):
         derive?.state = next
@@ -537,7 +540,7 @@ struct BenchWindow: View {
         solid,
         click: (x: Double(point.x), y: Double(point.y)),
         size: (width: Double(size.width), height: Double(size.height)),
-        camera: camera)
+        camera: camera.state)
       switch advancing(session.state, hit: hit, solid: solid, draft: document.draft) {
       case .advanced(let next):
         pick?.state = next
@@ -561,7 +564,7 @@ struct BenchWindow: View {
       ndcX: Float(2 * point.x / size.width - 1),
       ndcY: Float(2 * point.y / size.height - 1),
       aspect: Float(size.width / size.height),
-      camera: camera)
+      camera: camera.state)
     let hit = pickFacet(store.solid, origin: ray.origin, direction: ray.direction)
     selectedPlaneIndex = hit?.planeIndex
     selectedFacetLabel = hit.map { facetLabel($0.facet) }

@@ -11,7 +11,9 @@ struct ViewportRegion: View {
   /// The finished stone's mesh, drawn in edges only while a meet is being picked, or `nil` for none.
   let ghostMesh: SolidMesh?
   let ghostGeneration: Int
-  let camera: BenchCameraState
+  /// A reference, not a value, and read only inside `body`: that read is the sole camera dependency
+  /// in the whole window, so a drag invalidates this region and nothing outside it.
+  let camera: BenchCameraModel
   let opacity: Double
   let highlightedPlaneIndex: Int?
   let ringLabels: [IndexRingLabel]
@@ -27,6 +29,9 @@ struct ViewportRegion: View {
   let onPick: (CGPoint, CGSize) -> Void
 
   var body: some View {
+    // The one read of the camera during any body evaluation (see `BenchCameraModel`). Taken once, so
+    // the viewport and the four overlays draw the same orientation within a pass.
+    let camera = self.camera.state
     MetalViewport(
       mesh: mesh,
       generation: generation,
