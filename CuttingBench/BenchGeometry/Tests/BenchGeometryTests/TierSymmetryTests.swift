@@ -173,7 +173,8 @@ final class TierSymmetryTests: XCTestCase {
   // MARK: - The two special cases
 
   /// By special case, not by the general rule: every rotation maps the empty set onto itself, so the rule
-  /// would read the whole gear as the fold count. Every tier the Add Tier button appends starts here.
+  /// would read the whole gear as the fold count. Every tier the Add Tier button appends derives this,
+  /// whatever its generator fields are filled with.
   func testAnEmptyStopListIsOneFoldNotMirroredAndNoSeeds() {
     for gear in indexGears {
       XCTAssertEqual(

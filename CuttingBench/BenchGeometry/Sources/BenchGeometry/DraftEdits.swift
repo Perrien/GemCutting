@@ -61,6 +61,12 @@ public func moving(tier: String, by offset: Int, in draft: PatternDraft)
 /// Appends a tier with nothing guessed about the design: no meet, so the display drops it and none of
 /// these values reaches the stone until the author has set them.
 ///
+/// **The part carries over from the tier before it**, pavilion for the first tier of an empty pattern. A
+/// pattern is cut part by part — a run of pavilion tiers, then the girdle, then a run of crown tiers — so
+/// the tier just added is nearly always the same part as the one before, and the old fixed pavilion was
+/// wrong for every tier after the girdle. The angle follows the part exactly as choosing the part in the
+/// table does: 0 for a table, 90 for a girdle, and 0 for crown and pavilion, whose angle is the author's.
+///
 /// Appending can never create a forward reference, and inserting mid-pattern is reachable by appending and
 /// then moving, which `moving` already guards.
 public func appendingTier(to draft: PatternDraft) -> Result<PatternDraft, DraftRefusal> {
@@ -68,9 +74,12 @@ public func appendingTier(to draft: PatternDraft) -> Result<PatternDraft, DraftR
   var n = 1
   while used.contains("N\(n)") { n += 1 }
 
+  let part = draft.tiers.last?.part ?? .pav
   var edited = draft
   edited.tiers.append(
-    DraftTier(tier: "N\(n)", part: .pav, angle: 0, indices: [], meet: nil, instructions: nil))
+    DraftTier(
+      tier: "N\(n)", part: part, angle: definingAngle(of: part) ?? 0, indices: [], meet: nil,
+      instructions: nil))
   return .success(edited)
 }
 

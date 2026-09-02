@@ -451,11 +451,14 @@ private struct TierDetailPane: View {
     }
   }
 
-  /// What the tier's current stops derive, which is where the fields start and what they return to.
-  /// Empty for no selection, so switching to nothing and back re-seeds honestly.
+  /// Where the fields start and what they return to: the tier's own stops for a tier that has any, and
+  /// the tier before it for a tier that has none, which is what an appended tier reads. Empty for no
+  /// selection, so switching to nothing and back re-seeds honestly.
   private var storedGenerator: TierGenerator {
-    TierGenerator(
-      seeds: row?.seeds ?? "", folds: row?.folds ?? "", mirror: row?.mirror ?? false)
+    guard let row else { return TierGenerator(seeds: "", folds: "", mirror: false) }
+    let start = startingGenerator(ofTier: row.tier, in: draft)
+    return TierGenerator(
+      seeds: stopsText(start.seeds), folds: String(start.folds), mirror: start.mirror)
   }
 
   /// The generator, in the order the columns used to sit in — seeds, folds, mirror — because that order is

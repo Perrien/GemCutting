@@ -51,3 +51,33 @@ public func proposedStops(
 public func stopsText(_ stops: [Int]) -> String {
   stops.map(String.init).joined(separator: " ")
 }
+
+/// Where a tier's generator fields start: its own stops' symmetry, and for a tier that has no stops yet,
+/// the folds and mirroring of the nearest tier cut before it that has any.
+///
+/// **The seeds are never carried** — which stops a tier is cut at is the design and the author's to state.
+/// Folds and mirroring are not: a pattern is nearly always cut at one symmetry throughout, so an appended
+/// tier starting at 1 fold and unmirrored meant retyping the same two answers for every tier of the
+/// pattern. Nothing is written by this; the fields it fills still generate nothing until a seed is typed.
+///
+/// **The carried fold count has to divide this tier's own gear**, since a tier may be cut on a gear of its
+/// own — 7-fold is reachable on 84 and impossible on 96 — so a count that cannot be generated here falls
+/// back to the honest 1 rather than filling the field with a value the generator would refuse.
+public func startingGenerator(ofTier tier: String, in draft: PatternDraft) -> TierSymmetry {
+  let nothing = TierSymmetry(seeds: [], folds: 1, mirror: false)
+  guard let position = draft.position(ofTier: tier) else { return nothing }
+
+  let gear = draft.wheel(of: draft.tiers[position])
+  let own = derivedSymmetry(stops: draft.tiers[position].indices, wheel: gear)
+  guard own.seeds.isEmpty else { return own }
+
+  // Only the nearest one back, not the best match further up: the tier before is what the author was just
+  // working on, and searching past it for a fold count that fits would answer with a tier they may not
+  // even have in view.
+  guard let earlier = draft.tiers[..<position].last(where: { !$0.indices.isEmpty }) else {
+    return nothing
+  }
+  let neighbour = derivedSymmetry(stops: earlier.indices, wheel: draft.wheel(of: earlier))
+  guard foldCounts(onWheel: gear).contains(neighbour.folds) else { return nothing }
+  return TierSymmetry(seeds: [], folds: neighbour.folds, mirror: neighbour.mirror)
+}

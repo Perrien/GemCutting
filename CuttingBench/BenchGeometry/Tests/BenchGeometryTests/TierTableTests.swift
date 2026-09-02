@@ -213,8 +213,12 @@ final class TierTableTests: XCTestCase {
     XCTAssertEqual(girdle.indices, "0 8 40 48 56 88")
   }
 
-  /// The state of every tier the Add Tier button appends: no seeds, one fold, not mirrored. By special case,
+  /// What a tier with no stops of its own derives: no seeds, one fold, not mirrored. By special case,
   /// because every rotation maps the empty set onto itself.
+  ///
+  /// **The row stays this honest answer even for a tier the Add Tier button has just appended**, whose
+  /// generator fields start at the previous tier's folds and mirroring: what the tier's own stops derive
+  /// and where the author's controls start are two different questions.
   func testATierWithNoStopsReadsNoSeedsOneFoldAndNotMirrored() throws {
     var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
     let position = try XCTUnwrap(draft.position(ofTier: "P2"))

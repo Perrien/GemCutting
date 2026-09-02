@@ -1,0 +1,257 @@
+{
+  "designer" : "",
+  "formatVersion" : 1,
+  "name" : "",
+  "notes" : "",
+  "ri" : 1.54,
+  "state" : "in progress",
+  "tiers" : [
+    {
+      "angle" : 44.4,
+      "indices" : [
+        3,
+        9,
+        15,
+        21,
+        27,
+        33,
+        39,
+        45,
+        51,
+        57,
+        63,
+        69,
+        75,
+        81,
+        87,
+        93
+      ],
+      "instructions" : "TCP",
+      "meet" : {
+        "kind" : "tcp"
+      },
+      "part" : "pav",
+      "tier" : "P1"
+    },
+    {
+      "angle" : 90,
+      "indices" : [
+        3,
+        9,
+        15,
+        21,
+        27,
+        33,
+        39,
+        45,
+        51,
+        57,
+        63,
+        69,
+        75,
+        81,
+        87,
+        93
+      ],
+      "instructions" : "Size stone",
+      "meet" : {
+        "kind" : "size"
+      },
+      "part" : "gdl",
+      "tier" : "G"
+    },
+    {
+      "angle" : 43,
+      "indices" : [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60,
+        72,
+        84
+      ],
+      "instructions" : "Girdle meet",
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 93,
+            "tier" : "P1"
+          },
+          {
+            "index" : 3,
+            "tier" : "P1"
+          },
+          {
+            "index" : 3,
+            "tier" : "G"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P2"
+    },
+    {
+      "angle" : 43.5,
+      "indices" : [
+        3,
+        9,
+        15,
+        21,
+        27,
+        33,
+        39,
+        45,
+        51,
+        57,
+        63,
+        69,
+        75,
+        81,
+        87,
+        93
+      ],
+      "instructions" : "Size Girdle",
+      "meet" : {
+        "kind" : "girdle"
+      },
+      "part" : "crown",
+      "tier" : "C1"
+    },
+    {
+      "angle" : 37,
+      "indices" : [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60,
+        72,
+        84
+      ],
+      "instructions" : "Girdle Meet",
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 93,
+            "tier" : "C1"
+          },
+          {
+            "index" : 3,
+            "tier" : "C1"
+          },
+          {
+            "index" : 93,
+            "tier" : "G"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C2"
+    },
+    {
+      "angle" : 22,
+      "indices" : [
+        6,
+        18,
+        30,
+        42,
+        54,
+        66,
+        78,
+        90
+      ],
+      "instructions" : "Meet C1, C2",
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 3,
+            "tier" : "C1"
+          },
+          {
+            "index" : 9,
+            "tier" : "C1"
+          },
+          {
+            "index" : 0,
+            "tier" : "C2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C3"
+    },
+    {
+      "angle" : 14,
+      "indices" : [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60,
+        72,
+        84
+      ],
+      "instructions" : "Meet C2, C3",
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 0,
+            "tier" : "C2"
+          },
+          {
+            "index" : 6,
+            "tier" : "C3"
+          },
+          {
+            "index" : 90,
+            "tier" : "C3"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C4"
+    },
+    {
+      "angle" : 8,
+      "indices" : [
+        0,
+        12,
+        24,
+        36,
+        48,
+        60,
+        72,
+        84
+      ],
+      "instructions" : "Meet C3, C4",
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 0,
+            "tier" : "C4"
+          },
+          {
+            "index" : 6,
+            "tier" : "C3"
+          },
+          {
+            "index" : 12,
+            "tier" : "C4"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C5"
+    }
+  ],
+  "wheel" : 96
+}

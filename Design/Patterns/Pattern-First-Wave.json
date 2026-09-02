@@ -1,0 +1,490 @@
+{
+  "designer" : "",
+  "formatVersion" : 1,
+  "girdleTargetFraction" : 0.01,
+  "name" : "First Wave",
+  "notes" : "",
+  "ri" : 1.73,
+  "state" : "in progress",
+  "tiers" : [
+    {
+      "angle" : 43,
+      "indices" : [
+        0,
+        32,
+        64
+      ],
+      "meet" : {
+        "kind" : "tcp"
+      },
+      "part" : "pav",
+      "tier" : "P1"
+    },
+    {
+      "angle" : 43.18,
+      "indices" : [
+        6,
+        26,
+        38,
+        58,
+        70,
+        90
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 32,
+            "tier" : "P1"
+          },
+          {
+            "index" : 0,
+            "tier" : "P1"
+          },
+          {
+            "index" : 64,
+            "tier" : "P1"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P2"
+    },
+    {
+      "angle" : 42.8,
+      "indices" : [
+        9,
+        23,
+        41,
+        55,
+        73,
+        87
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 32,
+            "tier" : "P1"
+          },
+          {
+            "index" : 38,
+            "tier" : "P2"
+          },
+          {
+            "index" : 58,
+            "tier" : "P2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P3"
+    },
+    {
+      "angle" : 41.9,
+      "indices" : [
+        12,
+        20,
+        44,
+        52,
+        76,
+        84
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 38,
+            "tier" : "P2"
+          },
+          {
+            "index" : 41,
+            "tier" : "P3"
+          },
+          {
+            "index" : 55,
+            "tier" : "P3"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P4"
+    },
+    {
+      "angle" : 90,
+      "indices" : [
+        9,
+        23,
+        41,
+        55,
+        73,
+        87
+      ],
+      "meet" : {
+        "kind" : "size"
+      },
+      "part" : "gdl",
+      "tier" : "G1"
+    },
+    {
+      "angle" : 90,
+      "indices" : [
+        6,
+        26,
+        38,
+        58,
+        70,
+        90
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 12,
+            "tier" : "P4"
+          },
+          {
+            "index" : 9,
+            "tier" : "P3"
+          },
+          {
+            "index" : 9,
+            "tier" : "G1"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "gdl",
+      "tier" : "G2"
+    },
+    {
+      "angle" : 90,
+      "indices" : [
+        3,
+        29,
+        35,
+        61,
+        67,
+        93
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 9,
+            "tier" : "P3"
+          },
+          {
+            "index" : 6,
+            "tier" : "P2"
+          },
+          {
+            "index" : 6,
+            "tier" : "G2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "gdl",
+      "tier" : "G3"
+    },
+    {
+      "angle" : 90,
+      "indices" : [
+        0,
+        32,
+        64
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 0,
+            "tier" : "P1"
+          },
+          {
+            "index" : 6,
+            "tier" : "P2"
+          },
+          {
+            "index" : 3,
+            "tier" : "G3"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "gdl",
+      "tier" : "G4"
+    },
+    {
+      "angle" : 41,
+      "indices" : [
+        7,
+        25,
+        39,
+        57,
+        71,
+        89
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 6,
+            "tier" : "P2"
+          },
+          {
+            "index" : 9,
+            "tier" : "P3"
+          },
+          {
+            "index" : 6,
+            "tier" : "G2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P5"
+    },
+    {
+      "angle" : 39,
+      "indices" : [
+        16,
+        48,
+        80
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 12,
+            "tier" : "P4"
+          },
+          {
+            "index" : 20,
+            "tier" : "P4"
+          },
+          {
+            "index" : 9,
+            "tier" : "G1"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P6"
+    },
+    {
+      "angle" : 38,
+      "indices" : [
+        9,
+        23,
+        41,
+        55,
+        73,
+        87
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 7,
+            "tier" : "P5"
+          },
+          {
+            "index" : 9,
+            "tier" : "P3"
+          },
+          {
+            "index" : 12,
+            "tier" : "P4"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P7"
+    },
+    {
+      "angle" : 38.84,
+      "indices" : [
+        0,
+        32,
+        64
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 0,
+            "tier" : "P1"
+          },
+          {
+            "index" : 89,
+            "tier" : "P5"
+          },
+          {
+            "index" : 90,
+            "tier" : "P2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "pav",
+      "tier" : "P8"
+    },
+    {
+      "angle" : 32,
+      "indices" : [
+        5,
+        27,
+        37,
+        59,
+        69,
+        91
+      ],
+      "meet" : {
+        "kind" : "girdle"
+      },
+      "part" : "crown",
+      "tier" : "C1"
+    },
+    {
+      "angle" : 36,
+      "indices" : [
+        3,
+        29,
+        35,
+        61,
+        67,
+        93
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 9,
+            "tier" : "G1"
+          },
+          {
+            "index" : 6,
+            "tier" : "G2"
+          },
+          {
+            "index" : 5,
+            "tier" : "C1"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C2"
+    },
+    {
+      "angle" : 42,
+      "indices" : [
+        0,
+        32,
+        64
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 6,
+            "tier" : "G2"
+          },
+          {
+            "index" : 3,
+            "tier" : "G3"
+          },
+          {
+            "index" : 3,
+            "tier" : "C2"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C3"
+    },
+    {
+      "angle" : 33.28,
+      "indices" : [
+        2,
+        30,
+        34,
+        62,
+        66,
+        94
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 3,
+            "tier" : "C2"
+          },
+          {
+            "index" : 0,
+            "tier" : "C3"
+          },
+          {
+            "index" : 3,
+            "tier" : "G3"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C4"
+    },
+    {
+      "angle" : 32,
+      "indices" : [
+        3,
+        29,
+        35,
+        61,
+        67,
+        93
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 3,
+            "tier" : "C2"
+          },
+          {
+            "index" : 2,
+            "tier" : "C4"
+          },
+          {
+            "index" : 5,
+            "tier" : "C1"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "crown",
+      "tier" : "C5"
+    },
+    {
+      "angle" : 0,
+      "indices" : [
+        0
+      ],
+      "meet" : {
+        "facets" : [
+          {
+            "index" : 5,
+            "tier" : "C1"
+          },
+          {
+            "index" : 3,
+            "tier" : "C5"
+          },
+          {
+            "index" : 29,
+            "tier" : "C5"
+          }
+        ],
+        "kind" : "vertex"
+      },
+      "part" : "table",
+      "tier" : "T"
+    }
+  ],
+  "wheel" : 96
+}

@@ -628,12 +628,13 @@ final class DraftEditsTests: XCTestCase {
 
   // MARK: - Appending a tier
 
-  func testAppendingTakesTheFirstUnusedNumberedLabelAndGuessesNothingElse() throws {
+  func testAppendingTakesTheFirstUnusedNumberedLabelAndCarriesThePartOver() throws {
     let first = try XCTUnwrap(try appendingTier(to: try octagon()).get())
 
     XCTAssertEqual(first.tiers.map(\.tier), ["G1", "P1", "P2", "C1", "C2", "T", "N1"])
     let appended = try tier("N1", of: first)
-    XCTAssertEqual(appended.part, .pav)
+    // The octagon ends on its table, so the tier after it is a table too, at a table's one angle.
+    XCTAssertEqual(appended.part, .table)
     XCTAssertEqual(appended.angle, 0)
     XCTAssertEqual(appended.indices, [])
     XCTAssertNil(appended.meet)
@@ -643,6 +644,31 @@ final class DraftEditsTests: XCTestCase {
     let second = try XCTUnwrap(try appendingTier(to: first).get())
     let third = try XCTUnwrap(try appendingTier(to: second).get())
     XCTAssertEqual(third.tiers.suffix(3).map(\.tier), ["N1", "N2", "N3"])
+  }
+
+  /// The angle follows the part exactly as choosing the part in the table does — a girdle stands at 90 by
+  /// definition — and a crown or a pavilion, whose angle is the author's, starts at 0.
+  func testTheCarriedPartBringsItsDefiningAngleAndAnEmptyPatternStartsAtPavilion() throws {
+    var girdleLast = try octagon()
+    girdleLast.tiers = Array(girdleLast.tiers.prefix(1))
+    XCTAssertEqual(girdleLast.tiers.map(\.part), [.gdl])
+    let afterGirdle = try XCTUnwrap(try appendingTier(to: girdleLast).get())
+    XCTAssertEqual(afterGirdle.tiers.last?.part, .gdl)
+    XCTAssertEqual(afterGirdle.tiers.last?.angle, 90)
+
+    var pavilionLast = try octagon()
+    pavilionLast.tiers = Array(pavilionLast.tiers.prefix(3))
+    XCTAssertEqual(pavilionLast.tiers.last?.part, .pav)
+    let afterPavilion = try XCTUnwrap(try appendingTier(to: pavilionLast).get())
+    XCTAssertEqual(afterPavilion.tiers.last?.part, .pav)
+    XCTAssertEqual(afterPavilion.tiers.last?.angle, 0)
+
+    var empty = try octagon()
+    empty.tiers = []
+    let firstOfAll = try XCTUnwrap(try appendingTier(to: empty).get())
+    XCTAssertEqual(firstOfAll.tiers.map(\.tier), ["N1"])
+    XCTAssertEqual(firstOfAll.tiers.last?.part, .pav)
+    XCTAssertEqual(firstOfAll.tiers.last?.angle, 0)
   }
 
   /// The first *unused* label, not the next number up from the count — so an `N1` the author already has

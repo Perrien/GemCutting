@@ -139,6 +139,77 @@ final class StopsProposalTests: XCTestCase {
     XCTAssertEqual(checked, 32)
   }
 
+  // MARK: - Where the fields start
+
+  /// A tier that has stops of its own answers with its own symmetry, exactly as the derivation does — the
+  /// tier before it is not consulted at all.
+  func testATierWithStopsStartsAtItsOwnSymmetry() throws {
+    let draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    let start = startingGenerator(ofTier: "C2", in: draft)
+    XCTAssertEqual(start, derivedSymmetry(stops: [18, 42, 66, 90], wheel: 96))
+    XCTAssertEqual(start.folds, 4)
+    XCTAssertFalse(start.mirror)
+  }
+
+  /// A tier with no stops — every tier the Add Tier button appends — takes the folds and mirroring of the
+  /// tier before it, and **no seeds**: which stops the tier is cut at is the design and stays the
+  /// author's to state, so the fields still generate nothing until one is typed.
+  func testAStoplessTierTakesTheFoldsAndMirroringOfTheTierBeforeIt() throws {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    // Ends on the octagon's 4-fold, unmirrored crown tier.
+    draft.tiers = Array(draft.tiers.prefix(5))
+    draft = try XCTUnwrap(try appendingTier(to: draft).get())
+
+    let start = startingGenerator(ofTier: "N1", in: draft)
+    XCTAssertEqual(start, TierSymmetry(seeds: [], folds: 4, mirror: false))
+    XCTAssertEqual(try proposedStops(
+      seeds: stopsText(start.seeds), folds: String(start.folds), mirror: start.mirror,
+      ofTier: "N1", wheel: 96
+    ).get(), [])
+  }
+
+  /// The nearest tier back that has any stops, so appending two tiers in a row gives the second one the
+  /// same answer as the first rather than the empty tier immediately behind it.
+  func testAStoplessTierLooksPastAnotherStoplessOne() throws {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    draft.tiers = Array(draft.tiers.prefix(5))
+    draft = try XCTUnwrap(try appendingTier(to: draft).get())
+    draft = try XCTUnwrap(try appendingTier(to: draft).get())
+
+    XCTAssertEqual(
+      startingGenerator(ofTier: "N2", in: draft), TierSymmetry(seeds: [], folds: 4, mirror: false))
+  }
+
+  /// A pattern with nothing cut before it has nothing to carry, and neither has a label the draft does not
+  /// hold: both answer with the generator honestly off.
+  func testTheFirstTierOfAPatternStartsAtOneFoldUnmirrored() throws {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    draft.tiers = []
+    draft = try XCTUnwrap(try appendingTier(to: draft).get())
+
+    XCTAssertEqual(
+      startingGenerator(ofTier: "N1", in: draft), TierSymmetry(seeds: [], folds: 1, mirror: false))
+    XCTAssertEqual(
+      startingGenerator(ofTier: "nonesuch", in: draft),
+      TierSymmetry(seeds: [], folds: 1, mirror: false))
+  }
+
+  /// 3-fold is reachable on 72 and impossible on 32, and a tier may be cut on a gear of its own — so a
+  /// carried count the new tier's gear cannot generate is dropped rather than filling the field with a
+  /// value the generator would refuse in the next breath.
+  func testAFoldCountTheNewTiersOwnGearCannotReachIsNotCarried() throws {
+    var draft = PatternDraft(try AuthoredPatterns.load(AuthoredPatterns.easyOctagon))
+    draft.tiers = [
+      DraftTier(tier: "P1", part: .pav, angle: 43, indices: [0, 24, 48], wheel: 72)
+    ]
+    draft = try XCTUnwrap(try appendingTier(to: draft).get())
+    XCTAssertEqual(startingGenerator(ofTier: "N1", in: draft).folds, 3)
+
+    draft = try XCTUnwrap(try setting(wheel: 32, ofTier: "N1", in: draft).get())
+    XCTAssertEqual(
+      startingGenerator(ofTier: "N1", in: draft), TierSymmetry(seeds: [], folds: 1, mirror: false))
+  }
+
   // MARK: - The spelling
 
   /// The one spelling both the Indices cell and the proposal use, so what the pane shows is character for
