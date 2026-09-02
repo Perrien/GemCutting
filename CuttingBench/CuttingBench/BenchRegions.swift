@@ -151,8 +151,14 @@ struct ScrubberRegion: View {
   }
 }
 
-/// The table across the bottom of the main area. **No column carries a sort key**: tier order is data,
-/// and a sortable header invites reordering the one thing that must never be normalised.
+/// The block across the bottom of the main area: the structural buttons over a table beside a detail
+/// pane. **No column carries a sort key**: tier order is data, and a sortable header invites reordering
+/// the one thing that must never be normalised.
+///
+/// **Five columns, not ten.** Seeds, Folds and Mirror are all derived from the same row's index stops,
+/// and a tier's own index gear reads the pattern's on nearly every row — so four of the ten columns
+/// restated what was already there, and the meet needed more width than a cell can give. Those four and
+/// the meet moved into `TierDetailPane`, which shows them for the selected tier only.
 struct TierTableRegion: View {
   let rows: [TierTableRow]
   /// The tier whose meet points are drawn, and the tier the structural buttons act on. Not persisted.
@@ -173,12 +179,72 @@ struct TierTableRegion: View {
   /// where every other cell's commit comes from, and it goes through the same funnel.
   let commitPercent: (String, String) -> Bool
 
+  /// How wide the detail pane is. Stored rather than session state, so the arrangement survives a
+  /// relaunch — the same rule the inspector's own visibility follows.
+  @AppStorage("tierDetailPaneWidth") private var paneWidth = defaultPaneWidth
+  /// The width the running drag started from. `DragGesture` has no start callback, so the first change
+  /// is the start — the same shape the Tuning card's grip uses.
+  @State private var dragBase: Double?
+
   var body: some View {
     VStack(spacing: 0) {
       buttonRow
       Divider()
-      table
+      // The buttons stay across the full width above both panes: they act on the selection, and the
+      // selection is what the table and the pane are each about.
+      //
+      // **An `HStack` and a hand-built divider, deliberately not an `HSplitView`.** A split view here
+      // would be the window's third, nested inside the viewport-over-table one, and it crashed the app
+      // on launch with AppKit's runaway-constraints exception. Two causes were available and both are
+      // removed by not having the split: the layout memory tells side-by-side splits apart by
+      // orientation, so a second one took the inspector's autosave name and the two fought over one
+      // saved position; and a split negotiates its panes' widths with their content, which a `Table`
+      // with declared column widths and a `ScrollView` asking for infinite width cannot settle.
+      //
+      // Here nothing is negotiated: the pane is *told* its width and the table takes the rest.
+      HStack(spacing: 0) {
+        table
+          .frame(maxWidth: .infinity)
+        paneDivider
+        TierDetailPane(
+          row: selectedRow,
+          findings: findings,
+          draft: draft,
+          edit: edit,
+          startPick: startPick,
+          startDerivation: startDerivation,
+          commitPercent: commitPercent
+        )
+        .frame(width: paneWidth)
+      }
     }
+  }
+
+  /// The draggable rule between the two. A hairline for the look, centred in a wider strip for the grab,
+  /// because a one-point target is not one a pointer can reliably hit.
+  ///
+  /// **The strip is the view's own bounds, not an overlay spilling out of a `Divider`.** A hit outside a
+  /// view's bounds is not something SwiftUI promises to deliver, so the grab area has to be the frame.
+  ///
+  /// The width is clamped on the way in rather than checked on the way out, so a fast drag past either
+  /// end stops at the end instead of collapsing a pane to nothing.
+  private var paneDivider: some View {
+    Rectangle()
+      .fill(.separator)
+      .frame(width: 1)
+      .frame(width: 9)
+      .contentShape(Rectangle())
+      .pointerStyle(.columnResize)
+      .gesture(
+        DragGesture()
+          .onChanged { gesture in
+            let base = dragBase ?? paneWidth
+            dragBase = base
+            // Dragging left widens the pane, so the translation subtracts.
+            paneWidth = min(max(base - gesture.translation.width, minPaneWidth), maxPaneWidth)
+          }
+          .onEnded { _ in dragBase = nil }
+      )
   }
 
   /// Add, delete and reorder, over the table rather than in it. **Delete and both moves act on the
@@ -227,6 +293,12 @@ struct TierTableRegion: View {
     selection.flatMap { draft.position(ofTier: $0) }
   }
 
+  /// The row the pane describes. `nil` for no selection, and for a label the rows no longer carry — the
+  /// same inertness `selectedPosition` gives the buttons, and the pane's empty state says so in words.
+  private var selectedRow: TierTableRow? {
+    selection.flatMap { label in rows.first { $0.tier == label } }
+  }
+
   private var table: some View {
     Table(rows, selection: $selection) {
       TableColumn("Tier") { row in
@@ -246,6 +318,13 @@ struct TierTableRegion: View {
           }
         }
       }
+      // The four narrow columns declare a width so Instructions takes the slack.
+      //
+      // **The maximum is the part that bites.** A column with no upper bound is stretchable, and a table
+      // wider than its content hands the surplus to every stretchable column — so with `min` and `ideal`
+      // alone all five inflated and the declared ideal was overwritten in the same layout pass. Capping
+      // these four leaves Instructions as the only column that can absorb the spare width.
+      .width(min: 40, ideal: 80, max: 80)
       TableColumn("Part") { row in
         Picker(
           "Part",
@@ -265,6 +344,7 @@ struct TierTableRegion: View {
         .labelsHidden()
         .pickerStyle(.menu)
       }
+      .width(min: 60, ideal: 80, max: 80)
       TableColumn("Angle") { row in
         HStack(spacing: 4) {
           // The number without the degree sign, so what the author edits is what they typed; the `°` is a
@@ -284,80 +364,17 @@ struct TierTableRegion: View {
           }
         }
       }
-      // Seeds, Folds and Mirror sit before Indices so the row reads left to right as the generation
-      // itself: these seeds, expanded this many folds, optionally mirrored, giving these stops.
-      // All three are derived from the stops every time the table is built — nothing symmetry-shaped is
-      // stored, in the file or in the draft — so editing Indices directly re-derives them and a tier
-      // whose stops are not symmetric honestly reads as 1-fold.
-      TableColumn("Seeds") { row in
-        EditableCell(stored: row.seeds) { typed in
-          edit("Change Seed Stops") { setting(seeds: typed, ofTier: row.tier, in: $0) }
-        }
-      }
-      TableColumn("Folds") { row in
-        EditableCell(stored: row.folds) { typed in
-          edit("Change Symmetry Folds") { setting(folds: typed, ofTier: row.tier, in: $0) }
-        }
-      }
-      TableColumn("Mirror") { row in
-        // Discarded rather than reverted, as the Part popup's result is: the binding's getter reads the
-        // row, which is rebuilt from the draft, so a refused change leaves the toggle showing the stored
-        // value with no revert code.
-        //
-        // Disabled where flipping it would regenerate the same stops — a set mirror-symmetric by rotation
-        // alone, which most 8-fold tiers seeded at 0 are. There the answer springs straight back, so an
-        // enabled checkbox would be offering an edit that undoes itself.
-        Toggle(
-          "",
-          isOn: Binding(
-            get: { row.mirror },
-            set: { on in
-              _ = edit("Change Mirroring") { setting(mirror: on, ofTier: row.tier, in: $0) }
-            })
-        )
-        .labelsHidden()
-        .disabled(!row.mirrorIsEditable)
-      }
+      .width(min: 50, ideal: 90, max: 90)
       TableColumn("Indices") { row in
         EditableCell(stored: row.indices) { typed in
           edit("Change Index Stops") { setting(indices: typed, ofTier: row.tier, in: $0) }
         }
       }
-      TableColumn("Meet") { row in
-        HStack(spacing: 6) {
-          meetContent(row)
-          meetMenu(row)
-        }
-      }
-      TableColumn("Wheel") { row in
-        // The `inherit` item carries the effective gear in its label, because that is what the cell showed
-        // before it was a popup and a stop number means nothing without one. The tag stays the bare word,
-        // so the label can change without moving the selection. `gearsOffered` adds a gear the document
-        // already carries that is not one of the eight, or the popup would render blank.
-        Picker(
-          "Wheel",
-          selection: Binding(
-            get: { row.wheelIsInherited ? inheritTag : row.wheel },
-            set: { chosen in
-              if chosen == inheritTag {
-                _ = edit("Change Index Gear") { setting(wheel: nil, ofTier: row.tier, in: $0) }
-              } else if let gear = gearsOffered(including: draft.wheel)
-                .first(where: { String($0) == chosen })
-              {
-                _ = edit("Change Index Gear") { setting(wheel: gear, ofTier: row.tier, in: $0) }
-              }
-            })
-        ) {
-          Text("\(inheritTag) (\(draft.wheel))").tag(inheritTag)
-          ForEach(
-            gearsOffered(including: row.wheelIsInherited ? nil : Int(row.wheel)), id: \.self
-          ) { gear in
-            Text(String(gear)).tag(String(gear))
-          }
-        }
-        .labelsHidden()
-        .pickerStyle(.menu)
-      }
+      // Capped well above its ideal rather than at it, unlike the three before it: a tier on a gear of 120
+      // at one fold carries a hundred and twenty stops, so this column has a real reason to grow. It just
+      // must not grow without limit, or it takes the slack Instructions is meant to have.
+      .width(min: 120, ideal: 200, max: 320)
+      // No declared width, so the widest column takes whatever the other four leave.
       TableColumn("Instructions") { row in
         EditableCell(stored: row.instructions) { typed in
           edit("Change Instructions") { setting(instructions: typed, ofTier: row.tier, in: $0) }
@@ -365,13 +382,189 @@ struct TierTableRegion: View {
       }
     }
   }
+}
+
+/// The block's trailing pane: everything about the **selected** tier that does not belong on every row.
+///
+/// Seeds, Folds and Mirror are all derived from that tier's index stops, and a tier's own index gear
+/// reads the pattern's on nearly every row — so as columns they restated what the row already said, ten
+/// times over. The meet is the opposite problem: chips, a percentage and a menu never fitted a cell.
+///
+/// **It carries no state and adds no plumbing.** The table's own selection is what picks the tier, and
+/// every control here is the one that used to be in the column, committing through the same funnel.
+private struct TierDetailPane: View {
+  /// The selected row, or `nil` for no selection and for a label the rows no longer carry.
+  let row: TierTableRow?
+  let findings: FindingsReadout
+  let draft: PatternDraft
+  let edit: (String, DraftChange) -> Bool
+  let startPick: (String) -> Void
+  let startDerivation: (String, Int) -> Void
+  let commitPercent: (String, String) -> Bool
+
+  /// The generator as typed, which is **not** an edit until the button is pressed. Held here rather than
+  /// read from the row for the reason `TuningCard` holds its own buffer: what the proposal shows has to
+  /// follow the typing, not the stored value, or the author cannot see what a copy would do before doing
+  /// it.
+  @State private var seedsTyped = ""
+  @State private var foldsTyped = ""
+  @State private var mirrorOn = false
+
+  var body: some View {
+    ScrollView {
+      VStack(alignment: .leading, spacing: 8) {
+        if let row {
+          // The heading, so the pane always says which tier it is describing and can never be read
+          // against the wrong row.
+          Text(row.tier)
+            .font(.headline)
+            .monospaced()
+          Divider()
+          generator(row)
+          Divider()
+          LabeledContent("Meet") {
+            HStack(spacing: 6) {
+              meetContent(row)
+              meetMenu(row)
+            }
+          }
+          Divider()
+          LabeledContent("Wheel") { wheelPicker(row) }
+        } else {
+          // The same sentence and the same weight the Tuning card uses for the same situation.
+          Text("Select a tier in the table.")
+            .font(.callout)
+            .foregroundStyle(.secondary)
+        }
+      }
+      .monospacedDigit()
+      .frame(maxWidth: .infinity, alignment: .leading)
+      .padding(12)
+    }
+    // The three fields follow the tier's own stops: selecting another row, editing the Indices cell
+    // directly, and an undo all re-seed them. Keyed on what the row *says* rather than on the typing, so
+    // the author's half-finished proposal is not thrown away by their own keystrokes.
+    .onChange(of: storedGenerator, initial: true) { _, stored in
+      seedsTyped = stored.seeds
+      foldsTyped = stored.folds
+      mirrorOn = stored.mirror
+    }
+  }
+
+  /// What the tier's current stops derive, which is where the fields start and what they return to.
+  /// Empty for no selection, so switching to nothing and back re-seeds honestly.
+  private var storedGenerator: TierGenerator {
+    TierGenerator(
+      seeds: row?.seeds ?? "", folds: row?.folds ?? "", mirror: row?.mirror ?? false)
+  }
+
+  /// The generator, in the order the columns used to sit in — seeds, folds, mirror — because that order is
+  /// the generation itself, and then what it comes to.
+  ///
+  /// **Nothing here writes to the draft.** Seeds, folds and mirroring are derived from a stop list rather
+  /// than stored, so applying one on commit meant regenerating the whole list — which re-sorted stops
+  /// transcribed in a printed sheet's own order, silently and on every keystroke that landed. The copy
+  /// button is now the only thing that writes, and it writes the list shown directly above it.
+  private func generator(_ row: TierTableRow) -> some View {
+    VStack(alignment: .leading, spacing: 6) {
+      LabeledContent("Seeds") {
+        TextField("", text: $seedsTyped)
+          .textFieldStyle(.roundedBorder)
+      }
+      LabeledContent("Folds") {
+        TextField("", text: $foldsTyped)
+          .textFieldStyle(.roundedBorder)
+      }
+      LabeledContent("Mirror") {
+        // **Always enabled.** It was offered disabled where flipping it regenerated the same stops, because
+        // the answer sprang straight back from the derivation and the control looked broken. Nothing
+        // springs back now: the checkbox holds what it is set to, and a flip that changes nothing simply
+        // shows the same generated list.
+        Toggle("", isOn: $mirrorOn)
+          .labelsHidden()
+      }
+      proposal(row)
+    }
+  }
+
+  /// What the three fields come to, and the one control that writes it.
+  ///
+  /// **The list is read-only.** It is arithmetic on the fields above, so an editable copy of it would be a
+  /// second place the same thing is said — which is the whole reason these moved out of the table.
+  @ViewBuilder
+  private func proposal(_ row: TierTableRow) -> some View {
+    switch proposedStops(
+      seeds: seedsTyped, folds: foldsTyped, mirror: mirrorOn, ofTier: row.tier,
+      // The row already carries the tier's *effective* gear, which is what the stops are generated on.
+      // Reading it back off the row costs no second lookup and cannot disagree with the Wheel popup.
+      wheel: Int(row.wheel) ?? draft.wheel)
+    {
+    case .success(let stops):
+      LabeledContent("Gives") {
+        Text(stopsText(stops))
+          .textSelection(.enabled)
+          // A gear of 120 at 1 fold is a hundred and twenty numbers. Without this the pane truncates it
+          // to one line and the author reads a list that is not the one that would be written.
+          .fixedSize(horizontal: false, vertical: true)
+      }
+      // No confirmation and no warning: the copy is one ⌘Z away, which is the same bargain Delete Tier
+      // makes. Left enabled even when it would change nothing — applying a draft equal to the current one
+      // registers no undo entry, so a redundant press is already a no-op.
+      Button("Copy to Indices") {
+        _ = edit("Copy Generated Stops") {
+          setting(indices: stopsText(stops), ofTier: row.tier, in: $0)
+        }
+      }
+      .controlSize(.small)
+    case .failure(let refusal):
+      // The same sentence the Indices cell would show for the same fault, and the button withheld rather
+      // than offered against nothing.
+      Text(refusal.message)
+        .font(.callout)
+        .foregroundStyle(.secondary)
+        .fixedSize(horizontal: false, vertical: true)
+      Button("Copy to Indices") {}
+        .controlSize(.small)
+        .disabled(true)
+    }
+  }
+
+  /// The `inherit` item carries the effective gear in its label, because that is what the field showed
+  /// before it was a popup and a stop number means nothing without one. The tag stays the bare word, so the
+  /// label can change without moving the selection. `gearsOffered` adds a gear the document already carries
+  /// that is not one of the eight, or the popup would render blank.
+  private func wheelPicker(_ row: TierTableRow) -> some View {
+    Picker(
+      "Wheel",
+      selection: Binding(
+        get: { row.wheelIsInherited ? inheritTag : row.wheel },
+        set: { chosen in
+          if chosen == inheritTag {
+            _ = edit("Change Index Gear") { setting(wheel: nil, ofTier: row.tier, in: $0) }
+          } else if let gear = gearsOffered(including: draft.wheel)
+            .first(where: { String($0) == chosen })
+          {
+            _ = edit("Change Index Gear") { setting(wheel: gear, ofTier: row.tier, in: $0) }
+          }
+        })
+    ) {
+      Text("\(inheritTag) (\(draft.wheel))").tag(inheritTag)
+      ForEach(
+        gearsOffered(including: row.wheelIsInherited ? nil : Int(row.wheel)), id: \.self
+      ) { gear in
+        Text(String(gear)).tag(String(gear))
+      }
+    }
+    .labelsHidden()
+    .pickerStyle(.menu)
+  }
 
   /// What the meet actually is: each named point as a chip beside the facets it names, or the one-line form
   /// for the three that name none, and `—` for a tier whose depth is not decided yet.
   ///
   /// **Deliberately not inside the menu's label.** SwiftUI renders only the first element of a composed
-  /// `Menu` label, which left the cell reading `M` with `G1@0 · G1@12 · P1@0` nowhere on screen — and
-  /// saying what a meet is, is most of what this column is for.
+  /// `Menu` label, which left the control reading `M` with `G1@0 · G1@12 · P1@0` nowhere on screen — and
+  /// saying what a meet is, is most of what this section is for.
   ///
   /// **The anchored dot is a field rather than a chip**, because its percentage is the one thing in a meet
   /// that is a number the author sets rather than a facet they clicked. Three decimals because that is the
@@ -400,7 +593,7 @@ struct TierTableRegion: View {
     }
   }
 
-  /// One tier's own index stops, read from the draft the way the Wheel cell reads it for the gears it
+  /// One tier's own index stops, read from the draft the way the Wheel popup reads it for the gears it
   /// offers. Empty for a label the draft does not carry.
   private func stops(_ row: TierTableRow) -> [Int] {
     draft.tiers.first { $0.tier == row.tier }?.indices ?? []
@@ -411,7 +604,7 @@ struct TierTableRegion: View {
   /// stone, and clicking them is how that claim is made.
   ///
   /// The result of the funnel is discarded because a menu reads its state back from the draft — a refusal
-  /// leaves the cell reading the stored meet, so there is nothing to revert. Only a text buffer needs the
+  /// leaves the pane reading the stored meet, so there is nothing to revert. Only a text buffer needs the
   /// answer.
   private func meetMenu(_ row: TierTableRow) -> some View {
     Menu {
@@ -437,7 +630,7 @@ struct TierTableRegion: View {
     } label: {
       Image(systemName: "chevron.up.chevron.down")
     }
-    // An explicit chevron with the style's own indicator hidden, or the cell carries two of them.
+    // An explicit chevron with the style's own indicator hidden, or the control carries two of them.
     .menuStyle(.borderlessButton)
     .menuIndicator(.hidden)
     .fixedSize()
@@ -445,14 +638,12 @@ struct TierTableRegion: View {
     .accessibilityLabel("Change meet")
   }
 
-  /// Every cell of a tier the solve never reached reads secondary, and a Wheel cell does too when the
-  /// gear is the header's rather than the tier's own. A `Table` has no row-level modifier, so the two
-  /// rules live in one helper rather than in seven columns.
+  /// A tier the solve never reached reads secondary throughout, here as in the table.
   ///
   /// The stopped tier is marked by a symbol and not by colour alone, so the marking survives both a
   /// screenshot and a colour-blind reader.
-  private func cell(_ text: String, _ row: TierTableRow, dimmed: Bool = false) -> some View {
-    Text(text).foregroundStyle(dimmed || row.state == .notReached ? .secondary : .primary)
+  private func cell(_ text: String, _ row: TierTableRow) -> some View {
+    Text(text).foregroundStyle(row.state == .notReached ? .secondary : .primary)
   }
 }
 
@@ -497,6 +688,24 @@ private let partCases: [Part] = [.pav, .gdl, .crown, .table]
 /// The Wheel popup's tag for a tier declaring no gear of its own. A `String` tag rather than an `Int?`,
 /// for the reason `partCases` is matched by `rawValue`: an optional tag is the case that idiom avoids.
 private let inheritTag = "inherit"
+
+/// A tier's generator as three pieces of text and a flag — what the detail pane's fields hold, and what
+/// the tier's own stops derive. `Equatable` so the pane can re-seed the fields the moment the row it is
+/// describing says something different.
+private struct TierGenerator: Equatable {
+  var seeds: String
+  var folds: String
+  var mirror: Bool
+}
+
+/// How wide the detail pane opens, and how far the divider may be dragged either way.
+///
+/// The maximum is what still leaves the table usable at the window's own minimum width with the
+/// inspector open — the pane's width is rigid, so anything wider would squeeze the table into a
+/// horizontal scroll for a window the owner cannot make narrower.
+private let defaultPaneWidth = 300.0
+private let minPaneWidth = 200.0
+private let maxPaneWidth = 400.0
 
 /// A meet point's dot as it appears in the table: the same label and the same colour as the viewport's,
 /// so the two are read as one thing. Tinted fill under a solid border rather than coloured text, which

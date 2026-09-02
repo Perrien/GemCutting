@@ -13,7 +13,8 @@ import SwiftUI
 /// **The tier table's column widths are deliberately not covered.** SwiftUI owns them and overwrites
 /// anything set from underneath; restoring them through each column's declared ideal width was tried
 /// as well and did not take on this macOS release. The owner chose to drop the attempt rather than
-/// chase it — the table is due a significant rework anyway.
+/// chase it. The table has since been cut from ten columns to five, so the widths matter less: the
+/// five that remain declare their own ideals and Instructions takes the slack.
 final class LayoutMemoryView: NSView {
   /// One name per surface, shared by every bench window rather than per document: a new window opens
   /// the way the last one was arranged, which is what "remember my layout" asks for.
@@ -50,6 +51,10 @@ final class LayoutMemoryView: NSView {
       // The viewport-over-table split stacks its panes, which AppKit calls *not* vertical — the term
       // describes the dividers, not the stacking. The side-by-side split is the inspector's. Assigning
       // the name is also what restores: the split reads its saved divider the moment it is named.
+      //
+      // **Exactly two splits, and orientation is what tells them apart.** A third would have to be
+      // identified some other way — which is one of the two reasons the table-and-detail divider is
+      // not a split view at all (see `TierTableRegion`).
       split.autosaveName = split.isVertical ? Self.sideBySideSplitName : Self.stackedSplitName
     }
   }

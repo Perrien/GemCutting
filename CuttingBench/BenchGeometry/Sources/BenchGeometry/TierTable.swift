@@ -145,9 +145,10 @@ public func tierTableRows(
       // **Never sorted.** The format permits any order and the order is data: a printed sheet reads
       // `Novice Ash-er`'s eight stops as `12 24 36 48 60 72 84 0`, and a pattern transcribed that way
       // has to render that way.
-      indices: spec.indices.map(String.init).joined(separator: " "),
-      // Space-separated to match `indices`, so the two read as one statement across the row.
-      seeds: symmetry.seeds.map(String.init).joined(separator: " "),
+      indices: stopsText(spec.indices),
+      // The same spelling as `indices`, so the two read as one statement and the detail pane's proposal
+      // can be compared with the cell character for character.
+      seeds: stopsText(symmetry.seeds),
       folds: String(symmetry.folds),
       mirror: symmetry.mirror,
       // Read from the symmetry already derived above rather than from the stops, so the extra question

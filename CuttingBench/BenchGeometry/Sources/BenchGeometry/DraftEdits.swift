@@ -450,7 +450,10 @@ private func settingStops(_ stops: [Int], atPosition position: Int, in draft: Pa
 /// A typed stop list, split on whitespace and commas alike. `nil` for a piece that is not a whole number.
 /// **Order and duplicates are preserved exactly as typed**, which is what the Indices cell needs; the
 /// generator sorts its own output instead.
-private func parsedStops(_ typed: String) -> [Int]? {
+///
+/// Not `private`: the detail pane's proposal parses a typed seed list the same way, and a second parser
+/// is how the two come to disagree about what counts as a stop list.
+func parsedStops(_ typed: String) -> [Int]? {
   let pieces = typed.split(whereSeparator: { $0 == "," || $0.isWhitespace })
   var stops: [Int] = []
   for piece in pieces {
